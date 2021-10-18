@@ -78,6 +78,7 @@ jobs:
         run: |
           test -d .venv || virtualenv -p $(which python) --copies --reset-app-data .venv
           . .venv/bin/activate
+          pip install torch==1.9.1+cpu -f https://download.pytorch.org/whl/torch_stable.html
           pip install -e . -r dev-requirements.txt
 
       - name: Setup virtual environment (cache hit)
@@ -102,4 +103,4 @@ jobs:
         if: always()
         run: |
           . .venv/bin/activate
-          pip uninstall -y my_project
+          pip uninstall -y meta_learn_prompt
