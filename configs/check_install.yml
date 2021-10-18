@@ -1,0 +1,3 @@
+steps:
+  check_install:
+    type: check_install

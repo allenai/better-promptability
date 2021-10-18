@@ -94,6 +94,11 @@ jobs:
           python --version
           pip freeze
 
+      - name: Check install
+        run: |
+          . .venv/bin/activate
+          tango --no-logging run configs/check_install.yml -i meta_learn_prompt
+
       - name: ${{ matrix.task.name }}
         run: |
           . .venv/bin/activate
