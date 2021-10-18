@@ -50,5 +50,5 @@ setup(
         exclude=["*.tests", "*.tests.*", "tests.*", "tests"],
     ),
     install_requires=install_requirements,
-    python_requires=">=3.7",
+    python_requires=">=3.9",
 )
