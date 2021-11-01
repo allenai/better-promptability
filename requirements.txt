@@ -2,4 +2,4 @@
 ###### Core dependencies #######
 ################################
 torch==1.9.1
-ai2-tango[all]==0.2.2
+ai2-tango[all]==0.3.1
