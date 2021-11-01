@@ -3,7 +3,7 @@ import hashlib
 import logging
 import numpy as np
 import os
-from typing import Any, Optional, Union
+from typing import Any, Mapping, Optional, Union
 
 import datasets
 from datasets import DatasetDict, Dataset as HFDataset, load_dataset
@@ -92,7 +92,9 @@ class DataModule(LightningDataModule):
 
     @property
     def cache_path(self) -> str:
-        hash = lambda s: hashlib.md5(s.encode("utf-8")).hexdigest()
+        def hash(s):
+            hashlib.md5(s.encode("utf-8")).hexdigest()
+
         hash_fields = "".join([str(f) for f in self.hash_fields])
         return os.path.join(
             self.data_dir,
@@ -117,7 +119,7 @@ class DataModule(LightningDataModule):
         return "text"
 
     @property
-    def second_text_key(self) -> str:
+    def second_text_key(self) -> Union[str, None]:
         """For text pairs, the key in the example dictionary for the second text."""
         return None
 
@@ -150,7 +152,7 @@ class DataModule(LightningDataModule):
         raise NotImplementedError("This is an abstract class. Do not instantiate it directly!")
 
     @property
-    def num_labels(self) -> int:
+    def num_labels(self) -> Union[int, None]:
         if self.output_mode == "classification":
             raise NotImplementedError("This is an abstract class. Do not instantiate it directly!")
         return None
@@ -223,7 +225,7 @@ class DataModule(LightningDataModule):
 
         return dataloader
 
-    def pad_token_map(self, split: str) -> dict[str, PAD_TYPE]:
+    def pad_token_map(self, split: str) -> Mapping[str, PAD_TYPE]:
         """
         Specifies the padding for each key. Only keys including in this map plus the label will be
         included in the batch.
@@ -329,11 +331,13 @@ class FewShotDataset(LocalDataModule):
 
     def tokenize(self, examples: dict[str, Any], split: str) -> dict[str, Any]:
         inputs = [self.tokenizer(" " + text)["input_ids"] for text in examples[self.text_key]]
-        truncated = np.sum([len(inputs) > self.max_length - 16 for inputs in inputs])
 
-        if truncated > 0:
-            inputs = [inputs[: self.max_length - 16] for inputs in inputs]
-            print("%d/%d truncated" % (truncated, len(inputs)))
+        if self.max_length is not None:
+            truncated = np.sum([len(inputs) > self.max_length - 16 for inputs in inputs])
+
+            if truncated > 0:
+                inputs = [inputs[: self.max_length - 16] for inputs in inputs]
+                print("%d/%d truncated" % (truncated, len(inputs)))
 
         prefixes = [self.tokenizer(template.strip())["input_ids"] for template in self.templates]
 
@@ -370,14 +374,14 @@ class FewShotDataset(LocalDataModule):
             return_dict["label"] = class_labels
         return return_dict
 
-    def pad_token_map(self, split: str) -> dict[str, PAD_TYPE]:
+    def pad_token_map(self, split: str) -> Mapping[str, PAD_TYPE]:  # type: ignore
         """
         Specifies the padding for each key. Only keys including in this map plus the label will be
         included in the batch.
         """
-        pad_token_map = {"input_ids": 0, "attention_mask": False, "label_mask": False}
-        pad_token_map["label" if split == self.train_split else "sequence_label"] = 0
-        return pad_token_map
+        pad_token_map_ = {"input_ids": 0, "attention_mask": False, "label_mask": False}
+        pad_token_map_["label" if split == self.train_split else "sequence_label"] = 0
+        return pad_token_map_
 
 
 def assemble_prompt(prefix, input, eos_token_id, task_token_ids):

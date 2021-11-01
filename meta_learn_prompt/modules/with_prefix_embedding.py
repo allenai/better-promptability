@@ -6,7 +6,8 @@ import torch.nn.functional as F
 
 class WithPrefixEmbedding(nn.Module):
     """
-    From https://github.com/shmsw25/Channel-LM-Prompting/blob/cbbb92cc97039c73475ddf0db46896e9efeff3c1/model_util.py#L113
+    From
+    https://github.com/shmsw25/Channel-LM-Prompting/blob/cbbb92cc97039c73475ddf0db46896e9efeff3c1/model_util.py#L113
     """
 
     def __init__(self, orig_embed, n_prefix):

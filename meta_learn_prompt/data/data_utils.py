@@ -1,4 +1,4 @@
-from typing import Iterable, Union
+from typing import Iterable, Mapping, Union
 
 import numpy as np
 import torch
@@ -49,7 +49,7 @@ def _tensorize(sequence: np.ndarray, name: str, output_mode: str, label_key: str
 def collate_fn(
     batch: list[dict[str, list]],
     label_key: str,
-    pad_token_map: dict[str, PAD_TYPE],
+    pad_token_map: Mapping[str, PAD_TYPE],
     padding_side: str,
     output_mode: str,
 ) -> dict[str, torch.Tensor]:

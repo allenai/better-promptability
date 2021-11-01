@@ -2,17 +2,16 @@ from collections import defaultdict
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from allennlp.training.metrics import Metric
-import pytorch_lightning as pl
 import torch
 import torch.nn.functional as F
-from torch.optim import Optimizer
 from torch.utils.data.dataloader import DataLoader
 from transformers import get_linear_schedule_with_warmup
-from transformers import AdamW
+
+# from transformers import AdamW
 
 from tango.common.lazy import Lazy
 from tango.integrations.pytorch_lightning.model import LightningModule
-from tango.integrations.torch.optim import Optimizer, LRScheduler
+from tango.integrations.torch.optim import Optimizer
 
 from ..data.config import Config
 from ..data.data_module import DataModule
@@ -23,8 +22,8 @@ class Model(LightningModule):
         self,
         config: Config,
         dataset: DataModule,
+        optimizer: Lazy[Optimizer],
         epochs: int = 3,
-        optimizer: Optional[Lazy[Optimizer]] = None,
         weight_decay: float = 0.0,
         accumulate_grad_batches: int = 1,
         warmup_steps: int = 0,
@@ -113,7 +112,7 @@ class Model(LightningModule):
             total_steps = self.optimizer_kwargs["lr_scheduler_total_steps"]
         else:
             effective_batch_size = (
-                self.dataset.batch_size
+                self.dataset.batch_size  # type: ignore
                 * self.optimizer_kwargs["accumulate_grad_batches"]
                 * num_devices
             )
@@ -135,18 +134,23 @@ class Model(LightningModule):
         optimizer.zero_grad(set_to_none=True)
 
     def compute_loss(
-        self, logits: torch.Tensor, labels: torch.Tensor, mask: torch.Tensor = None, reduce=True
+        self,
+        logits: torch.Tensor,
+        labels: torch.Tensor,
+        mask: Optional[torch.Tensor] = None,
+        reduce=True,
     ) -> torch.Tensor:
         if self.dataset.output_mode == "classification":
             loss = F.cross_entropy(logits.view(-1, logits.shape[-1]), labels.view(-1))
         elif self.dataset.output_mode == "token_classification":
-            assert mask.any(dim=-1).all()
-            loss = F.cross_entropy(
-                logits.view(-1, logits.shape[-1]), labels.view(-1), reduction="none"
-            )
-            loss = loss.view_as(labels) * mask
-            if reduce:
-                loss = loss.sum() / mask.sum()
+            if mask is not None:
+                assert mask.any(dim=-1).all()
+                loss = F.cross_entropy(
+                    logits.view(-1, logits.shape[-1]), labels.view(-1), reduction="none"
+                )
+                loss = loss.view_as(labels) * mask
+                if reduce:
+                    loss = loss.sum() / mask.sum()  # type: ignore
         elif self.dataset.output_mode == "regression":
             loss = F.mse_loss(logits.view(-1), labels.view(-1))
         else:
@@ -206,7 +210,7 @@ class Model(LightningModule):
         # We gather individual metrics from each dataloader and compute the average if there is
         # more than one
         if num_splits > 1:
-            sums = defaultdict(int)
+            sums: defaultdict = defaultdict(int)
         for i in range(num_splits):
             split = (self.dataset.dev_splits if mode == "dev" else self.dataset.test_splits)[i]
             assert split != "avg"  # reserved keyword for below

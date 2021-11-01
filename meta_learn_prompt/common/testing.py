@@ -107,7 +107,7 @@ def run_experiment(
     the experiment and returns the path to the cache directory, a temporary directory that will be
     cleaned up on ``__exit__``.
     """
-    test_case = TangoTestCase()
+    test_case = MetaLearnPromptTestCase()
     try:
         test_case.setup_method()
         yield test_case.run(config, overrides=overrides)

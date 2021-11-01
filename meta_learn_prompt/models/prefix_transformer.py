@@ -1,5 +1,4 @@
-import argparse
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional
 
 import torch
 from transformers import GPT2LMHeadModel
@@ -12,14 +11,8 @@ from ..modules.transformer import Transformer
 from ..modules.with_prefix_embedding import WithPrefixEmbedding
 
 from tango.common.lazy import Lazy
-from tango.step import Step
-from tango.integrations.torch.format import TorchFormat
 from tango.integrations.pytorch_lightning.model import LightningModule
-from tango.integrations.pytorch_lightning.train import LightningTrainStep, LightningTrainer
-from tango.integrations.pytorch_lightning.callbacks import LightningCallback
-from tango.integrations.torch.optim import Optimizer, LRScheduler
-
-import pytorch_lightning as pl
+from tango.integrations.torch.optim import Optimizer
 
 import logging
 
@@ -33,8 +26,8 @@ class PrefixTransformer(Model):
         config: Config,
         dataset: FewShotDataset,
         transformer_model: str,
+        optimizer: Lazy[Optimizer],
         epochs: int = 3,
-        optimizer: Optional[Lazy[Optimizer]] = None,
         weight_decay: float = 0.0,
         accumulate_grad_batches: int = 1,
         warmup_steps: int = 0,
@@ -44,8 +37,8 @@ class PrefixTransformer(Model):
         super().__init__(
             config,
             dataset,
-            epochs,
             optimizer,
+            epochs,
             # lr,
             weight_decay,
             accumulate_grad_batches,
