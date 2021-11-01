@@ -261,9 +261,10 @@ class LocalDataModule(DataModule):
         self.tsv = tsv
 
     def load(self):
+
+        self.split_filename = lambda split: f"{split}.tsv" if self.tsv else f"{split}.csv"
         dataset_dict = load_dataset(
             "csv",
-            lambda split: f"{split}.tsv" if self.tsv else f"{split}.csv",
             data_files={
                 split: os.path.join(self.data_dir, self.split_filename(split))
                 for split in [self.train_split] + self.dev_splits + self.test_splits
