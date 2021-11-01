@@ -91,18 +91,16 @@ class TrainStep(Step):
 
         trainer: LightningTrainer = trainer.construct(work_dir=self.work_dir)
 
-        model = model.construct(config=config, dataset=datamodule)
+        epochs = trainer.max_epochs
 
-        # model.setup()
-        # model.configure_optimizers()
+        model = model.construct(
+            config=config,
+            dataset=datamodule,
+            epochs=epochs,
+            accumulate_grad_batches=trainer.accumulate_grad_batches,
+        )
 
-        # train_dataloader = dataloader(dataset, dataset.train_split, shuffle=True, batch_size=model.batch_size, gpus=config.gpus)
-        # val_dataloader = dataloader(dataset, "dev", shuffle=False, batch_size=model.eval_batch_size, gpus=config.gpus)
-
-        # model._train_dataloader = train_dataloader
-        # model.dataset_size = len(model._train_dataloader.dataset)
-
-        # trainer: LightningTrainer = trainer.construct(work_dir=self.work_dir)
+        assert model.epochs == epochs
 
         # Find the checkpoint callback and make sure it uses the right directory.
         checkpoint_callback: pl.callbacks.model_checkpoint.ModelCheckpoint

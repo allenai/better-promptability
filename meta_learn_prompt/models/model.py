@@ -24,10 +24,9 @@ class Model(LightningModule):
         config: Config,
         dataset: DataModule,
         epochs: int = 3,
-        lr: float = 0.001,  # 2e-5,
+        optimizer: Optional[Lazy[Optimizer]] = None,
         weight_decay: float = 0.0,
         accumulate_grad_batches: int = 1,
-        adam_epsilon: float = 1e-8,
         warmup_steps: int = 0,
         lr_scheduler_total_steps: Optional[int] = None,
     ):
@@ -35,14 +34,12 @@ class Model(LightningModule):
 
         self.config = config
         self.dataset = dataset
-        # self.optimizer = optimizer
+        self._optimizer = optimizer
 
         self.epochs = epochs
         self.optimizer_kwargs = {
-            "lr": lr,
             "weight_decay": weight_decay,
             "accumulate_grad_batches": accumulate_grad_batches,
-            "adam_epsilon": adam_epsilon,
             "warmup_steps": warmup_steps,
             "lr_scheduler_total_steps": lr_scheduler_total_steps,
         }
@@ -95,16 +92,16 @@ class Model(LightningModule):
                 "params": [
                     p for n, p in self.named_parameters() if any(nd in n for nd in no_decay)
                 ],
-                "weight_decay": 0.0,
+                "weight_decay": self.optimizer_kwargs["weight_decay"],
             },
         ]
-        optimizer = AdamW(
-            optimizer_grouped_parameters,
-            lr=self.optimizer_kwargs["lr"],
-            eps=self.optimizer_kwargs["adam_epsilon"],
-        )
+        # optimizer = AdamW(
+        #     optimizer_grouped_parameters,
+        #     lr=self.optimizer_kwargs["lr"],
+        #     eps=self.optimizer_kwargs["adam_epsilon"],
+        # )
 
-        # optimizer = self.optimizer.construct(optimizer_grouped_parameters)
+        optimizer = self._optimizer.construct(params=optimizer_grouped_parameters)
         scheduler = self.get_lr_scheduler(optimizer)
 
         return [optimizer], [scheduler]

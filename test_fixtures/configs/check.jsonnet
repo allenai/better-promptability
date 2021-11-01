@@ -35,12 +35,12 @@ local config = {
             "model": {
                 "type": "prefix_transformer",
                 "transformer_model": "gpt2",
-                "lr": 0.0001,
-                /*"optimizer": {
-                    "type": "torch::AdamW",
+                "optimizer": {
+                    "type": "transformers_adamw",
                     "lr": 0.001,
                     "eps": 1e-8,
-                }*/
+                },
+                "weight_decay": 0.0,
             }
             
         }
