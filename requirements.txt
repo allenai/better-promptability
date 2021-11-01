@@ -3,4 +3,6 @@
 ################################
 torch==1.10.0
 ai2-tango[all]==0.3.1
+allennlp @ git+https://github.com/allenai/allennlp.git@a09d057cb2c711743e3a3fc8597398f37165f71a
 transformers>=4.1,<4.12
+tqdm==4.62.2
