@@ -2,4 +2,7 @@
 ###### Core dependencies #######
 ################################
 torch==1.10.0
-ai2-tango[all]==0.2.4
+ai2-tango[all]==0.3.1
+allennlp==2.8.0
+transformers>=4.1,<4.12
+tqdm==4.62.2
