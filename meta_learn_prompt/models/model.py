@@ -4,7 +4,6 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from allennlp.training.metrics import Metric
 import torch
 import torch.nn.functional as F
-from torch.utils.data.dataloader import DataLoader
 from transformers import get_linear_schedule_with_warmup
 
 # from transformers import AdamW
@@ -49,26 +48,7 @@ class Model(LightningModule):
         """To set up self.dataset_size"""
         if stage != "fit":
             return
-
-        self._train_dataloader = self.dataset.dataloader(
-            "train", self.dataset.batch_size, shuffle=True
-        )
-        self.dataset_size = len(self._train_dataloader.dataset)
-
-    def train_dataloader(self) -> DataLoader:
-        return self._train_dataloader
-
-    # # def val_dataloader(self, shuffle=False) -> list[DataLoader]:
-    # #     return [
-    # #         self.dataset.dataloader(split, self.eval_batch_size, shuffle=shuffle)
-    # #         for split in self.dataset.dev_splits
-    # #     ]
-
-    # # def test_dataloader(self, shuffle=False) -> list[DataLoader]:
-    # #     return [
-    # #         self.dataset.dataloader(split, self.eval_batch_size, shuffle=shuffle)
-    # #         for split in self.dataset.test_splits
-    # #     ]
+        self.dataset_size = len(self.dataset.dataset_dict[self.dataset.train_split])
 
     def setup_metrics(self) -> Dict[str, Dict[str, Metric]]:
         return {
