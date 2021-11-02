@@ -17,7 +17,7 @@ def get_possible_labels(task):
     if task in SUPERGLUE_TASKS:
         raise NotImplementedError  # TODO: get this from datasets
     else:
-        return get_sentence_classsification_label_words(task)
+        return list(range(len(get_sentence_classsification_label_words(task))))
 
 
 def get_sentence_classsification_templates(task, idx, label):
@@ -44,7 +44,8 @@ def get_sentence_classsification_templates(task, idx, label):
     else:
         raise NotImplementedError(task)
 
-    return templates[idx] % label
+    label_words = get_sentence_classsification_label_words(task)
+    return templates[idx] % label_words[label]
 
 
 def get_sentence_classsification_label_words(task):
