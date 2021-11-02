@@ -123,14 +123,14 @@ class Model(LightningModule):
         if self.dataset.output_mode == "classification":
             loss = F.cross_entropy(logits.view(-1, logits.shape[-1]), labels.view(-1))
         elif self.dataset.output_mode == "token_classification":
-            if mask is not None:
-                assert mask.any(dim=-1).all()
-                loss = F.cross_entropy(
-                    logits.view(-1, logits.shape[-1]), labels.view(-1), reduction="none"
-                )
-                loss = loss.view_as(labels) * mask
-                if reduce:
-                    loss = loss.sum() / mask.sum()  # type: ignore
+            assert mask is not None
+            assert mask.any(dim=-1).all()
+            loss = F.cross_entropy(
+                logits.view(-1, logits.shape[-1]), labels.view(-1), reduction="none"
+            )
+            loss = loss.view_as(labels) * mask
+            if reduce:
+                loss = loss.sum() / mask.sum()  # type: ignore
         elif self.dataset.output_mode == "regression":
             loss = F.mse_loss(logits.view(-1), labels.view(-1))
         else:

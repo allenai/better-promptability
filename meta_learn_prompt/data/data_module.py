@@ -93,7 +93,7 @@ class DataModule(LightningDataModule):
     @property
     def cache_path(self) -> str:
         def hash(s):
-            hashlib.md5(s.encode("utf-8")).hexdigest()
+            return hashlib.md5(s.encode("utf-8")).hexdigest()
 
         hash_fields = "".join([str(f) for f in self.hash_fields])
         return os.path.join(
@@ -301,9 +301,10 @@ class FewShotDataset(LocalDataModule):
         tsv = self.dataset in TSV_FORMAT
         self.task_tokens = ["<TASK{}>".format(str(i).zfill(2)) for i in range(self.num_prefix)]
         self.templates = get_templates(self.dataset, self.template_idx)
-        max_length = 256 if self.dataset in LONG_DATASETS else 128
 
-        super().__init__(tsv, *args, max_length=max_length, **kwargs)
+        super().__init__(tsv, *args, **kwargs)
+
+        self.max_length: int = 256 if self.dataset in LONG_DATASETS else 128
 
     @property
     def hash_fields(self) -> list[Any]:
@@ -332,12 +333,11 @@ class FewShotDataset(LocalDataModule):
     def tokenize(self, examples: dict[str, Any], split: str) -> dict[str, Any]:
         inputs = [self.tokenizer(" " + text)["input_ids"] for text in examples[self.text_key]]
 
-        if self.max_length is not None:
-            truncated = np.sum([len(inputs) > self.max_length - 16 for inputs in inputs])
+        truncated = np.sum([len(inputs) > self.max_length - 16 for inputs in inputs])
 
-            if truncated > 0:
-                inputs = [inputs[: self.max_length - 16] for inputs in inputs]
-                print("%d/%d truncated" % (truncated, len(inputs)))
+        if truncated > 0:
+            inputs = [inputs[: self.max_length - 16] for inputs in inputs]
+            print("%d/%d truncated" % (truncated, len(inputs)))
 
         prefixes = [self.tokenizer(template.strip())["input_ids"] for template in self.templates]
 
