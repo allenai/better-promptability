@@ -165,11 +165,11 @@ def templatize_superglue(task, idx, example, label):
             (f"It is {verbalizer_b} that {hypothesis}.", f"{premise}"),
         ]
         if task == "cb":
-            templates.append((f"True, False, or Neither? Answer: {verbalizer_c}.", f"{premise} Question: {hypothesis}."))
-            templates.append((f"Question: {hypothesis}. True, False, or Neither? Answer: {verbalizer_c}.", f"{premise}"))
+            templates.append((f"True, False, or Neither? Answer: {verbalizer_c}.", f"{premise} Question: {hypothesis}."))  # noqa: E501
+            templates.append((f"Question: {hypothesis}. True, False, or Neither? Answer: {verbalizer_c}.", f"{premise}"))  # noqa: E501
         elif task == "rte":
-            templates.append((f"True or False? Answer: {verbalizer_c}.", f"{premise} Question: {hypothesis}."))
-            templates.append((f"Question: {hypothesis}. True or False? Answer: {verbalizer_c}.", f"{premise}"))
+            templates.append((f"True or False? Answer: {verbalizer_c}.", f"{premise} Question: {hypothesis}."))  # noqa: E501
+            templates.append((f"Question: {hypothesis}. True or False? Answer: {verbalizer_c}.", f"{premise}"))  # noqa: E501
         return templates[idx]
     elif task == "copa":
         premise = example["premise"].rstrip(string.punctuation)
@@ -194,9 +194,9 @@ def templatize_superglue(task, idx, example, label):
 
         templates = [
             (f"{verbalizer}", f'"{sentence1}"/"{sentence2}". Similar sense of "{word}"?'),
-            (f"{verbalizer}", f"{sentence1} {sentence2} Does {word} have the same meaning in both sentences?"),
+            (f"{verbalizer}", f"{sentence1} {sentence2} Does {word} have the same meaning in both sentences?"),  # noqa: E501
             (f'Similar sense of "{word}"? {verbalizer}', f'"{sentence1}"/"{sentence2}".'),
-            (f"Does {word} have the same meaning in both sentences? {verbalizer}", f"{sentence1} {sentence2}"),
+            (f"Does {word} have the same meaning in both sentences? {verbalizer}", f"{sentence1} {sentence2}"),  # noqa: E501
         ]
         return templates[idx]
     elif task == "wsc":
@@ -224,9 +224,9 @@ def templatize_superglue(task, idx, example, label):
             (f"{verbalizer}.", f'{passage} Question: {question} Is the correct answer "{answer}"?'),
             (f'Is the correct answer "{answer}"? {verbalizer}.', f"{passage} Question: {question}"),
             (f'Question: {question} Is the correct answer "{answer}"? {verbalizer}.', f"{passage}"),
-            (f"{verbalizer}.", f'{passage} Based on the previous passage, {question} Is "{answer}" a correct answer?'),
-            (f'Is "{answer}" a correct answer? {verbalizer}.', f"{passage} Based on the previous passage, {question}"),
-            (f'Based on the previous passage, {question} Is "{answer}" a correct answer? {verbalizer}.', f"{passage}"),
+            (f"{verbalizer}.", f'{passage} Based on the previous passage, {question} Is "{answer}" a correct answer?'),  # noqa: E501
+            (f'Is "{answer}" a correct answer? {verbalizer}.', f"{passage} Based on the previous passage, {question}"),  # noqa: E501
+            (f'Based on the previous passage, {question} Is "{answer}" a correct answer? {verbalizer}.', f"{passage}"),  # noqa: E501
         ]
         assert len(templates) == n_templates
         return templates[idx]

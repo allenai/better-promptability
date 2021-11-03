@@ -333,10 +333,8 @@ class FewShotDataset(LocalDataModule):
         def prepare(label):
             prefix, input = templatize(self.dataset, self.template_idx, example, label)
             prefix = self.tokenizer(prefix)["input_ids"]
-            input = self.tokenizer(input)["input_ids"][:self.max_length - 16]
-            return assemble_prompt(
-                prefix, input, self.tokenizer.eos_token_id, self.task_token_ids
-            )
+            input = self.tokenizer(input)["input_ids"][: self.max_length - 16]
+            return assemble_prompt(prefix, input, self.tokenizer.eos_token_id, self.task_token_ids)
 
         if split == self.train_split:
             input_ids, attention_mask, label_mask, label = prepare(example[self.label_key])
