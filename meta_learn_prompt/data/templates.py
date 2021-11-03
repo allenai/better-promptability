@@ -1,10 +1,13 @@
 import string
+from typing import Any
 
 
 SUPERGLUE_TASKS = {"boolq", "cb", "copa", "multirc", "record", "rte", "wic", "wsc"}
 
 
-def templatize(task, idx, example, label):
+def templatize(task: str, idx: int, example: dict[str, Any], label: Any) -> tuple[str, str]:
+    # label is any task-defined label, e.g. 1/0, True/False, "entailment"/"non-entailment"
+    # Note that due the noisy channel model, "prefix" contains the label
     if task in SUPERGLUE_TASKS:
         prefix, input = templatize_superglue(task, idx, example, label)
     else:
@@ -17,7 +20,7 @@ def get_possible_labels(task):
     if task in SUPERGLUE_TASKS:
         raise NotImplementedError  # TODO: get this from datasets
     else:
-        return list(range(len(get_sentence_classsification_label_words(task))))
+        return list(range(len(get_sentence_classsification_verbalizers(task))))
 
 
 def get_sentence_classsification_templates(task, idx, label):
@@ -44,19 +47,19 @@ def get_sentence_classsification_templates(task, idx, label):
     else:
         raise NotImplementedError(task)
 
-    label_words = get_sentence_classsification_label_words(task)
-    return templates[idx] % label_words[label]
+    verbalizers = get_sentence_classsification_verbalizers(task)
+    return templates[idx] % verbalizers[label]
 
 
-def get_sentence_classsification_label_words(task):
+def get_sentence_classsification_verbalizers(task):
     if task in ["sst-2", "mr", "cr", "yelp_binary"]:
-        label_words = ["terrible", "great"]
+        verbalizers = ["terrible", "great"]
     elif task in ["sst-5", "yelp_full", "amazon"]:
-        label_words = ["terrible", "bad", "okay", "good", "great"]
+        verbalizers = ["terrible", "bad", "okay", "good", "great"]
     elif task in ["agnews"]:
-        label_words = ["World", "Sports", "Business", "Technology"]
+        verbalizers = ["World", "Sports", "Business", "Technology"]
     elif task in ["trec"]:
-        label_words = [
+        verbalizers = [
             "Description",
             "Entity",
             "Expression",
@@ -65,13 +68,13 @@ def get_sentence_classsification_label_words(task):
             "Number",
         ]
     elif task in ["sogou"]:
-        label_words = ["Sports", "Finance", "Entertainment", "Automobile", "Technology"]
+        verbalizers = ["Sports", "Finance", "Entertainment", "Automobile", "Technology"]
     elif task in ["subj"]:
-        label_words = ["subjective", "objective"]
+        verbalizers = ["subjective", "objective"]
     elif task in ["cola"]:
-        label_words = ["not grammatical", "grammatical"]
+        verbalizers = ["not grammatical", "grammatical"]
     elif task in ["dbpedia"]:
-        label_words = [
+        verbalizers = [
             "Company",
             "Educational Institution",
             "Artist",
@@ -88,7 +91,7 @@ def get_sentence_classsification_label_words(task):
             "Written Work",
         ]
     elif task in ["yahoo"]:
-        label_words = [
+        verbalizers = [
             "Society & Culture",
             "Science & Mathematics",
             "Health",
@@ -103,7 +106,7 @@ def get_sentence_classsification_label_words(task):
     else:
         raise NotImplementedError(task)
 
-    return label_words
+    return verbalizers
 
 
 def templatize_superglue(task, idx, example, label):
