@@ -26,6 +26,7 @@ pip-wheel-metadata/
 # miscellaneous
 
 .cache/
+*.datacache/*
 doc/_build/
 *.swp
 .DS_Store

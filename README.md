@@ -4,7 +4,7 @@
 
 1. Create a new Python virtual environment with Python 3.9 or greater.
 2. Install PyTorch according to the [official instructions](https://pytorch.org/get-started/locally/).
-3. Run
+3. Run (TODO: this command doesn't work for zsh)
 
     ```
     pip install -e .[dev]
