@@ -1,7 +1,6 @@
 from collections.abc import ItemsView
 import hashlib
 import logging
-import numpy as np
 import os
 from typing import Any, Mapping, Optional, Union
 
@@ -16,7 +15,7 @@ from tango.integrations.pytorch_lightning.data import LightningDataModule
 
 from .config import Config
 from .data_utils import PAD_TYPE, collate_fn
-from .templates import get_templates
+from .templates import templatize, get_possible_labels
 
 TSV_FORMAT = {"amazon", "sst-2", "agnews", "dbpedia", "yahoo", "yelp_full"}
 LONG_DATASETS = {
@@ -174,7 +173,7 @@ class DataModule(LightningDataModule):
             {
                 split: dataset.map(
                     lambda examples: self.tokenize(examples, split),
-                    batched=True,
+                    batched=False,  # to make tokenization/transformation easier
                     num_proc=1,  # TODO: this can't be > 1 in tango, for some reason.
                 )
                 for split, dataset in dataset_dict.items()
@@ -300,7 +299,6 @@ class FewShotDataset(LocalDataModule):
 
         tsv = self.dataset in TSV_FORMAT
         self.task_tokens = ["<TASK{}>".format(str(i).zfill(2)) for i in range(self.num_prefix)]
-        self.templates = get_templates(self.dataset, self.template_idx)
 
         super().__init__(tsv, *args, **kwargs)
 
@@ -330,37 +328,23 @@ class FewShotDataset(LocalDataModule):
         self.task_token_ids = task_token_ids.squeeze(0).tolist()
         return tokenizer
 
-    def tokenize(self, examples: dict[str, Any], split: str) -> dict[str, Any]:
-        inputs = [self.tokenizer(" " + text)["input_ids"] for text in examples[self.text_key]]
+    def tokenize(self, example: dict[str, Any], split: str) -> dict[str, Any]:
+        def prepare(label):
+            prefix, input = templatize(self.dataset, self.template_idx, example, label)
+            prefix = self.tokenizer(prefix)["input_ids"]
+            input = self.tokenizer(input)["input_ids"][: self.max_length - 16]
+            return assemble_prompt(prefix, input, self.tokenizer.eos_token_id, self.task_token_ids)
 
-        truncated = np.sum([len(inputs) > self.max_length - 16 for inputs in inputs])
-
-        if truncated > 0:
-            inputs = [inputs[: self.max_length - 16] for inputs in inputs]
-            print("%d/%d truncated" % (truncated, len(inputs)))
-
-        prefixes = [self.tokenizer(template.strip())["input_ids"] for template in self.templates]
-
-        input_ids, attention_mask, label_mask, labels, class_labels = [], [], [], [], []
-        for input, class_label in zip(inputs, examples[self.label_key]):
-            if split == self.train_split:
-                prefix = prefixes[class_label]
-                _input_ids, _attention_mask, _label_mask, _labels = assemble_prompt(
-                    prefix, input, self.tokenizer.eos_token_id, self.task_token_ids
-                )
-            else:
-                # for testing we need an additional dimension to try all prompts
-                encoded = [
-                    assemble_prompt(prefix, input, self.tokenizer.eos_token_id, self.task_token_ids)
-                    for prefix in prefixes
-                ]
-                _input_ids, _attention_mask, _label_mask, _labels = zip(*encoded)
-
-            input_ids.append(_input_ids)
-            attention_mask.append(_attention_mask)
-            label_mask.append(_label_mask)
-            labels.append(_labels)
-            class_labels.append(class_label)
+        if split == self.train_split:
+            input_ids, attention_mask, label_mask, label = prepare(example[self.label_key])
+        else:
+            input_ids, attention_mask, label_mask, label = [], [], [], []
+            for possible_label in get_possible_labels(self.dataset):
+                _input_ids, _attention_mask, _label_mask, _label = prepare(possible_label)
+                input_ids.append(_input_ids)
+                attention_mask.append(_attention_mask)
+                label_mask.append(_label_mask)
+                label.append(_label)
 
         return_dict = {
             "input_ids": input_ids,
@@ -368,10 +352,10 @@ class FewShotDataset(LocalDataModule):
             "label_mask": label_mask,
         }
         if split == self.train_split:
-            return_dict["label"] = labels
+            return_dict["label"] = label
         else:
-            return_dict["sequence_label"] = labels
-            return_dict["label"] = class_labels
+            return_dict["sequence_label"] = label
+            return_dict["label"] = example[self.label_key]
         return return_dict
 
     def pad_token_map(self, split: str) -> Mapping[str, PAD_TYPE]:  # type: ignore
