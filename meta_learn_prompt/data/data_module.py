@@ -1,7 +1,6 @@
 from collections.abc import ItemsView
 import hashlib
 import logging
-import numpy as np
 import os
 from typing import Any, Mapping, Optional, Union
 
