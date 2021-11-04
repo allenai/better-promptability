@@ -41,12 +41,13 @@ class PreprocessSuperGlue(Step):
             examples["passage"] = [p.replace("@highlight\n", "- ") for p in examples["passage"]]
             if split == "train":
                 # create one example per answer
-                new_examples = {k if k != "answers" else "answer": [] for k in examples.keys()}
+                new_examples: dict[str, list] = {
+                    k if k != "answers" else "answer": [] for k in examples.keys()
+                }
                 for i, answers in examples["answers"]:
                     for answer in answers:
                         new_examples["answer"].append(answer)
                         for field in set(examples.keys()) - {"answers"}:
                             new_examples[field].append(examples[field][i])
                 examples = new_examples
-        else:
-            return examples
+        return examples
