@@ -13,7 +13,7 @@ from tango.integrations.torch.format import TorchFormat
 from tango.step import Step
 
 from ..data.config import Config
-from ..data.data_module import FewShotDataModule
+from ..data.few_shot_data_module import FewShotDataModule
 from ..models.prefix_transformer import PrefixTransformer
 
 logger = logging.getLogger(__name__)
