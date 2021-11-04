@@ -2,7 +2,6 @@ import os
 from typing import Any
 
 from datasets import DatasetDict, load_dataset
-from tango.integrations.pytorch_lightning.data import LightningDataModule
 
 from .noisy_channel_data_module import NoisyChannelDataModule
 
@@ -10,7 +9,7 @@ from .noisy_channel_data_module import NoisyChannelDataModule
 TSV_FORMAT = {"amazon", "sst-2", "agnews", "dbpedia", "yahoo", "yelp_full"}
 
 
-@LightningDataModule.register("few_shot")
+@NoisyChannelDataModule.register("few_shot")
 class FewShotDataModule(NoisyChannelDataModule):
     def __init__(self, dataset: str, *args, **kwargs):
         self.dataset = dataset.lower()
