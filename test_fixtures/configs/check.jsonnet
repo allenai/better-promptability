@@ -1,7 +1,7 @@
 local config = {
     "type": "default",
     "seed": 100,
-    "gpus": 0,
+    "gpus": 1,
     "fp16": false,
 };
 

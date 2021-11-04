@@ -1,4 +1,5 @@
 from typing import Optional
+
 from tango.common.aliases import PathOrStr
 from tango.common.registrable import Registrable
 from tango.step import Step
@@ -8,7 +9,7 @@ class Config(Registrable):
     def __init__(
         self,
         seed: int = 42,
-        gpus: int = 0,
+        gpus: int = 1,
         fp16: bool = False,
         output_dir: Optional[PathOrStr] = None,
     ):
