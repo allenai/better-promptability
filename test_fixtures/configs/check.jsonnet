@@ -26,6 +26,7 @@ local config = {
                 "replace_sampler_ddp": false,
             },
             "datamodule": {
+                "type": "few_shot",
                 "dataset": "sst-2",
                 "data_dir": "test_fixtures/data/sst2",
                 "template_idx": 0,

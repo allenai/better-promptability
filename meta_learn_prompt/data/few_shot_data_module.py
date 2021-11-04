@@ -1,55 +1,25 @@
-from typing import Any, Mapping
+import os
+from typing import Any
 
-from tango.common.aliases import PathOrStr
+from datasets import DatasetDict, load_dataset
 from tango.integrations.pytorch_lightning.data import LightningDataModule
-from transformers import GPT2Tokenizer, PreTrainedTokenizerBase
 
-from .data_utils import PAD_TYPE
-from .local_data_module import LocalDataModule
-from .templates import get_possible_labels, templatize
+from .noisy_channel_data_module import NoisyChannelDataModule
 
 
 TSV_FORMAT = {"amazon", "sst-2", "agnews", "dbpedia", "yahoo", "yelp_full"}
-LONG_DATASETS = {
-    "cr",
-    "subj",
-    "agnews",
-    "amazon",
-    "yelp_full",
-    "yelp_binary",
-    "boolq",
-    "dbpedia",
-    "yahoo",
-}
 
 
 @LightningDataModule.register("few_shot")
-class FewShotDataModule(LocalDataModule):
-    def __init__(
-        self,
-        dataset: str,
-        num_prefix: int,
-        template_idx: int,
-        transformer_model: PathOrStr,
-        *args,
-        **kwargs,
-    ):
-
+class FewShotDataModule(NoisyChannelDataModule):
+    def __init__(self, dataset: str, *args, **kwargs):
         self.dataset = dataset.lower()
-        self.num_prefix = num_prefix
-        self.template_idx = template_idx
-        self.transformer_model = transformer_model
-
-        tsv = self.dataset in TSV_FORMAT
-        self.task_tokens = ["<TASK{}>".format(str(i).zfill(2)) for i in range(self.num_prefix)]
-
-        super().__init__(tsv, *args, **kwargs)
-
-        self.max_length: int = 256 if self.dataset in LONG_DATASETS else 128
+        self.tsv = self.dataset in TSV_FORMAT
+        super().__init__(*args, **kwargs)
 
     @property
     def hash_fields(self) -> list[Any]:
-        return super().hash_fields + [self.dataset, self.template_idx]
+        return super().hash_fields + [self.dataset]
 
     @property
     def metric_names(self) -> list[str]:
@@ -59,77 +29,19 @@ class FewShotDataModule(LocalDataModule):
     def metric_watch_mode(self) -> str:
         return "max"
 
-    @property
-    def output_mode(self) -> str:
-        return "token_classification"
-
-    def setup_tokenizer(self) -> PreTrainedTokenizerBase:
-        tokenizer = GPT2Tokenizer.from_pretrained(self.transformer_model)
-        tokenizer.add_tokens(self.task_tokens)
-        task_token_ids = tokenizer(" ".join(self.task_tokens), return_tensors="pt")["input_ids"]
-        assert task_token_ids.shape[-1] == self.num_prefix
-        self.task_token_ids = task_token_ids.squeeze(0).tolist()
-        return tokenizer
-
-    def tokenize(self, example: dict[str, Any], split: str) -> dict[str, Any]:
-        def prepare(label):
-            prefix, input = templatize(self.dataset, self.template_idx, example, label)
-            prefix = self.tokenizer(prefix)["input_ids"]
-            input = self.tokenizer(input)["input_ids"][: self.max_length - 16]
-            return assemble_prompt(prefix, input, self.tokenizer.eos_token_id, self.task_token_ids)
-
-        if split == self.train_split:
-            input_ids, attention_mask, label_mask, label = prepare(example[self.label_key])
-        else:
-            input_ids, attention_mask, label_mask, label = [], [], [], []
-            for possible_label in get_possible_labels(self.dataset, example):
-                _input_ids, _attention_mask, _label_mask, _label = prepare(possible_label)
-                input_ids.append(_input_ids)
-                attention_mask.append(_attention_mask)
-                label_mask.append(_label_mask)
-                label.append(_label)
-
-        return_dict = {
-            "input_ids": input_ids,
-            "attention_mask": attention_mask,
-            "label_mask": label_mask,
-        }
-        if split == self.train_split:
-            return_dict["label"] = label
-        else:
-            return_dict["sequence_label"] = label
-            return_dict["label"] = example[self.label_key]
-        return return_dict
-
-    def pad_token_map(self, split: str) -> Mapping[str, PAD_TYPE]:  # type: ignore
-        """
-        Specifies the padding for each key. Only keys including in this map plus the label will be
-        included in the batch.
-        """
-        pad_token_map_ = {"input_ids": 0, "attention_mask": False, "label_mask": False}
-        pad_token_map_["label" if split == self.train_split else "sequence_label"] = 0
-        return pad_token_map_
-
-
-def assemble_prompt(prefix, input, eos_token_id, task_token_ids):
-    # Why don't we need BOS? I'm not sure -- this is following Min et al. (2021).
-    # I think it has something to do with GPT-2 not being trained with it
-    # see https://github.com/huggingface/transformers/issues/3311
-    input_ids = prefix + input + [eos_token_id]
-    label_mask = [False] * len(prefix) + [True] * (len(input) + 1)
-    # T: soft task tokens; P: prompt tokens; X: sentence
-    # input_ids  : P1 P2 P3 X1 X2 X3 EOS
-    # label_mask : 0  0  0  1  1  1  1
-
-    n_task_tokens = len(task_token_ids)
-    new_input_ids = task_token_ids + input_ids[:-1]
-    labels = [0] * (n_task_tokens - 1) + input_ids
-    new_label_mask = [False] * (n_task_tokens - 1) + label_mask
-    # new_input_ids  : T1 T2 T3 P1 P2 P3 X1 X2 X3
-    # pred           : T2 T3 P1 P2 P3 X1 X2 X3 EOS       <-- this is what the model will predict
-    # labels         : 0  0  P1 P2 P3 X1 X2 X3 EOS
-    # new_label_mask : 0  0  0  0  0  1  1  1  1
-
-    assert len(new_input_ids) == len(labels) == len(new_label_mask)
-    attention_mask = [True] * len(labels)
-    return new_input_ids, attention_mask, new_label_mask, labels
+    def load(self) -> DatasetDict:
+        self.split_filename = lambda split: f"{split}.tsv" if self.tsv else f"{split}.csv"
+        dataset_dict = load_dataset(
+            "csv",
+            data_files={
+                split: os.path.join(self.data_dir, self.split_filename(split))
+                for split in [self.train_split] + self.dev_splits + self.test_splits
+            },
+            skiprows=1 if self.tsv else 0,
+            delimiter="\t" if self.tsv else ",",
+            column_names=[self.text_key, self.label_key]
+            if self.tsv
+            else [self.label_key, self.text_key],
+        )
+        assert isinstance(dataset_dict, DatasetDict)
+        return dataset_dict
