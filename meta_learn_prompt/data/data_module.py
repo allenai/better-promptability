@@ -359,7 +359,7 @@ class FewShotDataModule(LocalDataModule):
             input_ids, attention_mask, label_mask, label = prepare(example[self.label_key])
         else:
             input_ids, attention_mask, label_mask, label = [], [], [], []
-            for possible_label in get_possible_labels(self.dataset):
+            for possible_label in get_possible_labels(self.dataset, example):
                 _input_ids, _attention_mask, _label_mask, _label = prepare(possible_label)
                 input_ids.append(_input_ids)
                 attention_mask.append(_attention_mask)

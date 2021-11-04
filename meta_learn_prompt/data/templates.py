@@ -16,9 +16,24 @@ def templatize(task: str, idx: int, example: dict[str, Any], label: Any) -> tupl
     return (prefix.strip(), " " + input)
 
 
-def get_possible_labels(task):
+def get_possible_labels(task, example):
     if task in SUPERGLUE_TASKS:
-        raise NotImplementedError  # TODO: get this from datasets
+        if task == "boolq":
+            return (False, True)
+        elif task == "cb":
+            return ("entailment", "contradiction", "neutral")
+        elif task == "rte":
+            return ("entailment", "not_entailment")
+        elif task == "copa":
+            return (0, 1)
+        elif task == "wic":
+            return (False, True)
+        elif task == "multirc":
+            return (0, 1)
+        elif task == "record":
+            return example["entities"]
+        else:
+            raise NotImplementedError
     else:
         return list(range(len(get_sentence_classsification_verbalizers(task))))
 
@@ -175,7 +190,6 @@ def templatize_superglue(task, idx, example, label):
         premise = example["premise"].rstrip(string.punctuation)
         choice1 = example["choice1"].rstrip(string.punctuation)
         choice2 = example["choice2"].rstrip(string.punctuation)
-        # TODO: random swap
         verbalizer = [choice1, choice2][label]
         connective = "so" if example["question"] == "effect" else "because"
         templates = [
@@ -188,7 +202,6 @@ def templatize_superglue(task, idx, example, label):
     elif task == "wic":
         sentence1 = example["sentence1"]
         sentence2 = example["sentence2"]
-        # TODO: random swap
         word = example["word"]
         verbalizer = "Yes" if label else "No"
 
