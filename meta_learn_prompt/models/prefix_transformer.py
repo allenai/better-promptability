@@ -1,20 +1,17 @@
+import logging
 from typing import Any, Optional
 
 import torch
-from transformers import GPT2LMHeadModel
-
-from .model import Model
-from ..data.config import Config
-from ..data.data_module import FewShotDataset
-from ..modules.transformer import Transformer
-
-from ..modules.with_prefix_embedding import WithPrefixEmbedding
-
 from tango.common.lazy import Lazy
 from tango.integrations.pytorch_lightning.model import LightningModule
 from tango.integrations.torch.optim import Optimizer
+from transformers import GPT2LMHeadModel
 
-import logging
+from ..data.config import Config
+from ..data.data_module import FewShotDataModule
+from ..modules.transformer import Transformer
+from ..modules.with_prefix_embedding import WithPrefixEmbedding
+from .model import Model
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +21,7 @@ class PrefixTransformer(Model):
     def __init__(
         self,
         config: Config,
-        dataset: FewShotDataset,
+        dataset: FewShotDataModule,
         transformer_model: str,
         optimizer: Lazy[Optimizer],
         epochs: int = 3,
@@ -113,7 +110,7 @@ class PrefixTransformer(Model):
 #         self,
 #         model: Lazy[PrefixTransformer],
 #         config: Config,
-#         dataset: FewShotDataset,
+#         dataset: FewShotDataModule,
 #     ) -> PrefixTransformer:
 
 #         return model.construct(config=config, dataset=dataset)

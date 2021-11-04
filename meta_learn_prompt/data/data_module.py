@@ -1,21 +1,22 @@
-from collections.abc import ItemsView
 import hashlib
 import logging
 import os
+from abc import abstractmethod, abstractproperty
+from collections.abc import ItemsView
 from typing import Any, Mapping, Optional, Union
 
 import datasets
-from datasets import DatasetDict, Dataset as HFDataset, load_dataset
+from datasets import Dataset as HFDataset
+from datasets import DatasetDict, load_dataset
+from tango.common.aliases import PathOrStr
+from tango.integrations.pytorch_lightning.data import LightningDataModule
 from torch.utils.data.dataloader import DataLoader
 from transformers import GPT2Tokenizer, PreTrainedTokenizerBase
 from transformers.trainer_pt_utils import LengthGroupedSampler
 
-from tango.common.aliases import PathOrStr
-from tango.integrations.pytorch_lightning.data import LightningDataModule
-
 from .config import Config
 from .data_utils import PAD_TYPE, collate_fn
-from .templates import templatize, get_possible_labels
+from .templates import get_possible_labels, templatize
 
 TSV_FORMAT = {"amazon", "sst-2", "agnews", "dbpedia", "yahoo", "yelp_full"}
 LONG_DATASETS = {
@@ -28,6 +29,18 @@ LONG_DATASETS = {
     "boolq",
     "dbpedia",
     "yahoo",
+}
+SUPER_GLUE_DATASETS = {
+    "axb",  # broadcoverage diagnostics
+    "axg",  # winogender schema diagnostics
+    "cb",  # commitment  bank
+    "copa",  # choise of plausible alternatives
+    "multirc",  # multi-sentence reading comprehension
+    "rte",  # recognizing textual entailment
+    "wic",  # words in context
+    "wsc",  # winograd schema challenge
+    "boolq",  # BoolQ
+    "record",  # reading comprehension with commonsense reasoning
 }
 
 
@@ -132,32 +145,38 @@ class DataModule(LightningDataModule):
         return self.text_key
 
     @property
+    @abstractproperty
     def metric_names(self) -> list[str]:
-        raise NotImplementedError("This is an abstract class. Do not instantiate it directly!")
+        raise NotImplementedError("This is an abstract property. Did you forget to implement it?")
 
     @property
     def metric_to_watch(self) -> str:
         if len(self.metric_names) == 1:
             return self.metric_names[0]
         else:
-            raise NotImplementedError("This is an abstract class. Do not instantiate it directly!")
+            raise NotImplementedError(
+                "This is an abstract property. Did you forget to implement it?"
+            )
 
     @property
+    @abstractproperty
     def metric_watch_mode(self) -> str:
-        raise NotImplementedError("This is an abstract class. Do not instantiate it directly!")
+        raise NotImplementedError("This is an abstract property. Did you forget to implement it?")
 
     @property
+    @abstractproperty
     def output_mode(self) -> str:
-        raise NotImplementedError("This is an abstract class. Do not instantiate it directly!")
+        raise NotImplementedError("This is an abstract property. Did you forget to implement it?")
 
     @property
     def num_labels(self) -> Union[int, None]:
         if self.output_mode == "classification":
-            raise NotImplementedError("This is an abstract class. Do not instantiate it directly!")
+            raise NotImplementedError("You need to implement this property")
         return None
 
+    @abstractmethod
     def load(self) -> DatasetDict:
-        raise NotImplementedError("This is an abstract class. Do not instantiate it directly!")
+        raise NotImplementedError("This is an abstract method. Did you forget to implement it?")
 
     def tokenize(self, examples: dict[str, list], split: str) -> dict[str, list]:
         return self.tokenizer(
@@ -187,8 +206,9 @@ class DataModule(LightningDataModule):
 
         return dataset_dict
 
+    @abstractmethod
     def setup_tokenizer(self) -> PreTrainedTokenizerBase:
-        raise NotImplementedError("This is an abstract class. Do not instantiate it directly!")
+        raise NotImplementedError("This is an abstract method. Did you forget to implement it?")
 
     def items(self) -> ItemsView:
         return self.dataset_dict.items()
@@ -281,13 +301,13 @@ class LocalDataModule(DataModule):
 
 
 @LightningDataModule.register("few_shot")
-class FewShotDataset(LocalDataModule):
+class FewShotDataModule(LocalDataModule):
     def __init__(
         self,
         dataset: str,
         num_prefix: int,
         template_idx: int,
-        transformer_model: Union[str, PathOrStr],
+        transformer_model: PathOrStr,
         *args,
         **kwargs,
     ):
@@ -366,6 +386,51 @@ class FewShotDataset(LocalDataModule):
         pad_token_map_ = {"input_ids": 0, "attention_mask": False, "label_mask": False}
         pad_token_map_["label" if split == self.train_split else "sequence_label"] = 0
         return pad_token_map_
+
+
+@LightningDataModule.register("super_glue_pretrain")
+class SuperGlueDataModule(DataModule):
+    def __init__(
+        self,
+        transformer_model: PathOrStr,
+        *args,
+        datasets_to_include: set[str] = {"cb", "copa", "multirc", "rte", "wic", "boolq", "record"},
+        **kwargs,
+    ):
+        for name in datasets_to_include:
+            if name not in SUPER_GLUE_DATASETS:
+                raise ValueError(f"Bad dataset name '{name}'")
+
+        super().__init__(*args, **kwargs)
+
+        self.datasets_to_include = datasets_to_include
+        self.transformer_model = transformer_model
+
+    @property
+    def metric_names(self) -> list[str]:
+        pass
+
+    @property
+    def metric_to_watch(self) -> str:
+        pass
+
+    @property
+    def metric_watch_mode(self) -> str:
+        return "max"
+
+    @property
+    def output_mode(self) -> str:
+        pass
+
+    @property
+    def num_labels(self) -> Union[int, None]:
+        pass
+
+    def load(self) -> DatasetDict:
+        pass
+
+    def setup_tokenizer(self) -> PreTrainedTokenizerBase:
+        pass
 
 
 def assemble_prompt(prefix, input, eos_token_id, task_token_ids):
