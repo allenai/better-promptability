@@ -1,19 +1,19 @@
 import logging
-import torch
+
 import pytorch_lightning as pl
+import torch
 from pytorch_lightning.utilities import rank_zero_only
+from tango.common.lazy import Lazy
 from tango.integrations.pytorch_lightning import (
     LightningCallback,
-    LightningTrainer,
     LightningModule,
+    LightningTrainer,
 )
-from tango.common.lazy import Lazy
-from tango.step import Step
 from tango.integrations.torch.format import TorchFormat
+from tango.step import Step
 
 from ..data.config import Config
-from ..data.data_module import FewShotDataset
-
+from ..data.data_module import FewShotDataModule
 from ..models.prefix_transformer import PrefixTransformer
 
 logger = logging.getLogger(__name__)
@@ -77,7 +77,7 @@ class TrainStep(Step):
         config: Config,
         trainer: Lazy[LightningTrainer],
         model: Lazy[PrefixTransformer],
-        datamodule: Lazy[FewShotDataset],
+        datamodule: Lazy[FewShotDataModule],
         # optimizer: Lazy[Optimizer],
         # lr_schedule: Lazy[LRScheduler],
     ):  # -> torch.nn.Module:
