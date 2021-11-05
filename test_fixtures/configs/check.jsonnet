@@ -34,7 +34,6 @@ local config = {
                 "num_prefix": 20,
             },
             "model": {
-                "type": "prefix_transformer",
                 "transformer_model": "gpt2",
                 "optimizer": {
                     "type": "transformers_adamw",
@@ -43,7 +42,6 @@ local config = {
                 },
                 "weight_decay": 0.0,
             }
-            
         }
     }
 }
