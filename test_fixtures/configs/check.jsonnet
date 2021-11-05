@@ -30,6 +30,7 @@ local config = {
                 "dataset": "sst-2",
                 "data_dir": "test_fixtures/data/sst2",
                 "template_idx": 0,
+                "soft_only": false,
                 "transformer_model": "gpt2",
                 "num_prefix": 20,
             },

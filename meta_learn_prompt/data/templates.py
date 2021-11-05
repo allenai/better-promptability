@@ -2,22 +2,28 @@ import string
 from typing import Any
 
 
-SUPERGLUE_TASKS = {"boolq", "cb", "copa", "multirc", "record", "rte", "wic", "wsc"}
+def templatize(
+    task: str, idx: int, example: dict[str, Any], label: Any, soft_only: bool = False
+) -> tuple[str, str]:
+    from .super_glue_data_module import SUPER_GLUE_DATASETS
 
-
-def templatize(task: str, idx: int, example: dict[str, Any], label: Any) -> tuple[str, str]:
     # label is any task-defined label, e.g. 1/0, True/False, "entailment"/"non-entailment"
     # Note that due the noisy channel model, "prefix" contains the label
-    if task in SUPERGLUE_TASKS:
-        prefix, input = templatize_superglue(task, idx, example, label)
+    if task in SUPER_GLUE_DATASETS:
+        prefix, input = templatize_superglue(task, idx, example, label, soft_only=soft_only)
     else:
-        prefix = get_sentence_classsification_templates(task, idx, label)
+        if soft_only:
+            prefix = get_sentence_classsification_verbalizers(task)[label]
+        else:
+            prefix = get_sentence_classsification_templates(task, idx, label)
         input = example["text"]
     return (prefix.strip(), " " + input)
 
 
 def get_possible_labels(task, example):
-    if task in SUPERGLUE_TASKS:
+    from .super_glue_data_module import SUPER_GLUE_DATASETS
+
+    if task in SUPER_GLUE_DATASETS:
         if task == "boolq":
             return (False, True)
         elif task == "cb":
@@ -124,14 +130,14 @@ def get_sentence_classsification_verbalizers(task):
     return verbalizers
 
 
-def templatize_superglue(task, idx, example, label):
+def templatize_superglue(task, idx, example, label, soft_only=False):
     """
     Heavily references the design in https://arxiv.org/pdf/2009.07118.pdf
     Returns (channel input, channel output)
     """
     # fmt: off
     if task == "boolq":
-        n_templates = 4
+        n_templates = 3 if soft_only else 4
         if 0 <= idx < n_templates:
             verbalizer = "Yes" if label else "No"
         elif idx < 2 * n_templates:
@@ -142,12 +148,19 @@ def templatize_superglue(task, idx, example, label):
 
         passage = example["passage"]
         question = example["question"]
-        templates = [
-            (f"{verbalizer}.", f"{passage} {question}?"),
-            (f"Question: {question}? Answer: {verbalizer}.", f"{passage}"),
-            (f"Based on the previous passage, {question}? {verbalizer}.", f"{passage}"),
-            (f"{passage} {verbalizer}.", f"Based on the following passage, {question}?"),
-        ]
+        if soft_only:
+            templates = [
+                (f"{verbalizer}", f"{passage} || {question}"),
+                (f"{question} || {verbalizer}", f"{passage}"),
+                (f"{passage} || {verbalizer}", f"{question}"),
+            ]
+        else:
+            templates = [
+                (f"{verbalizer}.", f"{passage} {question}?"),
+                (f"Question: {question}? Answer: {verbalizer}.", f"{passage}"),
+                (f"Based on the previous passage, {question}? {verbalizer}.", f"{passage}"),
+                (f"{passage} {verbalizer}.", f"Based on the following passage, {question}?"),
+            ]
         assert len(templates) == n_templates
         return templates[idx]
     elif task in {"cb", "rte"}:
@@ -171,20 +184,27 @@ def templatize_superglue(task, idx, example, label):
         }[label]
         premise = example["premise"]
         hypothesis = example["hypothesis"].rstrip(string.punctuation)
-        templates = [
-            (f"{verbalizer_a}.", f"{premise} {hypothesis}?"),
-            (f"{verbalizer_a}, {premise}", f"{hypothesis}?"),
-            (f'{verbalizer_a}, "{premise}"', f'"{hypothesis}"?'),
-            (f"{verbalizer_a}. {premise}", f"{hypothesis}?"),
-            (f'{verbalizer_a}. "{premise}"', f'"{hypothesis}"?'),
-            (f"It is {verbalizer_b} that {hypothesis}.", f"{premise}"),
-        ]
-        if task == "cb":
-            templates.append((f"True, False, or Neither? Answer: {verbalizer_c}.", f"{premise} Question: {hypothesis}."))  # noqa: E501
-            templates.append((f"Question: {hypothesis}. True, False, or Neither? Answer: {verbalizer_c}.", f"{premise}"))  # noqa: E501
-        elif task == "rte":
-            templates.append((f"True or False? Answer: {verbalizer_c}.", f"{premise} Question: {hypothesis}."))  # noqa: E501
-            templates.append((f"Question: {hypothesis}. True or False? Answer: {verbalizer_c}.", f"{premise}"))  # noqa: E501
+        if soft_only:
+            templates = [
+                (f"{verbalizer_a}", f"{premise} || {hypothesis}"),
+                (f"{hypothesis} || {verbalizer_a}", f"{premise}"),
+                (f"{premise} || {verbalizer_a}", f"{hypothesis}"),
+            ]
+        else:
+            templates = [
+                (f"{verbalizer_a}.", f"{premise} {hypothesis}?"),
+                (f"{verbalizer_a}, {premise}", f"{hypothesis}?"),
+                (f'{verbalizer_a}, "{premise}"', f'"{hypothesis}"?'),
+                (f"{verbalizer_a}. {premise}", f"{hypothesis}?"),
+                (f'{verbalizer_a}. "{premise}"', f'"{hypothesis}"?'),
+                (f"It is {verbalizer_b} that {hypothesis}.", f"{premise}"),
+            ]
+            if task == "cb":
+                templates.append((f"True, False, or Neither? Answer: {verbalizer_c}.", f"{premise} Question: {hypothesis}."))  # noqa: E501
+                templates.append((f"Question: {hypothesis}. True, False, or Neither? Answer: {verbalizer_c}.", f"{premise}"))  # noqa: E501
+            elif task == "rte":
+                templates.append((f"True or False? Answer: {verbalizer_c}.", f"{premise} Question: {hypothesis}."))  # noqa: E501
+                templates.append((f"Question: {hypothesis}. True or False? Answer: {verbalizer_c}.", f"{premise}"))  # noqa: E501
         return templates[idx]
     elif task == "copa":
         premise = example["premise"].rstrip(string.punctuation)
@@ -192,12 +212,20 @@ def templatize_superglue(task, idx, example, label):
         choice2 = example["choice2"].rstrip(string.punctuation)
         verbalizer = [choice1, choice2][label]
         connective = "so" if example["question"] == "effect" else "because"
-        templates = [
-            (f"{verbalizer}.", f'{premise}, {connective} "{choice1}." or "{choice2}."?'),
-            (f"{verbalizer}.", f'{premise}, {connective} {choice1} or {choice2}?'),
-            (f"{premise}, {connective} {verbalizer}.", f'"{choice1}." or "{choice2}."?'),
-            (f"{premise}, {connective} {verbalizer}.", f'{choice1} or {choice2}?'),
-        ]
+        if soft_only:
+            templates = [
+                (f"{verbalizer}", f'{premise} || {connective} || {choice1} || {choice2}'),
+                (f"{choice1} || {choice2} || {verbalizer}", f'{premise} || {connective}'),
+                (f"{connective} || {choice1} || {choice2} || {verbalizer}", f'{premise}'),
+                (f"{premise} || {verbalizer}", f'{connective} || {choice1} || {choice2}'),
+            ]
+        else:
+            templates = [
+                (f"{verbalizer}.", f'{premise}, {connective} "{choice1}." or "{choice2}."?'),
+                (f"{verbalizer}.", f'{premise}, {connective} {choice1} or {choice2}?'),
+                (f"{premise}, {connective} {verbalizer}.", f'"{choice1}." or "{choice2}."?'),
+                (f"{premise}, {connective} {verbalizer}.", f'{choice1} or {choice2}?'),
+            ]
         return templates[idx]
     elif task == "wic":
         sentence1 = example["sentence1"]
@@ -205,23 +233,29 @@ def templatize_superglue(task, idx, example, label):
         word = example["word"]
         verbalizer = "Yes" if label else "No"
 
-        templates = [
-            (f"{verbalizer}", f'"{sentence1}"/"{sentence2}". Similar sense of "{word}"?'),
-            (f"{verbalizer}", f"{sentence1} {sentence2} Does {word} have the same meaning in both sentences?"),  # noqa: E501
-            (f'Similar sense of "{word}"? {verbalizer}', f'"{sentence1}"/"{sentence2}".'),
-            (f"Does {word} have the same meaning in both sentences? {verbalizer}", f"{sentence1} {sentence2}"),  # noqa: E501
-        ]
+        if soft_only:
+            templates = [
+                (f"{verbalizer}", f'{sentence1} || {sentence2} || {word}'),
+                (f"{word} || {verbalizer}", f'{sentence1} || {sentence2}'),
+            ]
+        else:
+            templates = [
+                (f"{verbalizer}", f'"{sentence1}"/"{sentence2}". Similar sense of "{word}"?'),
+                (f"{verbalizer}", f"{sentence1} {sentence2} Does {word} have the same meaning in both sentences?"),  # noqa: E501
+                (f'Similar sense of "{word}"? {verbalizer}', f'"{sentence1}"/"{sentence2}".'),
+                (f"Does {word} have the same meaning in both sentences? {verbalizer}", f"{sentence1} {sentence2}"),  # noqa: E501
+            ]
         return templates[idx]
     elif task == "wsc":
         # This is a free form generation task which the channel model can't handle
         raise NotImplementedError
     elif task == "multirc":
-        passage = example["passage"]
+        passage = example["paragraph"]
         question = example["question"]
         answer = example["answer"]
 
         assert label in {0, 1}
-        n_templates = 9
+        n_templates = 4 if soft_only else 9
         if 0 <= idx < n_templates:
             verbalizer = "Yes" if label == 1 else "No"
         elif idx < 2 * n_templates:
@@ -230,17 +264,25 @@ def templatize_superglue(task, idx, example, label):
         else:
             assert False
 
-        templates = [
-            (f"{verbalizer}.", f"{passage} Question: {question} Is it {answer}?"),
-            (f"Is it {answer}? {verbalizer}.", f"{passage} Question: {question}"),
-            (f"Question: {question} Is it {answer}? {verbalizer}.", f"{passage}"),
-            (f"{verbalizer}.", f'{passage} Question: {question} Is the correct answer "{answer}"?'),
-            (f'Is the correct answer "{answer}"? {verbalizer}.', f"{passage} Question: {question}"),
-            (f'Question: {question} Is the correct answer "{answer}"? {verbalizer}.', f"{passage}"),
-            (f"{verbalizer}.", f'{passage} Based on the previous passage, {question} Is "{answer}" a correct answer?'),  # noqa: E501
-            (f'Is "{answer}" a correct answer? {verbalizer}.', f"{passage} Based on the previous passage, {question}"),  # noqa: E501
-            (f'Based on the previous passage, {question} Is "{answer}" a correct answer? {verbalizer}.', f"{passage}"),  # noqa: E501
-        ]
+        if soft_only:
+            templates = [
+                (f"{verbalizer}", f"{passage} || {question} || {answer}"),
+                (f"{answer} || {verbalizer}", f"{passage} || {question}"),
+                (f"{question} || {answer} || {verbalizer}", f"{passage}"),
+                (f"{passage} || {verbalizer}", f"{question} || {answer}"),
+            ]
+        else:
+            templates = [
+                (f"{verbalizer}.", f"{passage} Question: {question} Is it {answer}?"),
+                (f"Is it {answer}? {verbalizer}.", f"{passage} Question: {question}"),
+                (f"Question: {question} Is it {answer}? {verbalizer}.", f"{passage}"),
+                (f"{verbalizer}.", f'{passage} Question: {question} Is the correct answer "{answer}"?'),  # noqa: E501
+                (f'Is the correct answer "{answer}"? {verbalizer}.', f"{passage} Question: {question}"),  # noqa: E501
+                (f'Question: {question} Is the correct answer "{answer}"? {verbalizer}.', f"{passage}"),  # noqa: E501
+                (f"{verbalizer}.", f'{passage} Based on the previous passage, {question} Is "{answer}" a correct answer?'),  # noqa: E501
+                (f'Is "{answer}" a correct answer? {verbalizer}.', f"{passage} Based on the previous passage, {question}"),  # noqa: E501
+                (f'Based on the previous passage, {question} Is "{answer}" a correct answer? {verbalizer}.', f"{passage}"),  # noqa: E501
+            ]
         assert len(templates) == n_templates
         return templates[idx]
     elif task == "record":
@@ -248,8 +290,16 @@ def templatize_superglue(task, idx, example, label):
         query = example["query"]
         answer = example["answer"]
         assert "@placeholder" in query
-        query.replace("@placeholder", answer)
-        return (query, passage)
+        if soft_only:
+            return [
+                (f"{answer}", f"{passage} || {query}"),
+                (f"{query} || {answer}", f"{passage}"),
+                (f"{passage} || {answer}", f"{query}"),
+            ]
+        else:
+            assert idx == 0
+            query.replace("@placeholder", answer)
+            return (query, passage)
     else:
         assert False
     # fmt: on

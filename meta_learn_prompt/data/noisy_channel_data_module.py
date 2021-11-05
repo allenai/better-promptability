@@ -26,12 +26,14 @@ class NoisyChannelDataModule(DataModule):
         self,
         num_prefix: int,
         template_idx: int,
+        soft_only: bool,
         transformer_model: PathOrStr,
         *args,
         **kwargs,
     ):
         self.num_prefix = num_prefix
         self.template_idx = template_idx
+        self.soft_only = soft_only
         self.transformer_model = transformer_model
 
         self.task_tokens = ["<TASK{}>".format(str(i).zfill(2)) for i in range(self.num_prefix)]
@@ -59,7 +61,9 @@ class NoisyChannelDataModule(DataModule):
 
     def tokenize(self, example: dict[str, Any], split: str) -> dict[str, Any]:
         def prepare(label):
-            prefix, input = templatize(self.dataset, self.template_idx, example, label)
+            prefix, input = templatize(
+                self.dataset, self.template_idx, example, label, soft_only=self.soft_only
+            )
             prefix = self.tokenizer(prefix)["input_ids"]
             input = self.tokenizer(input)["input_ids"][: self.max_length - 16]
             return assemble_prompt(prefix, input, self.tokenizer.eos_token_id, self.task_token_ids)
