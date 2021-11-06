@@ -25,15 +25,15 @@ def get_possible_labels(task, example):
 
     if task in SUPER_GLUE_DATASETS:
         if task == "boolq":
-            return (False, True)
+            return (0, 1)
         elif task == "cb":
-            return ("entailment", "contradiction", "neutral")
+            return (0, 1, 2)
         elif task == "rte":
-            return ("entailment", "not_entailment")
+            return (0, 1)
         elif task == "copa":
             return (0, 1)
         elif task == "wic":
-            return (False, True)
+            return (0, 1)
         elif task == "multirc":
             return (0, 1)
         elif task == "record":
@@ -137,11 +137,12 @@ def templatize_superglue(task, idx, example, label, soft_only=False):
     """
     # fmt: off
     if task == "boolq":
+        assert label in {0, 1}
         n_templates = 3 if soft_only else 4
         if 0 <= idx < n_templates:
-            verbalizer = "Yes" if label else "No"
+            verbalizer = "Yes" if label == 1 else "No"
         elif idx < 2 * n_templates:
-            verbalizer = "True" if label else "False"
+            verbalizer = "True" if label == 1 else "False"
             idx -= n_templates
         else:
             assert False
@@ -164,23 +165,21 @@ def templatize_superglue(task, idx, example, label, soft_only=False):
         assert len(templates) == n_templates
         return templates[idx]
     elif task in {"cb", "rte"}:
+        assert label in {0, 1, 2}
         verbalizer_a = {
-            "entailment": "Yes",
-            "not_entailment": "No",
-            "contradiction": "No",
-            "neutral": "Maybe",
+            0: "Yes",
+            1: "No",
+            2: "Maybe",
         }[label]
         verbalizer_b = {
-            "entailment": "true",
-            "not_entailment": "not true",
-            "contradiction": "not true",
-            "neutral": "maybe true",
+            0: "true",
+            1: "not true",
+            2: "maybe true",
         }[label]
         verbalizer_c = {
-            "entailment": "True",
-            "not_entailment": "False",
-            "contradiction": "False",
-            "neutral": "Neither",
+            0: "True",
+            1: "False",
+            2: "Neither",
         }[label]
         premise = example["premise"]
         hypothesis = example["hypothesis"].rstrip(string.punctuation)
@@ -207,6 +206,7 @@ def templatize_superglue(task, idx, example, label, soft_only=False):
                 templates.append((f"Question: {hypothesis}. True or False? Answer: {verbalizer_c}.", f"{premise}"))  # noqa: E501
         return templates[idx]
     elif task == "copa":
+        assert label in {0, 1}
         premise = example["premise"].rstrip(string.punctuation)
         choice1 = example["choice1"].rstrip(string.punctuation)
         choice2 = example["choice2"].rstrip(string.punctuation)
@@ -228,10 +228,11 @@ def templatize_superglue(task, idx, example, label, soft_only=False):
             ]
         return templates[idx]
     elif task == "wic":
+        assert label in {0, 1}
         sentence1 = example["sentence1"]
         sentence2 = example["sentence2"]
         word = example["word"]
-        verbalizer = "Yes" if label else "No"
+        verbalizer = "Yes" if label == 1 else "No"
 
         if soft_only:
             templates = [
