@@ -17,7 +17,7 @@ def templatize(
         else:
             prefix = get_sentence_classsification_templates(task, idx, label)
         input = example["text"]
-    return (prefix.strip(), " " + input)
+    return (prefix.strip(), input)
 
 
 def get_possible_labels(task, example):

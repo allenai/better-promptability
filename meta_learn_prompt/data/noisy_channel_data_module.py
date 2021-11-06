@@ -8,19 +8,6 @@ from .data_module import DataModule
 from .templates import get_possible_labels, templatize
 
 
-LONG_DATASETS = {
-    "cr",
-    "subj",
-    "agnews",
-    "amazon",
-    "yelp_full",
-    "yelp_binary",
-    "boolq",
-    "dbpedia",
-    "yahoo",
-}
-
-
 class NoisyChannelDataModule(DataModule):
     def __init__(
         self,
@@ -40,8 +27,7 @@ class NoisyChannelDataModule(DataModule):
 
         super().__init__(*args, **kwargs)
 
-        # TODO
-        self.max_length = 256# if self.dataset in LONG_DATASETS else 128
+        self.max_length = 768
 
     @property
     def hash_fields(self) -> list[Any]:
@@ -65,7 +51,7 @@ class NoisyChannelDataModule(DataModule):
                 self.dataset, self.template_idx, example, label, soft_only=self.soft_only
             )
             prefix = self.tokenizer(prefix)["input_ids"]
-            input = self.tokenizer(input)["input_ids"][: self.max_length - 16]
+            input = self.tokenizer(input, add_prefix_space=True)["input_ids"][: self.max_length]
             return assemble_prompt(prefix, input, self.tokenizer.eos_token_id, self.task_token_ids)
 
         if split == self.train_split:
