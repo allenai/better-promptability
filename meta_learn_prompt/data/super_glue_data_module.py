@@ -24,7 +24,7 @@ DATA_TRANFORMATION_PREFIX = "aug_"
 
 
 class BaseSuperGlueDataModule(NoisyChannelDataModule):
-    dataset = None  # name of the dataset
+    dataset: Optional[str] = None  # name of the dataset
 
     def __init__(self, n_shot: Optional[int] = None, *args, **kwargs):
         self.n_shot = n_shot
@@ -296,10 +296,9 @@ class RecordEM(Metric):
             A tensor of integer class label of shape (batch_size, ...). It must be the same
             shape as the `predictions` tensor without the `num_classes` dimension.
         """
-        breakpoint()
         predictions, gold_labels = self.detach_tensors(predictions, gold_labels)
-        self.predictions.extend(predictions)
-        self.gold_labels.extend(gold_labels)
+        self.predictions.extend(predictions.tolist())
+        self.gold_labels.extend(gold_labels.tolist())
 
     def get_metric(self, reset: bool):
         assert len(self.predictions) == len(self.gold_labels) == self.n_total
@@ -315,5 +314,5 @@ class RecordEM(Metric):
         return accuracy
 
     def reset(self) -> None:
-        self.predictions = []
-        self.gold_labels = []
+        self.predictions: list = []
+        self.gold_labels: list = []
