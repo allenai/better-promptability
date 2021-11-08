@@ -287,14 +287,14 @@ def templatize_superglue(task, idx, example, label, soft_only=False):
     elif task == "record":
         passage = example["passage"]
         query = example["query"]
-        answer = example["answer"]
+        answer = label
         assert "@placeholder" in query
         if soft_only:
             return [
                 (f"{answer}", f"{passage} || {query}"),
                 (f"{query} || {answer}", f"{passage}"),
                 (f"{passage} || {answer}", f"{query}"),
-            ]
+            ][idx]
         else:
             assert idx == 0
             query.replace("@placeholder", answer)

@@ -5,6 +5,7 @@ from abc import abstractmethod, abstractproperty
 from collections.abc import ItemsView
 from typing import Any, Mapping, Optional, Union
 
+from allennlp.training.metrics import Metric
 import datasets
 from datasets import Dataset as HFDataset
 from datasets import DatasetDict
@@ -122,6 +123,13 @@ class DataModule(LightningDataModule):
     @abstractproperty
     def metric_names(self) -> list[str]:
         raise NotImplementedError("This is an abstract property. Did you forget to implement it?")
+
+    def instantiate_metric(self, metric_name: str, split: str) -> Metric:
+        return Metric.by_name(metric_name)()
+
+    def postprocess_metric(self, metric_name: str, metric: Any) -> Union[int, float]:
+        """Postprocesses whatever Metric.get_metric() returns into a number that can be compared."""
+        return metric
 
     @property
     def metric_to_watch(self) -> str:
