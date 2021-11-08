@@ -4,6 +4,7 @@ local config = {
     "gpus": 1,
     "fp16": false,
 };
+local model = "gpt2-large";
 
 {
     "steps": {
@@ -31,11 +32,12 @@ local config = {
                 "data_dir": "test_fixtures/data/sst2",
                 "template_idx": 0,
                 "soft_only": false,
-                "transformer_model": "gpt2",
+                "direct_model": false,
+                "transformer_model": model,
                 "num_prefix": 20,
             },
             "model": {
-                "transformer_model": "gpt2",
+                "transformer_model": model,
                 "optimizer": {
                     "type": "transformers_adamw",
                     "lr": 0.001,
