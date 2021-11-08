@@ -8,16 +8,15 @@ def templatize(
     from .super_glue_data_module import SUPER_GLUE_DATASETS
 
     # label is any task-defined label, e.g. 1/0, True/False, "entailment"/"non-entailment"
-    # Note that due the noisy channel model, "prefix" contains the label
     if task in SUPER_GLUE_DATASETS:
-        prefix, input = templatize_superglue(task, idx, example, label, soft_only=soft_only)
+        y, x = templatize_superglue(task, idx, example, label, soft_only=soft_only)
     else:
         if soft_only:
-            prefix = get_sentence_classsification_verbalizers(task)[label]
+            y = get_sentence_classsification_verbalizers(task)[label]
         else:
-            prefix = get_sentence_classsification_templates(task, idx, label)
-        input = example["text"]
-    return (prefix.strip(), input)
+            y = get_sentence_classsification_templates(task, idx, label)
+        x = example["text"]
+    return (y.strip(), x)
 
 
 def get_possible_labels(task, example):
@@ -133,7 +132,6 @@ def get_sentence_classsification_verbalizers(task):
 def templatize_superglue(task, idx, example, label, soft_only=False):
     """
     Heavily references the design in https://arxiv.org/pdf/2009.07118.pdf
-    Returns (channel input, channel output)
     """
     # fmt: off
     if task == "boolq":
