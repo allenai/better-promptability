@@ -52,7 +52,10 @@ class Model(LightningModule):
 
     def setup_metrics(self) -> Dict[str, Dict[str, Metric]]:
         return {
-            split: {name: Metric.by_name(name)() for name in self.dataset.metric_names}
+            split: {
+                name: self.dataset.instantiate_metric(name, split)
+                for name in self.dataset.metric_names
+            }
             for split in self.dataset.dev_splits + self.dataset.test_splits
         }
 

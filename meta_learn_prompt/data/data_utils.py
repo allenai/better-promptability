@@ -26,6 +26,21 @@ def _find_max_shapes(
     return max_shapes
 
 
+def _pad_last_dim(sequence: list[list], padding_token: PAD_TYPE, padding_side: str):
+    """
+    In-place pads the last dimension of a 2d list.
+    """
+    assert padding_side in {"left", "right"}
+    max_len = max(len(e) for e in sequence)
+    for i, e in enumerate(sequence):
+        pad_len = max_len - len(e)
+        sequence[i] = (
+            ([padding_token] * pad_len if padding_side == "left" else [])
+            + e
+            + ([padding_token] * pad_len if padding_side == "right" else [])
+        )
+
+
 def _pad(
     sequence: np.ndarray, padding_token: PAD_TYPE, padding_shape: np.ndarray, padding_side: str
 ) -> np.ndarray:
@@ -41,7 +56,7 @@ def _tensorize(sequence: np.ndarray, name: str, output_mode: str, label_key: str
     dtype = torch.long
     if name == label_key and output_mode == "regression":
         dtype = torch.float
-    elif "attention_mask" in name:
+    elif "attention_mask" in name or "label_mask" in name:
         dtype = torch.bool
     return torch.tensor(sequence, dtype=dtype)
 
@@ -59,6 +74,12 @@ def collate_fn(
             label will be included in the batch. By default, the labels will NOT be padded, but if
             it needs to be padded, simply pass it as a part of pad_token_map.
     """
+    # This is a bit ad-hoc to deal with 3d elements, but it works
+    for e in batch:
+        for k, v in e.items():
+            if k in pad_token_map and isinstance(v[0], list):
+                _pad_last_dim(v, pad_token_map[k], padding_side)
+
     batch = [{k: np.array(v) for k, v in e.items()} for e in batch]
     max_shapes = _find_max_shapes(batch, pad_token_map.keys())
     for i, e in enumerate(batch):

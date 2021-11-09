@@ -5,43 +5,18 @@ from abc import abstractmethod, abstractproperty
 from collections.abc import ItemsView
 from typing import Any, Mapping, Optional, Union
 
+from allennlp.training.metrics import Metric
 import datasets
 from datasets import Dataset as HFDataset
-from datasets import DatasetDict, load_dataset
+from datasets import DatasetDict
 from tango.common.aliases import PathOrStr
 from tango.integrations.pytorch_lightning.data import LightningDataModule
 from torch.utils.data.dataloader import DataLoader
-from transformers import GPT2Tokenizer, PreTrainedTokenizerBase
+from transformers import PreTrainedTokenizerBase
 from transformers.trainer_pt_utils import LengthGroupedSampler
 
 from .config import Config
 from .data_utils import PAD_TYPE, collate_fn
-from .templates import get_possible_labels, templatize
-
-TSV_FORMAT = {"amazon", "sst-2", "agnews", "dbpedia", "yahoo", "yelp_full"}
-LONG_DATASETS = {
-    "cr",
-    "subj",
-    "agnews",
-    "amazon",
-    "yelp_full",
-    "yelp_binary",
-    "boolq",
-    "dbpedia",
-    "yahoo",
-}
-SUPER_GLUE_DATASETS = {
-    "axb",  # broadcoverage diagnostics
-    "axg",  # winogender schema diagnostics
-    "cb",  # commitment  bank
-    "copa",  # choise of plausible alternatives
-    "multirc",  # multi-sentence reading comprehension
-    "rte",  # recognizing textual entailment
-    "wic",  # words in context
-    "wsc",  # winograd schema challenge
-    "boolq",  # BoolQ
-    "record",  # reading comprehension with commonsense reasoning
-}
 
 
 # Sometimes we want to change the implementation of methods, etc., which cache ignores.
@@ -148,6 +123,13 @@ class DataModule(LightningDataModule):
     @abstractproperty
     def metric_names(self) -> list[str]:
         raise NotImplementedError("This is an abstract property. Did you forget to implement it?")
+
+    def instantiate_metric(self, metric_name: str, split: str) -> Metric:
+        return Metric.by_name(metric_name)()
+
+    def postprocess_metric(self, metric_name: str, metric: Any) -> Union[int, float]:
+        """Postprocesses whatever Metric.get_metric() returns into a number that can be compared."""
+        return metric
 
     @property
     def metric_to_watch(self) -> str:
@@ -269,189 +251,3 @@ class DataModule(LightningDataModule):
             self.dataloader(split, self.eval_batch_size, shuffle=shuffle)
             for split in self.test_splits
         ]
-
-
-class LocalDataModule(DataModule):
-    def __init__(
-        self,
-        tsv: bool = True,
-        *args,
-        **kwargs,
-    ):
-        super().__init__(*args, **kwargs)
-        self.tsv = tsv
-
-    def load(self):
-
-        self.split_filename = lambda split: f"{split}.tsv" if self.tsv else f"{split}.csv"
-        dataset_dict = load_dataset(
-            "csv",
-            data_files={
-                split: os.path.join(self.data_dir, self.split_filename(split))
-                for split in [self.train_split] + self.dev_splits + self.test_splits
-            },
-            skiprows=1 if self.tsv else 0,
-            delimiter="\t" if self.tsv else ",",
-            column_names=[self.text_key, self.label_key]
-            if self.tsv
-            else [self.label_key, self.text_key],
-        )
-        assert isinstance(dataset_dict, DatasetDict)
-        return dataset_dict
-
-
-@LightningDataModule.register("few_shot")
-class FewShotDataModule(LocalDataModule):
-    def __init__(
-        self,
-        dataset: str,
-        num_prefix: int,
-        template_idx: int,
-        transformer_model: PathOrStr,
-        *args,
-        **kwargs,
-    ):
-
-        self.dataset = dataset.lower()
-        self.num_prefix = num_prefix
-        self.template_idx = template_idx
-        self.transformer_model = transformer_model
-
-        tsv = self.dataset in TSV_FORMAT
-        self.task_tokens = ["<TASK{}>".format(str(i).zfill(2)) for i in range(self.num_prefix)]
-
-        super().__init__(tsv, *args, **kwargs)
-
-        self.max_length: int = 256 if self.dataset in LONG_DATASETS else 128
-
-    @property
-    def hash_fields(self) -> list[Any]:
-        return super().hash_fields + [self.dataset, self.template_idx]
-
-    @property
-    def metric_names(self) -> list[str]:
-        return ["categorical_accuracy"]
-
-    @property
-    def metric_watch_mode(self) -> str:
-        return "max"
-
-    @property
-    def output_mode(self) -> str:
-        return "token_classification"
-
-    def setup_tokenizer(self) -> PreTrainedTokenizerBase:
-        tokenizer = GPT2Tokenizer.from_pretrained(self.transformer_model)
-        tokenizer.add_tokens(self.task_tokens)
-        task_token_ids = tokenizer(" ".join(self.task_tokens), return_tensors="pt")["input_ids"]
-        assert task_token_ids.shape[-1] == self.num_prefix
-        self.task_token_ids = task_token_ids.squeeze(0).tolist()
-        return tokenizer
-
-    def tokenize(self, example: dict[str, Any], split: str) -> dict[str, Any]:
-        def prepare(label):
-            prefix, input = templatize(self.dataset, self.template_idx, example, label)
-            prefix = self.tokenizer(prefix)["input_ids"]
-            input = self.tokenizer(input)["input_ids"][: self.max_length - 16]
-            return assemble_prompt(prefix, input, self.tokenizer.eos_token_id, self.task_token_ids)
-
-        if split == self.train_split:
-            input_ids, attention_mask, label_mask, label = prepare(example[self.label_key])
-        else:
-            input_ids, attention_mask, label_mask, label = [], [], [], []
-            for possible_label in get_possible_labels(self.dataset, example):
-                _input_ids, _attention_mask, _label_mask, _label = prepare(possible_label)
-                input_ids.append(_input_ids)
-                attention_mask.append(_attention_mask)
-                label_mask.append(_label_mask)
-                label.append(_label)
-
-        return_dict = {
-            "input_ids": input_ids,
-            "attention_mask": attention_mask,
-            "label_mask": label_mask,
-        }
-        if split == self.train_split:
-            return_dict["label"] = label
-        else:
-            return_dict["sequence_label"] = label
-            return_dict["label"] = example[self.label_key]
-        return return_dict
-
-    def pad_token_map(self, split: str) -> Mapping[str, PAD_TYPE]:  # type: ignore
-        """
-        Specifies the padding for each key. Only keys including in this map plus the label will be
-        included in the batch.
-        """
-        pad_token_map_ = {"input_ids": 0, "attention_mask": False, "label_mask": False}
-        pad_token_map_["label" if split == self.train_split else "sequence_label"] = 0
-        return pad_token_map_
-
-
-@LightningDataModule.register("super_glue_pretrain")
-class SuperGlueDataModule(DataModule):
-    def __init__(
-        self,
-        transformer_model: PathOrStr,
-        *args,
-        datasets_to_include: set[str] = {"cb", "copa", "multirc", "rte", "wic", "boolq", "record"},
-        **kwargs,
-    ):
-        for name in datasets_to_include:
-            if name not in SUPER_GLUE_DATASETS:
-                raise ValueError(f"Bad dataset name '{name}'")
-
-        super().__init__(*args, **kwargs)
-
-        self.datasets_to_include = datasets_to_include
-        self.transformer_model = transformer_model
-
-    @property
-    def metric_names(self) -> list[str]:
-        pass
-
-    @property
-    def metric_to_watch(self) -> str:
-        pass
-
-    @property
-    def metric_watch_mode(self) -> str:
-        return "max"
-
-    @property
-    def output_mode(self) -> str:
-        pass
-
-    @property
-    def num_labels(self) -> Union[int, None]:
-        pass
-
-    def load(self) -> DatasetDict:
-        pass
-
-    def setup_tokenizer(self) -> PreTrainedTokenizerBase:
-        pass
-
-
-def assemble_prompt(prefix, input, eos_token_id, task_token_ids):
-    # Why don't we need BOS? I'm not sure -- this is following Min et al. (2021).
-    # I think it has something to do with GPT-2 not being trained with it
-    # see https://github.com/huggingface/transformers/issues/3311
-    input_ids = prefix + input + [eos_token_id]
-    label_mask = [False] * len(prefix) + [True] * (len(input) + 1)
-    # T: soft task tokens; P: prompt tokens; X: sentence
-    # input_ids  : P1 P2 P3 X1 X2 X3 EOS
-    # label_mask : 0  0  0  1  1  1  1
-
-    n_task_tokens = len(task_token_ids)
-    new_input_ids = task_token_ids + input_ids[:-1]
-    labels = [0] * (n_task_tokens - 1) + input_ids
-    new_label_mask = [False] * (n_task_tokens - 1) + label_mask
-    # new_input_ids  : T1 T2 T3 P1 P2 P3 X1 X2 X3
-    # pred           : T2 T3 P1 P2 P3 X1 X2 X3 EOS       <-- this is what the model will predict
-    # labels         : 0  0  P1 P2 P3 X1 X2 X3 EOS
-    # new_label_mask : 0  0  0  0  0  1  1  1  1
-
-    assert len(new_input_ids) == len(labels) == len(new_label_mask)
-    attention_mask = [True] * len(labels)
-    return new_input_ids, attention_mask, new_label_mask, labels

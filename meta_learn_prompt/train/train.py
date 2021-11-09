@@ -13,7 +13,7 @@ from tango.integrations.torch.format import TorchFormat
 from tango.step import Step
 
 from ..data.config import Config
-from ..data.data_module import FewShotDataModule
+from ..data.noisy_channel_data_module import NoisyChannelDataModule
 from ..models.prefix_transformer import PrefixTransformer
 
 logger = logging.getLogger(__name__)
@@ -40,19 +40,20 @@ class LoggingCallback(LightningCallback):
                 logger.info("{} = {}".format(key, str(metrics[key])))
 
             if key == pl_module.dataset.metric_to_watch and not trainer.sanity_checking:
+                curr_metric = pl_module.dataset.postprocess_metric(key, metrics[key])
                 if (
                     self.best_dev_metric is None
                     or (
                         pl_module.dataset.metric_watch_mode == "max"
-                        and metrics[key] > self.best_dev_metric
+                        and curr_metric > self.best_dev_metric
                     )
                     or (
                         pl_module.dataset.metric_watch_mode == "min"
-                        and metrics[key] < self.best_dev_metric
+                        and curr_metric < self.best_dev_metric
                     )
                 ):
                     self.best_epoch = trainer.current_epoch
-                    self.best_dev_metric = metrics[key]
+                    self.best_dev_metric = curr_metric
                     self.best_dev_metrics = {
                         k: v
                         for k, v in metrics.items()
@@ -77,7 +78,7 @@ class TrainStep(Step):
         config: Config,
         trainer: Lazy[LightningTrainer],
         model: Lazy[PrefixTransformer],
-        datamodule: Lazy[FewShotDataModule],
+        datamodule: Lazy[NoisyChannelDataModule],
         # optimizer: Lazy[Optimizer],
         # lr_schedule: Lazy[LRScheduler],
     ) -> torch.nn.Module:

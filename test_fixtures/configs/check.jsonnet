@@ -4,6 +4,7 @@ local config = {
     "gpus": 1,
     "fp16": false,
 };
+local model = "gpt2-large";
 
 {
     "steps": {
@@ -26,15 +27,17 @@ local config = {
                 "replace_sampler_ddp": false,
             },
             "datamodule": {
+                "type": "few_shot",
                 "dataset": "sst-2",
                 "data_dir": "test_fixtures/data/sst2",
                 "template_idx": 0,
-                "transformer_model": "gpt2",
+                "soft_only": false,
+                "direct_model": false,
+                "transformer_model": model,
                 "num_prefix": 20,
             },
             "model": {
-                "type": "prefix_transformer",
-                "transformer_model": "gpt2",
+                "transformer_model": model,
                 "optimizer": {
                     "type": "transformers_adamw",
                     "lr": 0.001,
@@ -42,7 +45,6 @@ local config = {
                 },
                 "weight_decay": 0.0,
             }
-            
         }
     }
 }

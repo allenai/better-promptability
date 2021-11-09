@@ -8,7 +8,7 @@ from tango.integrations.torch.optim import Optimizer
 from transformers import GPT2LMHeadModel
 
 from ..data.config import Config
-from ..data.data_module import FewShotDataModule
+from ..data.few_shot_data_module import FewShotDataModule
 from ..modules.transformer import Transformer
 from ..modules.with_prefix_embedding import WithPrefixEmbedding
 from .model import Model
