@@ -6,7 +6,7 @@ from datasets import DatasetDict, load_dataset
 from datasets.arrow_dataset import Batch
 import torch
 
-from .noisy_channel_data_module import NoisyChannelDataModule
+from .prompt_data_module import PromptDataModule
 
 
 SUPER_GLUE_DATASETS = {
@@ -24,7 +24,7 @@ SUPER_GLUE_DATASETS = {
 DATA_TRANFORMATION_PREFIX = "aug_"
 
 
-class BaseSuperGlueDataModule(NoisyChannelDataModule):
+class BaseSuperGlueDataModule(PromptDataModule):
     dataset: Optional[str] = None  # name of the dataset
 
     def __init__(self, n_shot: Optional[int] = None, *args, **kwargs):
@@ -50,7 +50,7 @@ class BaseSuperGlueDataModule(NoisyChannelDataModule):
         return load_dataset("super_glue", name=self.dataset)
 
 
-@NoisyChannelDataModule.register("boolq")
+@PromptDataModule.register("boolq")
 class BoolqDataModule(BaseSuperGlueDataModule):
     dataset = "boolq"
 
@@ -59,7 +59,7 @@ class BoolqDataModule(BaseSuperGlueDataModule):
         return "passage"
 
 
-@NoisyChannelDataModule.register("cb")
+@PromptDataModule.register("cb")
 class CbDataModule(BaseSuperGlueDataModule):
     dataset = "cb"
 
@@ -82,7 +82,7 @@ class CbDataModule(BaseSuperGlueDataModule):
         return "premise"
 
 
-@NoisyChannelDataModule.register("rte")
+@PromptDataModule.register("rte")
 class RteDataModule(BaseSuperGlueDataModule):
     dataset = "rte"
 
@@ -91,7 +91,7 @@ class RteDataModule(BaseSuperGlueDataModule):
         return "premise"
 
 
-@NoisyChannelDataModule.register("copa")
+@PromptDataModule.register("copa")
 class CopaDataModule(BaseSuperGlueDataModule):
     dataset = "copa"
 
@@ -134,7 +134,7 @@ class CopaDataModule(BaseSuperGlueDataModule):
         return new_examples
 
 
-@NoisyChannelDataModule.register("wic")
+@PromptDataModule.register("wic")
 class WicDataModule(BaseSuperGlueDataModule):
     dataset = "wic"
 
@@ -177,7 +177,7 @@ class WicDataModule(BaseSuperGlueDataModule):
         return new_examples
 
 
-@NoisyChannelDataModule.register("multirc")
+@PromptDataModule.register("multirc")
 class MultircDataModule(BaseSuperGlueDataModule):
     dataset = "multirc"
 
@@ -202,7 +202,7 @@ class MultircDataModule(BaseSuperGlueDataModule):
         return "paragraph"
 
 
-@NoisyChannelDataModule.register("record")
+@PromptDataModule.register("record")
 class RecordDataModule(BaseSuperGlueDataModule):
     dataset = "record"
 

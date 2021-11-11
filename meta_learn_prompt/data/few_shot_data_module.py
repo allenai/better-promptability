@@ -4,14 +4,14 @@ from typing import Any
 
 from datasets import DatasetDict, load_dataset
 
-from .noisy_channel_data_module import NoisyChannelDataModule
+from .prompt_data_module import PromptDataModule
 
 
 TSV_FORMAT = {"amazon", "sst-2", "agnews", "dbpedia", "yahoo", "yelp_full"}
 
 
-@NoisyChannelDataModule.register("few_shot")
-class FewShotDataModule(NoisyChannelDataModule):
+@PromptDataModule.register("few_shot")
+class FewShotDataModule(PromptDataModule):
     def __init__(self, dataset: str, *args, **kwargs):
         self.dataset = dataset.lower()
         self.tsv = self.dataset in TSV_FORMAT

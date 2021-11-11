@@ -9,13 +9,12 @@ from .data_module import DataModule
 from .templates import get_possible_labels, templatize
 
 
-class NoisyChannelDataModule(DataModule):
+class PromptDataModule(DataModule):
     def __init__(
         self,
         num_prefix: int,
         template_idx: int,
         soft_only: bool,
-        direct_model: bool,
         transformer_model: PathOrStr,
         *args,
         **kwargs,
@@ -23,7 +22,6 @@ class NoisyChannelDataModule(DataModule):
         self.num_prefix = num_prefix
         self.template_idx = template_idx
         self.soft_only = soft_only
-        self.direct_model = direct_model
         self.transformer_model = transformer_model
 
         self.task_tokens = ["<TASK{}>".format(str(i).zfill(2)) for i in range(self.num_prefix)]
@@ -34,7 +32,7 @@ class NoisyChannelDataModule(DataModule):
 
     @property
     def hash_fields(self) -> list[Any]:
-        return super().hash_fields + [self.template_idx, self.soft_only, self.direct_model]
+        return super().hash_fields + [self.template_idx, self.soft_only]
 
     @property
     def output_mode(self) -> str:
@@ -55,7 +53,7 @@ class NoisyChannelDataModule(DataModule):
             """
             ys = []
             for possible_label in get_possible_labels(self.dataset, example):
-                y, _ = templatize(
+                _, y = templatize(
                     self.dataset,
                     self.template_idx,
                     example,
@@ -70,22 +68,20 @@ class NoisyChannelDataModule(DataModule):
             assert False
 
         def prepare(label):
-            y, x = templatize(
+            # TODO: more refactor
+            prefix, input = templatize(
                 self.dataset, self.template_idx, example, label, soft_only=self.soft_only
             )
-            prefix, input = (x, y) if self.direct_model else (y, x)
             if self.soft_only:
                 prefix = prefix + " ||"
             prefix = self.tokenizer(prefix)["input_ids"][: self.max_length]
             input = self.tokenizer(input, add_prefix_space=True)["input_ids"][: self.max_length]
-            if self.direct_model:
-                # We only compute loss on the portion that is different
-                prefix = prefix + input[:y_common_len]
-                input = input[y_common_len:]
+            # We only compute loss on the portion that is different
+            prefix = prefix + input[:y_common_len]
+            input = input[y_common_len:]
             return assemble_prompt(prefix, input, self.tokenizer.eos_token_id, self.task_token_ids)
 
-        if self.direct_model:
-            y_common_len = get_y_common_len()
+        y_common_len = get_y_common_len()
 
         if split == self.train_split:
             input_ids, attention_mask, label_mask, label = prepare(example[self.label_key])
