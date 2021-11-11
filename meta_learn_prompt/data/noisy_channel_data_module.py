@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import Any, Mapping
 
 from tango.common.aliases import PathOrStr

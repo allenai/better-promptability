@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import Iterable, Mapping, Union
 
 import numpy as np
