@@ -106,7 +106,6 @@ class MixerStreamDataset(IterableDataset[T]):
         data_streams: list[Iterator[T]] = [
             cycle(_SingleStreamIterator(dataset, seed=self.seed)) for dataset in self.datasets
         ]
-        random.seed(self.seed)
         return self.shard_iterable((next(data_streams[idx]) for idx in self.indices_stream()))
 
     def next_idx(self) -> int:
