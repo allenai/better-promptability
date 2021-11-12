@@ -47,26 +47,6 @@ class PromptDataModule(DataModule):
         return tokenizer
 
     def tokenize(self, example: dict[str, Any], split: str) -> dict[str, Any]:
-        def get_y_common_len():
-            """
-            Finds the number of common tokens in a all y
-            """
-            ys = []
-            for possible_label in get_possible_labels(self.dataset, example):
-                _, y = templatize(
-                    self.dataset,
-                    self.template_idx,
-                    example,
-                    possible_label,
-                    soft_only=self.soft_only,
-                )
-                y = self.tokenizer(y, add_prefix_space=True)["input_ids"]
-                ys.append(y)
-            for i in range(min(len(y) for y in ys)):
-                if not all(y[i] == ys[0][i] for y in ys):
-                    return i
-            assert False
-
         def prepare(label):
             # TODO: more refactor
             prefix, input = templatize(
@@ -76,12 +56,7 @@ class PromptDataModule(DataModule):
                 prefix = prefix + " ||"
             prefix = self.tokenizer(prefix)["input_ids"][: self.max_length]
             input = self.tokenizer(input, add_prefix_space=True)["input_ids"][: self.max_length]
-            # We only compute loss on the portion that is different
-            prefix = prefix + input[:y_common_len]
-            input = input[y_common_len:]
             return assemble_prompt(prefix, input, self.tokenizer.eos_token_id, self.task_token_ids)
-
-        y_common_len = get_y_common_len()
 
         if split == self.train_split:
             input_ids, attention_mask, label_mask, label = prepare(example[self.label_key])
