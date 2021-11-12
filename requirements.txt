@@ -2,7 +2,8 @@
 ###### Core dependencies #######
 ################################
 torch==1.10.0
-ai2-tango[all]==0.3.5
+ai2-tango[all]==0.3.6
 allennlp==2.8.0
-transformers>=4.1,<4.12
+git+https://github.com/bigscience-workshop/promptsource.git@v0.1.0#egg=promptsource
+transformers==4.11.3
 tqdm==4.62.2

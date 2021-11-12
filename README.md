@@ -2,12 +2,16 @@
 
 ## Setup
 
-1. Create a new Python virtual environment with Python 3.9 or greater.
+1. Create a new Python virtual environment with Python 3.7.
 2. Install PyTorch according to the [official instructions](https://pytorch.org/get-started/locally/).
-3. Run (TODO: this command doesn't work for zsh)
+3. Run
 
     ```
     pip install -e .[dev]
+    ```
+    or in zsh
+    ```
+    pip install -e .\[dev\]
     ```
 
 You can verify that your environment is set up properly by running:
