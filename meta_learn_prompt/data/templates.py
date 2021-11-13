@@ -6,6 +6,7 @@ from typing import Any
 def templatize(
     task: str, idx: int, example: dict[str, Any], label: Any, soft_only: bool = False
 ) -> tuple[str, str]:
+    raise NotImplementedError("stale")
     from .super_glue_data_module import SUPER_GLUE_DATASETS
 
     # label is any task-defined label, e.g. 1/0, True/False, "entailment"/"non-entailment"

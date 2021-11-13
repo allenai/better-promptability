@@ -30,8 +30,6 @@ local model = "gpt2";
                 "type": "few_shot",
                 "dataset": "sst-2",
                 "data_dir": "test_fixtures/data/sst2",
-                "template_idx": 0,
-                "soft_only": false,
                 "transformer_model": model,
                 "num_prefix": 20,
             },

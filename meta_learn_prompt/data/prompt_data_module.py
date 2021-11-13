@@ -6,7 +6,6 @@ from transformers import GPT2Tokenizer, PreTrainedTokenizerBase
 
 from .data_utils import PAD_TYPE
 from .data_module import DataModule
-from .templates import get_possible_labels, templatize
 
 
 class PromptDataModule(DataModule):
