@@ -1,11 +1,11 @@
 from __future__ import annotations
-from typing import Any, Mapping, Optional
+from typing import Mapping, Optional
 
 from allennlp.training.metrics import Metric
 from datasets import Dataset, DatasetDict
 from promptsource.seqio_tasks import (
-    tasks as ps_tasks,
-)  # intended unused import for promptsource to populate seqio.MixtureRegistry
+    tasks as ps_tasks,  # noqa: E501; intended unused import for promptsource to populate seqio.MixtureRegistryß
+)
 import seqio
 import tensorflow_datasets as tfds
 
@@ -52,7 +52,7 @@ class T0DataModule(PromptDataModule):
         raise NotImplementedError  # TODO(akshitab): ditto
 
     @property
-    def metric_watch_mode(self) -> list[str]:
+    def metric_watch_mode(self) -> str:
         return "max"  # TODO(akshitab): verify
 
     @property
