@@ -3,8 +3,8 @@ from typing import Mapping, Optional
 
 from allennlp.training.metrics import Metric
 from datasets import Dataset, DatasetDict
-from promptsource.seqio_tasks import (
-    tasks as ps_tasks,  # noqa: E501; intended unused import for promptsource to populate seqio.MixtureRegistryß
+from promptsource.seqio_tasks import (  # noqa: E501; intended unused import for promptsource to populate seqio.MixtureRegistryß
+    tasks as ps_tasks,
 )
 import seqio
 import tensorflow_datasets as tfds
