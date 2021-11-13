@@ -10,29 +10,17 @@ from .templates import get_possible_labels, templatize
 
 
 class PromptDataModule(DataModule):
-    def __init__(
-        self,
-        num_prefix: int,
-        template_idx: int,
-        soft_only: bool,
-        transformer_model: PathOrStr,
-        *args,
-        **kwargs,
-    ):
+    def __init__(self, num_prefix: int, transformer_model: PathOrStr, *args, **kwargs):
         self.num_prefix = num_prefix
-        self.template_idx = template_idx
-        self.soft_only = soft_only
         self.transformer_model = transformer_model
 
         self.task_tokens = ["<TASK{}>".format(str(i).zfill(2)) for i in range(self.num_prefix)]
 
         super().__init__(*args, **kwargs)
 
-        self.max_length = 768
-
-    @property
-    def hash_fields(self) -> list[Any]:
-        return super().hash_fields + [self.template_idx, self.soft_only]
+        # Following T0 paper
+        self.inputs_max_length = 1024
+        self.targets_max_length = 256
 
     @property
     def output_mode(self) -> str:
@@ -47,27 +35,20 @@ class PromptDataModule(DataModule):
         return tokenizer
 
     def tokenize(self, example: dict[str, Any], split: str) -> dict[str, Any]:
-        def prepare(label):
-            # TODO: more refactor
-            prefix, input = templatize(
-                self.dataset, self.template_idx, example, label, soft_only=self.soft_only
-            )
-            if self.soft_only:
-                prefix = prefix + " ||"
-            prefix = self.tokenizer(prefix)["input_ids"][: self.max_length]
-            input = self.tokenizer(input, add_prefix_space=True)["input_ids"][: self.max_length]
-            return assemble_prompt(prefix, input, self.tokenizer.eos_token_id, self.task_token_ids)
+        # For T0 datasets, they are already tokenized in seqio, but maybe it'd be great to do them
+        # again as a sanity check esp. considering differences between tf vs. huggingface tokenizers
+        inputs = self.tokenizer(example["inputs_pretokenized"])["input_ids"][
+            : self.inputs_max_length
+        ]
+        # TODO(petew): add_prefix_space should be False for T5
+        targets = self.tokenizer(example["target_pretokenized"], add_prefix_space=True)[
+            "input_ids"
+        ][: self.targets_max_length]
+        assert inputs == example["inputs"] and targets == example["targets"]
 
-        if split == self.train_split:
-            input_ids, attention_mask, label_mask, label = prepare(example[self.label_key])
-        else:
-            input_ids, attention_mask, label_mask, label = [], [], [], []
-            for possible_label in get_possible_labels(self.dataset, example):
-                _input_ids, _attention_mask, _label_mask, _label = prepare(possible_label)
-                input_ids.append(_input_ids)
-                attention_mask.append(_attention_mask)
-                label_mask.append(_label_mask)
-                label.append(_label)
+        input_ids, attention_mask, label_mask, label = assemble_prompt(
+            inputs, targets, self.tokenizer.eos_token_id, self.task_token_ids
+        )
 
         return_dict = {
             "input_ids": input_ids,
