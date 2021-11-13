@@ -13,6 +13,7 @@ TSV_FORMAT = {"amazon", "sst-2", "agnews", "dbpedia", "yahoo", "yelp_full"}
 @PromptDataModule.register("few_shot")
 class FewShotDataModule(PromptDataModule):
     def __init__(self, dataset: str, *args, **kwargs):
+        raise NotImplementedError("stale")
         self.dataset = dataset.lower()
         self.tsv = self.dataset in TSV_FORMAT
         super().__init__(*args, **kwargs)

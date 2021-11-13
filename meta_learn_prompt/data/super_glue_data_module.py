@@ -28,6 +28,7 @@ class BaseSuperGlueDataModule(PromptDataModule):
     dataset: Optional[str] = None  # name of the dataset
 
     def __init__(self, n_shot: Optional[int] = None, *args, **kwargs):
+        raise NotImplementedError("stale")
         self.n_shot = n_shot
         super().__init__(*args, **kwargs)
 
