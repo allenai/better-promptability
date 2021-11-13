@@ -3,7 +3,7 @@ from typing import Mapping, Optional
 
 from allennlp.training.metrics import Metric
 from datasets import Dataset, DatasetDict
-from promptsource.seqio_tasks import (  # noqa: F401; intended unused import for promptsource to populate seqio.MixtureRegistryß
+from promptsource.seqio_tasks import (  # noqa: F401, E501; intended unused import for promptsource to populate seqio.MixtureRegistryß
     tasks as ps_tasks,
 )
 import seqio
