@@ -9,7 +9,7 @@ from tango.integrations.torch.optim import Optimizer
 from transformers import GPT2LMHeadModel
 
 from ..data.config import Config
-from ..data.few_shot_data_module import FewShotDataModule
+from ..data.prompt_data_module import PromptDataModule
 from ..modules.transformer import Transformer
 from ..modules.with_prefix_embedding import WithPrefixEmbedding
 from .model import Model
@@ -22,7 +22,7 @@ class PrefixTransformer(Model):
     def __init__(
         self,
         config: Config,
-        dataset: FewShotDataModule,
+        dataset: PromptDataModule,
         transformer_model: str,
         optimizer: Lazy[Optimizer],
         epochs: int = 3,
