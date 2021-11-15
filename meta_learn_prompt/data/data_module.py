@@ -17,7 +17,7 @@ from transformers import PreTrainedTokenizerBase
 from transformers.trainer_pt_utils import LengthGroupedSampler
 
 from .config import Config
-from .data_utils import PAD_TYPE, collate_fn
+from .data_utils import PAD_TYPE, collate_fn, md5
 
 
 # Sometimes we want to change the implementation of methods, etc., which cache ignores.
@@ -80,13 +80,10 @@ class DataModule(LightningDataModule):
 
     @property
     def cache_path(self) -> str:
-        def hash(s):
-            return hashlib.md5(s.encode("utf-8")).hexdigest()
-
         hash_fields = "".join([str(f) for f in self.hash_fields])
         return os.path.join(
             self.data_dir,
-            f"{self.__class__.__name__}_{hash(hash_fields)}.datacache",
+            f"{self.__class__.__name__}_{md5(hash_fields)}.datacache",
         )
 
     @property

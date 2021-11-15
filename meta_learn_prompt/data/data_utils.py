@@ -1,4 +1,5 @@
 from __future__ import annotations
+import hashlib
 from itertools import accumulate, cycle, islice
 import math
 import random
@@ -99,6 +100,10 @@ def collate_fn(
         batch[i] = updated
         batch[i] = {k: _tensorize(v, k, output_mode, label_key) for k, v in batch[i].items()}
     return default_collate(batch)
+
+
+def md5(s):
+    return hashlib.md5(s.encode("utf-8")).hexdigest()
 
 
 T = TypeVar("T")
