@@ -13,7 +13,7 @@ from tango.integrations.torch.format import TorchFormat
 from tango.step import Step
 
 from ..data.config import Config
-from ..data.noisy_channel_data_module import NoisyChannelDataModule
+from ..data.prompt_data_module import PromptDataModule
 from ..models.prefix_transformer import PrefixTransformer
 
 logger = logging.getLogger(__name__)
@@ -78,7 +78,7 @@ class TrainStep(Step):
         config: Config,
         trainer: Lazy[LightningTrainer],
         model: Lazy[PrefixTransformer],
-        datamodule: Lazy[NoisyChannelDataModule],
+        datamodule: Lazy[PromptDataModule],
         # optimizer: Lazy[Optimizer],
         # lr_schedule: Lazy[LRScheduler],
     ) -> torch.nn.Module:

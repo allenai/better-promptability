@@ -13,6 +13,7 @@
     ```
     pip install -e .\[dev\]
     ```
+    Sometimes you might need the flags `--trusted-host=pypi.python.org --trusted-host=pypi.org --trusted-host=files.pythonhosted.org`.
 
 You can verify that your environment is set up properly by running:
 
