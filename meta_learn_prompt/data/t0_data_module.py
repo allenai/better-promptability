@@ -62,7 +62,7 @@ class T0Mixture:
         del mixture_name, dataset_name, subset_name, template_name
         assert (self.mixture_name is not None) != (self.dataset_name is not None)
 
-        self.task_name_to_info = {}
+        self.task_name_to_info: dict[str, tuple[str, Optional[str], str]] = {}
         for dataset_name, subset_name in all_templates.keys:
             dataset = all_templates.get_dataset(dataset_name, subset_name)
             for template_name in dataset.all_template_names:
@@ -95,11 +95,11 @@ class T0Mixture:
             ]
             tasks = [seqio.TaskRegistry.get(task_name) for task_name in task_names]
 
-        dataset_to_subsample_indices = None
+        dataset_to_subsample_indices: Optional[dict] = None
         if subsample_indices_file is not None:
             dataset_to_subsample_indices = pickle.load(open(subsample_indices_file, "rb"))
 
-        self.data_modules = {}
+        self.data_modules: dict[str, T0DataModule] = {}
         for task in tasks:
             dataset_name, subset_name, template_name = self.task_name_to_info[task.name]
             assert task.name not in self.data_modules

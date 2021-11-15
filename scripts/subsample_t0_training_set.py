@@ -7,14 +7,14 @@ import pickle
 import sys
 import random
 
-sys.path.append(str(Path(__file__).parent.parent.absolute()))
-
 import tensorflow_datasets as tfds
 from tqdm import tqdm
 
-from meta_learn_prompt.data.config import Config
-from meta_learn_prompt.data.data_utils import md5
-from meta_learn_prompt.data.t0_data_module import T0Mixture
+sys.path.append(str(Path(__file__).parent.parent.absolute()))
+
+from meta_learn_prompt.data.config import Config  # noqa: E402
+from meta_learn_prompt.data.data_utils import md5  # noqa: E402
+from meta_learn_prompt.data.t0_data_module import T0Mixture  # noqa: E402
 
 
 def main(n_shot, seed, output_file):
@@ -39,13 +39,14 @@ def main(n_shot, seed, output_file):
 
         try:
             dataset_dict = data_module.load()
-        except:
+        except:  # noqa: E722
             import traceback
+
             errors.append((dataset_id, traceback.format_exc()))
         try:
             train_split = dataset_dict[tfds.Split.TRAIN]
-        except:
-            print(f"{dataset_id} doesn't have {tfds.Split.TRAIN} split, but only {dataset_dict.keys()}")
+        except:  # noqa: E722
+            print(f"{dataset_id} has no {tfds.Split.TRAIN} split, but only {dataset_dict.keys()}")
             continue
             # breakpoint()
         total_len = len(train_split)
