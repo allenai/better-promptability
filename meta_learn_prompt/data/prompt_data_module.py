@@ -45,29 +45,29 @@ class PromptDataModule(DataModule):
         ][: self.targets_max_length]
         assert inputs == example["inputs"] and targets == example["targets"]
 
-        input_ids, attention_mask, label_mask, label = assemble_prompt(
+        input_ids, attention_mask, targets_mask, targets = assemble_prompt(
             inputs, targets, self.tokenizer.eos_token_id, self.task_token_ids
         )
 
         return_dict = {
             "input_ids": input_ids,
             "attention_mask": attention_mask,
-            "label_mask": label_mask,
+            "targets_mask": targets_mask,
+            "targets": targets,
         }
-        if split == self.train_split:
-            return_dict["label"] = label
-        else:
-            return_dict["sequence_label"] = label
-            return_dict["label"] = example[self.label_key]
         return return_dict
 
     def pad_token_map(self, split: str) -> Mapping[str, PAD_TYPE]:  # type: ignore
         """
-        Specifies the padding for each key. Only keys including in this map plus the label will be
+        Specifies the padding for each key. Only keys including in this map will be
         included in the batch.
         """
-        pad_token_map_ = {"input_ids": 0, "attention_mask": False, "label_mask": False}
-        pad_token_map_["label" if split == self.train_split else "sequence_label"] = 0
+        pad_token_map_ = {
+            "input_ids": 0,
+            "attention_mask": False,
+            "targets_mask": False,
+            "targets": 0,
+        }
         return pad_token_map_
 
 
@@ -76,20 +76,20 @@ def assemble_prompt(prefix, input, eos_token_id, task_token_ids):
     # I think it has something to do with GPT-2 not being trained with it
     # see https://github.com/huggingface/transformers/issues/3311
     input_ids = prefix + input + [eos_token_id]
-    label_mask = [False] * len(prefix) + [True] * (len(input) + 1)
+    targets_mask = [False] * len(prefix) + [True] * (len(input) + 1)
     # T: soft task tokens; P: prompt tokens; X: sentence
-    # input_ids  : P1 P2 P3 X1 X2 X3 EOS
-    # label_mask : 0  0  0  1  1  1  1
+    # input_ids    : P1 P2 P3 X1 X2 X3 EOS
+    # targets_mask : 0  0  0  1  1  1  1
 
     n_task_tokens = len(task_token_ids)
     new_input_ids = task_token_ids + input_ids[:-1]
-    labels = [0] * (n_task_tokens - 1) + input_ids
-    new_label_mask = [False] * (n_task_tokens - 1) + label_mask
-    # new_input_ids  : T1 T2 T3 P1 P2 P3 X1 X2 X3
-    # pred           : T2 T3 P1 P2 P3 X1 X2 X3 EOS       <-- this is what the model will predict
-    # labels         : 0  0  P1 P2 P3 X1 X2 X3 EOS
-    # new_label_mask : 0  0  0  0  0  1  1  1  1
+    targets = [0] * (n_task_tokens - 1) + input_ids
+    new_targets_mask = [False] * (n_task_tokens - 1) + targets_mask
+    # new_input_ids    : T1 T2 T3 P1 P2 P3 X1 X2 X3
+    # pred             : T2 T3 P1 P2 P3 X1 X2 X3 EOS       <-- this is what the model will predict
+    # targets          : 0  0  P1 P2 P3 X1 X2 X3 EOS
+    # new_targets_mask : 0  0  0  0  0  1  1  1  1
 
-    assert len(new_input_ids) == len(labels) == len(new_label_mask)
-    attention_mask = [True] * len(labels)
-    return new_input_ids, attention_mask, new_label_mask, labels
+    assert len(new_input_ids) == len(targets) == len(new_targets_mask)
+    attention_mask = [True] * len(targets)
+    return new_input_ids, attention_mask, new_targets_mask, targets

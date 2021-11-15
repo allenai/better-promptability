@@ -124,38 +124,22 @@ class Model(LightningModule):
         mask: Optional[torch.Tensor] = None,
         reduce=True,
     ) -> torch.Tensor:
-        if self.dataset.output_mode == "classification":
-            loss = F.cross_entropy(logits.view(-1, logits.shape[-1]), labels.view(-1))
-        elif self.dataset.output_mode == "token_classification":
-            assert mask is not None
-            assert mask.any(dim=-1).all()
-            loss = F.cross_entropy(
-                logits.view(-1, logits.shape[-1]), labels.view(-1), reduction="none"
-            )
-            loss = loss.view_as(labels) * mask
-            if reduce:
-                loss = loss.sum() / mask.sum()  # type: ignore
-        elif self.dataset.output_mode == "regression":
-            loss = F.mse_loss(logits.view(-1), labels.view(-1))
-        else:
-            raise KeyError(f"Output mode not supported: {self.dataset.output_mode}")
+        assert mask is not None
+        assert mask.any(dim=-1).all()
+        loss = F.cross_entropy(logits.view(-1, logits.shape[-1]), labels.view(-1), reduction="none")
+        loss = loss.view_as(labels) * mask
+        if reduce:
+            loss = loss.sum() / mask.sum()  # type: ignore
         return loss
 
     def training_step(self, batch: dict[str, torch.Tensor], batch_idx: int) -> dict[str, Any]:
-        loss = self.compute_loss(
-            self(batch)["logits"], batch[self.dataset.label_key], batch.get("label_mask")
-        )
+        loss = self.compute_loss(self(batch)["logits"], batch["targets"], batch.get("targets_mask"))
         self.log("train_loss", loss)
         self.log("lr", self.trainer.lr_schedulers[0]["scheduler"].get_last_lr()[-1], prog_bar=True)
         return {"loss": loss}
 
     def get_predictions(self, logits: torch.Tensor, batch: dict[str, torch.Tensor]) -> torch.Tensor:
-        if self.dataset.output_mode in ("classification", "token_classification"):
-            return logits.argmax(dim=-1)
-        elif self.dataset.output_mode == "regression":
-            return logits.squeeze(dim=-1)
-        else:
-            raise KeyError(f"Output mode not supported: {self.dataset.output_mode}")
+        return logits.argmax(dim=-1)
 
     def eval_step(
         self,
@@ -169,7 +153,7 @@ class Model(LightningModule):
 
         logits = self(batch)["logits"]
         preds = self.get_predictions(logits, batch)
-        labels = batch[self.dataset.label_key]
+        labels = batch["targets"]
 
         splits = self.dataset.dev_splits if mode == "dev" else self.dataset.test_splits
         split = splits[dataloader_idx]
@@ -177,7 +161,7 @@ class Model(LightningModule):
             metric(*metric.detach_tensors(preds, labels))
 
         return (
-            {"loss": self.compute_loss(logits, labels, batch.get("label_mask")).detach().cpu()}
+            {"loss": self.compute_loss(logits, labels, batch.get("targets_mask")).detach().cpu()}
             if compute_loss
             else {}
         )
