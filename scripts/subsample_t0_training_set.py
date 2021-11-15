@@ -32,6 +32,7 @@ def main(n_shot, seed, output_file):
     )
     dataset_to_indices = {}
     errors = []
+    no_train_splits = []
     for data_module in tqdm(mixture.data_modules.values()):
         dataset_id = (data_module.dataset_name, data_module.subset_name)
         if dataset_id in dataset_to_indices:
@@ -47,6 +48,7 @@ def main(n_shot, seed, output_file):
             train_split = dataset_dict[tfds.Split.TRAIN]
         except:  # noqa: E722
             print(f"{dataset_id} has no {tfds.Split.TRAIN} split, but only {dataset_dict.keys()}")
+            no_train_splits.append(dataset_id)
             continue
             # breakpoint()
         total_len = len(train_split)
@@ -57,7 +59,8 @@ def main(n_shot, seed, output_file):
 
     pickle.dump(dataset_to_indices, open(output_file, "wb"))
     print(errors)
-    # breakpoint()
+    print(no_train_splits)
+    breakpoint()
 
 
 if __name__ == "__main__":

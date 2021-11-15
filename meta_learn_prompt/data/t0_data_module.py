@@ -70,10 +70,10 @@ class T0Mixture:
                     assert subset_name is None
                     for round in ("r1", "r2", "r3"):
                         task_name = get_task_name(dataset_name, round, template_name)
-                        self.task_name_to_info[task_name] = (dataset_name, round, template_name)
+                        self.task_name_to_info[task_name] = (dataset_name, round, template_name)  # type: ignore
                 else:
                     task_name = get_task_name(dataset_name, subset_name, template_name)
-                    self.task_name_to_info[task_name] = (dataset_name, subset_name, template_name)
+                    self.task_name_to_info[task_name] = (dataset_name, subset_name, template_name)  # type: ignore
 
         tasks = None
         if self.mixture_name is not None:
@@ -109,7 +109,9 @@ class T0Mixture:
                 template_name,
                 task,
                 sequence_length,
-                dataset_to_subsample_indices[(dataset_name, subset_name)],
+                dataset_to_subsample_indices[(dataset_name, subset_name)]
+                if dataset_to_subsample_indices is not None
+                else None,
                 *args,
                 **kwargs
             )
