@@ -98,23 +98,9 @@ class DataModule(LightningDataModule):
         return ["test"]
 
     @property
-    def text_key(self) -> str:
-        """The key in the example dictionary for the main text."""
-        return "text"
-
-    @property
-    def second_text_key(self) -> Union[str, None]:
-        """For text pairs, the key in the example dictionary for the second text."""
-        return None
-
-    @property
-    def label_key(self) -> str:
-        """The key in the example dictionary for the label."""
-        return "label"
-
-    @property
+    @abstractproperty
     def sort_key(self) -> str:
-        return self.text_key
+        raise NotImplementedError("This is an abstract property. Did you forget to implement it?")
 
     @property
     @abstractproperty
@@ -142,29 +128,13 @@ class DataModule(LightningDataModule):
     def metric_watch_mode(self) -> str:
         raise NotImplementedError("This is an abstract property. Did you forget to implement it?")
 
-    @property
-    @abstractproperty
-    def output_mode(self) -> str:
-        raise NotImplementedError("This is an abstract property. Did you forget to implement it?")
-
-    @property
-    def num_labels(self) -> Union[int, None]:
-        if self.output_mode == "classification":
-            raise NotImplementedError("You need to implement this property")
-        return None
-
     @abstractmethod
     def load(self) -> DatasetDict:
         raise NotImplementedError("This is an abstract method. Did you forget to implement it?")
 
+    @abstractmethod
     def tokenize(self, examples: dict[str, list], split: str) -> dict[str, list]:
-        return self.tokenizer(
-            examples[self.text_key],
-            text_pair=examples[self.second_text_key] if self.second_text_key is not None else None,
-            padding=False,  # we control this in the collator
-            truncation=True,
-            max_length=self.max_length,
-        )
+        raise NotImplementedError("This is an abstract method. Did you forget to implement it?")
 
     def preprocess(self, dataset_dict: DatasetDict) -> DatasetDict:
         dataset_dict = DatasetDict(  # reimplementing DatasetDict.map to provide `split`
@@ -215,24 +185,19 @@ class DataModule(LightningDataModule):
             shuffle=False,
             sampler=sampler,
             # num_workers=1,
-            collate_fn=lambda batch: collate_fn(
-                batch, self.label_key, pad_token_map, self.tokenizer.padding_side, self.output_mode
-            ),
+            collate_fn=lambda batch: collate_fn(batch, pad_token_map, self.tokenizer.padding_side),
             pin_memory=True,
         )
 
         return dataloader
 
+    @abstractmethod
     def pad_token_map(self, split: str) -> Mapping[str, PAD_TYPE]:
         """
-        Specifies the padding for each key. Only keys including in this map plus the label will be
+        Specifies the padding for each key. Only keys including in this map will be
         included in the batch.
         """
-        return {
-            "input_ids": self.tokenizer.pad_token_id,
-            "attention_mask": False,
-            "token_type_ids": self.tokenizer.pad_token_type_id,
-        }
+        raise NotImplementedError("This is an abstract method. Did you forget to implement it?")
 
     def train_dataloader(self) -> DataLoader:
         return self.dataloader(self.train_split, self.batch_size, shuffle=True)

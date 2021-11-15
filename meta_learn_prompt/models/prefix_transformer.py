@@ -80,8 +80,8 @@ class PrefixTransformer(Model):
         Output:
             loss: (bsz, num_classes)
         """
-        mask = batch["label_mask"]  # (bsz, num_classes, seq_len)
-        loss = self.compute_loss(logits, batch["sequence_label"], mask, reduce=False)
+        mask = batch["targets_mask"]  # (bsz, num_classes, seq_len)
+        loss = self.compute_loss(logits, batch["targets"], mask, reduce=False)
         scores = -loss.sum(-1) / mask.sum(-1)  # already masekd in compute_loss()
         return scores
 
