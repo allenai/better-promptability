@@ -140,10 +140,6 @@ class T0DataModule(PromptDataModule):
         self.seqio_task = seqio_task
         self.sequence_length = sequence_length
         self.subsamplme_indices = subsample_indices
-        super().__init__(*args, **kwargs)
-
-    @property
-    def metric_names(self) -> list[str]:
 
         # metrics are already initialized in the task object. Should we just use them directly?
         # [metric_fn.__name__ for metric_fn in self.seqio_task.metric_fns]
@@ -152,13 +148,18 @@ class T0DataModule(PromptDataModule):
         # {'accuracy', 'bleu', 'f1_score_with_invalid', 'mean_multiclass_f1', 'rouge', 'squad'}
 
         # For all the non-big-bench green datasets, all tasks have accuracy as the metric.
-        metrics: list[str] = ["categorical_accurary"]
+
+        self._metric_names: list[str] = ["categorical_accurary"]
         if self.dataset_name == "super_glue" and (
             self.subset_name is not None and self.subset_name == "cb"
         ):
-            metrics.append("fbeta")
+            self._metric_names.append("fbeta")
 
-        return metrics
+        super().__init__(*args, **kwargs)
+
+    @property
+    def metric_names(self) -> list[str]:
+        return self._metric_names
 
     def instantiate_metric(self, metric_name: str, split: str) -> Metric:
         # Note: allennlp metrics take the prediction probabilities as input, whereas
