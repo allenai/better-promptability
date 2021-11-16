@@ -144,14 +144,34 @@ class T0DataModule(PromptDataModule):
 
     @property
     def metric_names(self) -> list[str]:
-        raise NotImplementedError  # TODO(akshitab): probably reuse the metrics info in self.seqio_task?
+
+        # metrics are already initialized in the task object. Should we just use them directly?
+        # [metric_fn.__name__ for metric_fn in self.seqio_task.metric_fns]
+
+        # d4-eval contains the following metrics:
+        # {'accuracy', 'bleu', 'f1_score_with_invalid', 'mean_multiclass_f1', 'rouge', 'squad'}
+
+        # For all the non-big-bench green datasets, all tasks have accuracy as the metric.
+        metrics: list[str] = ["categorical_accurary"]
+        if self.dataset_name == "super_glue" and (
+            self.subset_name is not None and self.subset_name == "cb"
+        ):
+            metrics.append("fbeta")
+
+        return metrics
 
     def instantiate_metric(self, metric_name: str, split: str) -> Metric:
-        raise NotImplementedError  # TODO(akshitab): ditto
+        # Note: allennlp metrics take the prediction probabilities as input, whereas
+        # t5.evaluation.metrics take the argmax, i.e., the predicted labels.
+        # Also: t5.evaluation.metrics multiply everything by 100.
+        if metric_name == "fbeta":
+            # For superglue_cb, `mean_multiclass_f1` is defined with `num_classes = 3`.
+            return Metric.by_name(metric_name)(beta=1.0, average="macro", labels=[0, 1, 2])
+        return Metric.by_name(metric_name)()
 
     @property
     def metric_watch_mode(self) -> str:
-        return "max"  # TODO(akshitab): verify
+        return "max"
 
     @property
     def sort_key(self) -> str:
