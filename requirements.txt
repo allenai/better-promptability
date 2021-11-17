@@ -6,7 +6,6 @@ ai2-tango[all]==0.3.6
 allennlp==2.8.0
 git+https://github.com/bigscience-workshop/promptsource.git@v0.1.0#egg=promptsource
 seqio==0.0.7
-tensorflow-text==2.6.0  # not used directly, but needs to be pinned for seqio since seqio doesn't pin it.
 py7zr==0.16.2
 t5==0.9.3
 transformers==4.11.3
