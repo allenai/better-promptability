@@ -25,6 +25,7 @@ TASKS = {
     "causal-lm": AutoModelForCausalLM,
     "summarization": AutoModelForSeq2SeqLM,
     "translation": AutoModelForSeq2SeqLM,
+    "seq2seq-lm": AutoModelForSeq2SeqLM,
 }
 
 

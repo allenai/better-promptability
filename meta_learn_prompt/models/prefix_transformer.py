@@ -45,7 +45,7 @@ class PrefixTransformer(Model):
             lr_scheduler_total_steps,
         )
 
-        self.transformer = Transformer(transformer_model, "causal-lm", **transformer_kwargs)
+        self.transformer = Transformer(transformer_model, "seq2seq-lm", **transformer_kwargs)
         transformer_model: T5ForConditionalGeneration = self.transformer.model
         assert isinstance(transformer_model, T5ForConditionalGeneration)
 
