@@ -42,7 +42,10 @@ class PromptDataModule(DataModule):
         targets = self.tokenizer(example["target_pretokenized"], add_special_tokens=False)[
             "input_ids"
         ][: self.targets_max_length]
-        assert inputs == example["inputs"] and targets == example["targets"]
+        assert (
+            inputs == example["inputs"][: self.inputs_max_length]
+            and targets == example["targets"][: self.targets_max_length]
+        )
 
         input_ids, attention_mask, targets_mask, targets = assemble_prompt(
             inputs, targets, self.tokenizer.eos_token_id, self.task_token_ids
