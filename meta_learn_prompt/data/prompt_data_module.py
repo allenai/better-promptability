@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from tango.common.aliases import PathOrStr
-from transformers import GPT2Tokenizer, PreTrainedTokenizerBase
+from transformers import T5Tokenizer, PreTrainedTokenizerBase
 
 from .data_utils import PAD_TYPE
 from .data_module import DataModule
@@ -26,7 +26,7 @@ class PromptDataModule(DataModule):
         return "token_classification"
 
     def setup_tokenizer(self) -> PreTrainedTokenizerBase:
-        tokenizer = GPT2Tokenizer.from_pretrained(self.transformer_model)
+        tokenizer = T5Tokenizer.from_pretrained(self.transformer_model)
         tokenizer.add_tokens(self.task_tokens)
         task_token_ids = tokenizer(" ".join(self.task_tokens), return_tensors="pt")["input_ids"]
         assert task_token_ids.shape[-1] == self.num_prefix
@@ -36,11 +36,10 @@ class PromptDataModule(DataModule):
     def tokenize(self, example: dict[str, Any], split: str) -> dict[str, Any]:
         # For T0 datasets, they are already tokenized in seqio, but maybe it'd be great to do them
         # again as a sanity check esp. considering differences between tf vs. huggingface tokenizers
-        inputs = self.tokenizer(example["inputs_pretokenized"])["input_ids"][
-            : self.inputs_max_length
-        ]
-        # TODO(petew): add_prefix_space should be False for T5
-        targets = self.tokenizer(example["target_pretokenized"], add_prefix_space=True)[
+        inputs = self.tokenizer(example["inputs_pretokenized"], add_special_tokens=False)[
+            "input_ids"
+        ][: self.inputs_max_length]
+        targets = self.tokenizer(example["target_pretokenized"], add_special_tokens=False)[
             "input_ids"
         ][: self.targets_max_length]
         assert inputs == example["inputs"] and targets == example["targets"]
@@ -72,9 +71,10 @@ class PromptDataModule(DataModule):
 
 
 def assemble_prompt(prefix, input, eos_token_id, task_token_ids):
-    # Why don't we need BOS? I'm not sure -- this is following Min et al. (2021).
+    # (ZhaofengWu) Why don't we need BOS? I'm not sure -- this is following Min et al. (2021).
     # I think it has something to do with GPT-2 not being trained with it
-    # see https://github.com/huggingface/transformers/issues/3311
+    # see https://github.com/huggingface/transformers/issues/3311.
+    # (epwalsh) T5 also wasn't trained with a BOS token.
     input_ids = prefix + input + [eos_token_id]
     targets_mask = [False] * len(prefix) + [True] * (len(input) + 1)
     # T: soft task tokens; P: prompt tokens; X: sentence
