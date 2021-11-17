@@ -28,7 +28,9 @@ class PromptDataModule(DataModule):
     def setup_tokenizer(self) -> PreTrainedTokenizerBase:
         tokenizer = T5Tokenizer.from_pretrained(self.transformer_model)
         tokenizer.add_tokens(self.task_tokens)
-        task_token_ids = tokenizer(" ".join(self.task_tokens), return_tensors="pt")["input_ids"]
+        task_token_ids = tokenizer(
+            " ".join(self.task_tokens), return_tensors="pt", add_special_tokens=False
+        )["input_ids"]
         assert task_token_ids.shape[-1] == self.num_prefix
         self.task_token_ids = task_token_ids.squeeze(0).tolist()
         return tokenizer
@@ -36,16 +38,21 @@ class PromptDataModule(DataModule):
     def tokenize(self, example: dict[str, Any], split: str) -> dict[str, Any]:
         # For T0 datasets, they are already tokenized in seqio, but maybe it'd be great to do them
         # again as a sanity check esp. considering differences between tf vs. huggingface tokenizers
-        inputs = self.tokenizer(example["inputs_pretokenized"], add_special_tokens=False)[
+        inputs = self.tokenizer(example["inputs_pretokenized"].decode(), add_special_tokens=False)[
             "input_ids"
         ][: self.inputs_max_length]
-        targets = self.tokenizer(example["target_pretokenized"], add_special_tokens=False)[
-            "input_ids"
-        ][: self.targets_max_length]
+        targets = self.tokenizer(
+            example["targets_pretokenized"].decode(), add_special_tokens=False
+        )["input_ids"][: self.targets_max_length]
         assert (
             inputs == example["inputs"][: self.inputs_max_length]
-            and targets == example["targets"][: self.targets_max_length]
-        )
+        ), f"{inputs} != {example['inputs'][: self.inputs_max_length]}"
+        assert (
+            targets
+            == example["targets"][:-1][  # exclude EOS in example['targets'] (we add later)
+                : self.targets_max_length
+            ]
+        ), f"{targets} != {example['targets'][:-1][: self.targets_max_length]}"
 
         input_ids, attention_mask, targets_mask, targets = assemble_prompt(
             inputs, targets, self.tokenizer.eos_token_id, self.task_token_ids

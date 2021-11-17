@@ -41,6 +41,7 @@ class DataModule(LightningDataModule):
         preprocess_and_save: bool = True,
         batch_size: int = 32,
         eval_batch_size: int = 32,
+        num_workers: int = 1,
     ):
         super().__init__()
         self.config = config
@@ -50,6 +51,7 @@ class DataModule(LightningDataModule):
 
         self.batch_size = batch_size
         self.eval_batch_size = eval_batch_size
+        self.num_workers = num_workers
 
     def setup(self, stage: Optional[str] = None):
 
@@ -142,7 +144,7 @@ class DataModule(LightningDataModule):
                 split: dataset.map(
                     lambda examples: self.tokenize(examples, split),
                     batched=False,  # to make tokenization/transformation easier
-                    num_proc=1,  # TODO: this can't be > 1 in tango, for some reason.
+                    num_proc=self.num_workers,
                 )
                 for split, dataset in dataset_dict.items()
             }
