@@ -88,14 +88,18 @@ class T0Mixture:
                         task_name = get_task_name(dataset_name, round, template_name)
                         self.task_name_to_info[task_name] = (dataset_name, round, template_name)  # type: ignore
                         self.task_name_to_info[task_name + "_score_eval"] = (
-                            dataset_name, round, template_name + "_score_eval"
-                        )  # type: ignore
+                            dataset_name,
+                            round,
+                            template_name + "_score_eval",  # type: ignore
+                        )
                 else:
                     task_name = get_task_name(dataset_name, subset_name, template_name)
                     self.task_name_to_info[task_name] = (dataset_name, subset_name, template_name)  # type: ignore
                     self.task_name_to_info[task_name + "_score_eval"] = (
-                        dataset_name, subset_name, template_name + "_score_eval"
-                    )  # type: ignore
+                        dataset_name,
+                        subset_name,
+                        template_name + "_score_eval",  # type: ignore
+                    )
 
         tasks = None
         if self.mixture_name is not None:
@@ -216,7 +220,7 @@ class T0DataModule(PromptDataModule):
             p3_module = importlib.import_module(dataset_module.module_path)
 
             # Mostly following https://huggingface.co/datasets/bigscience/P3/blob/main/P3.py
-            task_splits_and_features = p3_module._TASK_SPLITS_AND_FEATURES_DICT
+            task_splits_and_features = p3_module._TASK_SPLITS_AND_FEATURES_DICT  # type: ignore
             assert self.task_name not in task_splits_and_features
             for split_name in ("validation", "test"):  # story cloze has no training set
                 split_info = json.load(open(os.path.join(data_dir, f"info.{split_name}.json")))
@@ -232,22 +236,22 @@ class T0DataModule(PromptDataModule):
                 assert features_dict == task_splits_and_features[self.task_name]["features_dict"]
             splits_and_features_dict = task_splits_and_features[self.task_name]
 
-            assert self.task_name not in p3_module._URLs
+            assert self.task_name not in p3_module._URLs  # type: ignore
             p3_module._URLs[self.task_name] = {
                 split_name: {"tfrecord": f"{data_dir}/{split_name}.tfrecord-00000-of-00001"}
                 for split_name in splits_and_features_dict["splits"]
             }
 
-            p3_module.P3.BUILDER_CONFIGS.append(
-                p3_module.P3Config(
+            p3_module.P3.BUILDER_CONFIGS.append(  # type: ignore
+                p3_module.P3Config(  # type: ignore
                     name=self.task_name,
                     splits=splits_and_features_dict["splits"],
                     features_dict=splits_and_features_dict["features_dict"],
                     score_eval=self.task_name.endswith("score_eval"),
                 )
             )
-            p3_module.P3.builder_configs = {
-                config.name: config for config in p3_module.P3.BUILDER_CONFIGS
+            p3_module.P3.builder_configs = {  # type: ignore
+                config.name: config for config in p3_module.P3.BUILDER_CONFIGS  # type: ignore
             }
 
         dataset_dict = datasets.load_dataset("bigscience/P3", self.task_name)
