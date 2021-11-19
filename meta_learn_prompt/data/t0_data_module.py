@@ -87,11 +87,15 @@ class T0Mixture:
                     for round in ("r1", "r2", "r3"):
                         task_name = get_task_name(dataset_name, round, template_name)
                         self.task_name_to_info[task_name] = (dataset_name, round, template_name)  # type: ignore
-                        self.task_name_to_info[task_name + "_score_eval"] = (dataset_name, round, template_name + "_score_eval")  # type: ignore
+                        self.task_name_to_info[task_name + "_score_eval"] = (
+                            dataset_name, round, template_name + "_score_eval"
+                        )  # type: ignore
                 else:
                     task_name = get_task_name(dataset_name, subset_name, template_name)
                     self.task_name_to_info[task_name] = (dataset_name, subset_name, template_name)  # type: ignore
-                    self.task_name_to_info[task_name + "_score_eval"] = (dataset_name, subset_name, template_name + "_score_eval")  # type: ignore
+                    self.task_name_to_info[task_name + "_score_eval"] = (
+                        dataset_name, subset_name, template_name + "_score_eval"
+                    )  # type: ignore
 
         tasks = None
         if self.mixture_name is not None:
@@ -172,9 +176,11 @@ class T0DataModule(PromptDataModule):
             assert md5("".join(str(sorted(ex.items())) for ex in dataset)) == checksum
             self.dataset_dict[self.train_split] = dataset
 
+    @property
     def hash_fields(self) -> list[Any]:
         return super().hash_fields + [self.task_name]
 
+    @property
     def dev_splits(self) -> list[str]:
         # Story Cloze doesn't have a training split, so we use the dev split for training
         return super().dev_splits if self.dataset_name != "story_cloze" else []
