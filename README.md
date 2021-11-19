@@ -20,3 +20,7 @@ You can verify that your environment is set up properly by running:
 ```
 tango --no-logging run configs/check_install.yml -i meta_learn_prompt
 ```
+
+## Story Cloze
+
+In order to run story cloze you have to set an environment variable `STORY_CLOZE_PATH` to the story cloze data. Ask Zhaofeng for the data.

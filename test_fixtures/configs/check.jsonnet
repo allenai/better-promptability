@@ -4,7 +4,10 @@ local config = {
     "gpus": 1,
     "fp16": false,
 };
-local model = "t5-small";
+local model = "google/t5-small-lm-adapt";
+local dataset_name = "story_cloze";
+local subset_name = "2016";
+local template_name = "Answer_Given_options_score_eval";
 
 {
     "steps": {
@@ -27,9 +30,11 @@ local model = "t5-small";
                 "replace_sampler_ddp": false,
             },
             "datamodule": {
-                "type": "few_shot",
-                "dataset": "sst-2",
-                "data_dir": "test_fixtures/data/sst2",
+                "dataset_name": dataset_name,
+                "subset_name": subset_name,
+                "template_name": template_name,
+                "subsample_indices_file": "data/green_training_indices_16shot_100seed.pkl",
+                "data_dir": "data/" + dataset_name + "_" + subset_name + "_" + template_name,
                 "transformer_model": model,
                 "num_prefix": 20,
             },
@@ -40,7 +45,7 @@ local model = "t5-small";
                     "lr": 0.001,
                     "eps": 1e-8,
                 },
-                "weight_decay": 0.0,
+                "weight_decay": 1e-5,
             }
         }
     }

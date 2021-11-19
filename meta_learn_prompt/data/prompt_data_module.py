@@ -21,9 +21,12 @@ class PromptDataModule(DataModule):
         self.inputs_max_length = 1024
         self.targets_max_length = 256
 
-    @property
-    def output_mode(self) -> str:
-        return "token_classification"
+    def hash_fields(self) -> list[Any]:
+        return super().hash_fields + [
+            self.num_prefix,
+            self.inputs_max_length,
+            self.targets_max_length,
+        ]
 
     def setup_tokenizer(self) -> PreTrainedTokenizerBase:
         tokenizer = T5Tokenizer.from_pretrained(self.transformer_model)
