@@ -21,6 +21,7 @@ class PromptDataModule(DataModule):
         self.inputs_max_length = 1024
         self.targets_max_length = 256
 
+    @property
     def hash_fields(self) -> list[Any]:
         return super().hash_fields + [
             self.num_prefix,

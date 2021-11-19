@@ -237,7 +237,7 @@ class T0DataModule(PromptDataModule):
             splits_and_features_dict = task_splits_and_features[self.task_name]
 
             assert self.task_name not in p3_module._URLs  # type: ignore
-            p3_module._URLs[self.task_name] = {
+            p3_module._URLs[self.task_name] = {  # type: ignore
                 split_name: {"tfrecord": f"{data_dir}/{split_name}.tfrecord-00000-of-00001"}
                 for split_name in splits_and_features_dict["splits"]
             }
