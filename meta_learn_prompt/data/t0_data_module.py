@@ -141,33 +141,18 @@ class T0DataModule(PromptDataModule):
         self.sequence_length = sequence_length
         self.subsamplme_indices = subsample_indices
 
-        # metrics are already initialized in the task object. Should we just use them directly?
-        # [metric_fn.__name__ for metric_fn in self.seqio_task.metric_fns]
-
-        # d4-eval contains the following metrics:
-        # {'accuracy', 'bleu', 'f1_score_with_invalid', 'mean_multiclass_f1', 'rouge', 'squad'}
-
-        # For all the non-big-bench green datasets, all tasks have accuracy as the metric.
-
-        self._metric_names: list[str] = ["categorical_accurary"]
-        if self.dataset_name == "super_glue" and (
-            self.subset_name is not None and self.subset_name == "cb"
-        ):
-            self._metric_names.append("fbeta")
-
         super().__init__(*args, **kwargs)
 
     @property
     def metric_names(self) -> list[str]:
-        return self._metric_names
+        # [metric_fn.__name__ for metric_fn in self.seqio_task.metric_fns]
+        # For all the non-big-bench green datasets, all tasks have accuracy as the metric.
+        return ["categorical_accurary"]
 
     def instantiate_metric(self, metric_name: str, split: str) -> Metric:
         # Note: allennlp metrics take the prediction probabilities as input, whereas
         # t5.evaluation.metrics take the argmax, i.e., the predicted labels.
         # Also: t5.evaluation.metrics multiply everything by 100.
-        if metric_name == "fbeta":
-            # For superglue_cb, `mean_multiclass_f1` is defined with `num_classes = 3`.
-            return Metric.by_name(metric_name)(beta=1.0, average="macro", labels=[0, 1, 2])
         return Metric.by_name(metric_name)()
 
     @property
