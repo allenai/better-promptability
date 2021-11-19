@@ -4,7 +4,7 @@ local config = {
     "gpus": 1,
     "fp16": false,
 };
-local model = "gpt2";
+local model = "t5-small";
 
 {
     "steps": {

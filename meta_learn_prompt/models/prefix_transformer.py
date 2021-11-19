@@ -6,7 +6,7 @@ import torch
 from tango.common.lazy import Lazy
 from tango.integrations.pytorch_lightning.model import LightningModule
 from tango.integrations.torch.optim import Optimizer
-from transformers import GPT2LMHeadModel
+from transformers import T5ForConditionalGeneration
 
 from ..data.config import Config
 from ..data.prompt_data_module import PromptDataModule
@@ -45,15 +45,15 @@ class PrefixTransformer(Model):
             lr_scheduler_total_steps,
         )
 
-        self.transformer = Transformer(transformer_model, "causal-lm", **transformer_kwargs)
-        transformer_model: GPT2LMHeadModel = self.transformer.model
-        assert isinstance(transformer_model, GPT2LMHeadModel)
+        self.transformer = Transformer(transformer_model, "seq2seq-lm", **transformer_kwargs)
+        transformer_model: T5ForConditionalGeneration = self.transformer.model
+        assert isinstance(transformer_model, T5ForConditionalGeneration)
 
         for param in self.transformer.parameters():
             param.requires_grad = False
 
         transformer_model.transformer.set_input_embeddings(
-            WithPrefixEmbedding(transformer_model.transformer.wte, self.dataset.num_prefix)
+            WithPrefixEmbedding(transformer_model.shared, self.dataset.num_prefix)
         )
 
     def forward(self, batch: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
