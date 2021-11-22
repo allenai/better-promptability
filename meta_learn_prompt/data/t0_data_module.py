@@ -132,7 +132,6 @@ class T0Mixture:
                 dataset_name,
                 subset_name,
                 template_name,
-                task,
                 sequence_length,
                 subsample_indices_file,
                 *args,
