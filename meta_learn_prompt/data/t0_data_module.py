@@ -121,10 +121,6 @@ class T0Mixture:
             ]
             tasks = [seqio.TaskRegistry.get(task_name) for task_name in task_names]
 
-        dataset_to_subsample_indices: Optional[dict] = None
-        if subsample_indices_file is not None:
-            dataset_to_subsample_indices = pickle.load(open(subsample_indices_file, "rb"))
-
         self.data_modules: dict[str, T0DataModule] = {}
         for task in tasks:
             dataset_name, subset_name, template_name = self.task_name_to_info[task.name]
@@ -138,15 +134,14 @@ class T0Mixture:
                 template_name,
                 task,
                 sequence_length,
-                dataset_to_subsample_indices[(dataset_name, subset_name)]
-                if dataset_to_subsample_indices is not None
-                else None,
+                subsample_indices_file,
                 *args,
                 **kwargs,
             )
         assert len(self.data_modules) > 0
 
 
+@PromptDataModule.register("t0")
 class T0DataModule(PromptDataModule):
     """
     Represents a single dataset AND template, but all the splits.
@@ -157,9 +152,8 @@ class T0DataModule(PromptDataModule):
         dataset_name: str,
         subset_name: Optional[str],
         template_name: str,
-        seqio_task: seqio.Task,
         sequence_length: Optional[Mapping[str, int]],
-        subsample_indices: Optional[tuple[list[int], str]],
+        subsample_indices_file: Optional[str],
         *args,
         **kwargs,
     ):
@@ -167,9 +161,12 @@ class T0DataModule(PromptDataModule):
         self.subset_name = subset_name
         self.template_name = template_name
         self.task_name = get_task_name(self.dataset_name, self.subset_name, self.template_name)
-        self.seqio_task = seqio_task
         self.sequence_length = sequence_length
-        self.subsamplme_indices = subsample_indices
+        self.subsample_indices = None
+        if subsample_indices_file is not None:
+            self.subsample_indices = pickle.load(open(subsample_indices_file, "rb"))[
+                (dataset_name, subset_name)
+            ]
         super().__init__(*args, **kwargs)
 
     def setup(self, stage: Optional[str] = None):

@@ -30,6 +30,7 @@ local template_name = "Answer_Given_options_score_eval";
                 "replace_sampler_ddp": false,
             },
             "datamodule": {
+                "type": "t0",
                 "dataset_name": dataset_name,
                 "subset_name": subset_name,
                 "template_name": template_name,
