@@ -9,7 +9,7 @@ from tango.integrations.torch.optim import Optimizer
 from transformers import T5ForConditionalGeneration
 
 from ..data.config import Config
-from ..data.t0_data_module import T0Mixture
+from ..data.prompt_data_module import PromptDataModule
 from ..modules.transformer import Transformer
 from ..modules.with_prefix_embedding import WithPrefixEmbedding
 from .model import Model
@@ -22,7 +22,7 @@ class PrefixTransformer(Model):
     def __init__(
         self,
         config: Config,
-        dataset: T0Mixture,  # this assumes tighter-than-ideal coupling
+        dataset: PromptDataModule,
         transformer_model: str,
         optimizer: Lazy[Optimizer],
         epochs: int = 3,
@@ -32,8 +32,6 @@ class PrefixTransformer(Model):
         lr_scheduler_total_steps: Optional[int] = None,
         **transformer_kwargs,
     ):
-        assert len(dataset.data_modules) == 1
-        dataset = list(dataset.data_modules.values())[0]
         super().__init__(
             config,
             dataset,
