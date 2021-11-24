@@ -52,7 +52,7 @@ class PrefixTransformer(Model):
         for param in self.transformer.parameters():
             param.requires_grad = False
 
-        transformer_model.transformer.set_input_embeddings(
+        transformer_model.set_input_embeddings(
             WithPrefixEmbedding(transformer_model.shared, self.dataset.num_prefix)
         )
 

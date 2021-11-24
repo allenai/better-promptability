@@ -147,7 +147,7 @@ class T0DataModule(PromptDataModule):
     def metric_names(self) -> list[str]:
         # [metric_fn.__name__ for metric_fn in self.seqio_task.metric_fns]
         # For all the non-big-bench green datasets, all tasks have accuracy as the metric.
-        return ["categorical_accurary"]
+        return ["categorical_accuracy"]
 
     def instantiate_metric(self, metric_name: str, split: str) -> Metric:
         # Note: allennlp metrics take the prediction probabilities as input, whereas
