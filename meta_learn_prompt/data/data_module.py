@@ -7,8 +7,7 @@ from typing import Any, Mapping, Optional, Union
 
 from allennlp.training.metrics import Metric
 import datasets
-from datasets import Dataset as HFDataset
-from datasets import DatasetDict
+from datasets import Dataset as HFDataset, DatasetDict, IterableDatasetDict
 from tango.common.aliases import PathOrStr
 from tango.integrations.pytorch_lightning.data import LightningDataModule
 from torch.utils.data.dataloader import DataLoader
@@ -65,8 +64,11 @@ class DataModule(LightningDataModule):
         self.dataset_dict = self.load()
         if self.preprocess_and_save:
             self.dataset_dict = self.preprocess(self.dataset_dict)
-            logger.info(f"Saving dataset cache at {self.cache_path}")
-            self.dataset_dict.save_to_disk(self.cache_path)
+            if isinstance(
+                self.dataset_dict, DatasetDict
+            ):  # could be IterableDatasetDict, which we can't save to disk.
+                logger.info(f"Saving dataset cache at {self.cache_path}")
+                self.dataset_dict.save_to_disk(self.cache_path)
 
     def _to_params(self):
         return {}
@@ -131,7 +133,7 @@ class DataModule(LightningDataModule):
         raise NotImplementedError("This is an abstract property. Did you forget to implement it?")
 
     @abstractmethod
-    def load(self) -> DatasetDict:
+    def load(self) -> Union[DatasetDict, IterableDatasetDict]:
         raise NotImplementedError("This is an abstract method. Did you forget to implement it?")
 
     @abstractmethod
