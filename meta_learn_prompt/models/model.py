@@ -61,7 +61,7 @@ class Model(LightningModule):
         }
 
     def configure_optimizers(self) -> Tuple[List[Optimizer], List[Dict]]:
-        "Prepare optimizer and schedule (linear warmup and decay)"
+        """Prepare optimizer and schedule (linear warmup and decay)"""
 
         no_decay = ["bias", "LayerNorm.weight", "layernorm.weight", "layer_norm.weight"]
         optimizer_grouped_parameters = [
