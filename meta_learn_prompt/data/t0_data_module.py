@@ -170,7 +170,7 @@ class T0DataModule(PromptDataModule):
 
     def setup(self, stage: Optional[str] = None):
         super().setup(stage=stage)
-        if self.subsamplme_indices is not None:
+        if self.subsample_indices is not None:
             indices, checksum = self.subsamplme_indices
             dataset = self.dataset_dict[self.train_split].select(indices)
             assert md5("".join(str(sorted(ex.items())) for ex in dataset)) == checksum
