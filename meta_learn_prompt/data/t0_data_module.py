@@ -2,6 +2,7 @@ from __future__ import annotations
 import importlib
 import json
 import os
+from pathlib import Path
 import pickle
 from typing import Any, Mapping, Optional
 
@@ -9,6 +10,7 @@ from allennlp.training.metrics import Metric
 import datasets
 from datasets import DatasetDict
 import seqio
+from tango.common import PathOrStr
 
 from .data_utils import md5
 from .prompt_data_module import PromptDataModule
@@ -36,11 +38,13 @@ def get_task_name(dataset_name, subset_name, template_name):
 
     if dataset_name == "anli":
         assert subset_name in {"r1", "r2", "r3"}
-        anli_round = subset_name
-        subset_name = None
-    task_name = ps_utils.get_task_name(dataset_name, subset_name, template_name)
-    if dataset_name == "anli":
-        task_name = task_name + "_" + anli_round
+        task_name = ps_utils.get_task_name(dataset_name, None, template_name)
+        if task_name.endswith("_score_eval"):
+            task_name = task_name[: -(len("_score_eval"))] + f"_{subset_name}_score_eval"
+        else:
+            task_name = task_name + f"_{subset_name}"
+    else:
+        task_name = ps_utils.get_task_name(dataset_name, subset_name, template_name)
     return task_name
 
 
@@ -61,6 +65,7 @@ class T0Mixture:
         template_name: Optional[str] = None,
         sequence_length: Optional[Mapping[str, int]] = None,
         subsample_indices_file: Optional[str] = None,
+        cache_dir: PathOrStr = Path.home() / ".cache" / "huggingface" / "datasets",
         *args,
         **kwargs,
     ):
@@ -134,13 +139,14 @@ class T0Mixture:
                 template_name,
                 sequence_length,
                 subsample_indices_file,
+                cache_dir,
                 *args,
                 **kwargs,
             )
         assert len(self.data_modules) > 0
 
 
-@PromptDataModule.register("t0")
+@PromptDataModule.register("t0", exist_ok=True)
 class T0DataModule(PromptDataModule):
     """
     Represents a single dataset AND template, but all the splits.
@@ -153,6 +159,7 @@ class T0DataModule(PromptDataModule):
         template_name: str,
         sequence_length: Optional[Mapping[str, int]],
         subsample_indices_file: Optional[str],
+        cache_dir: PathOrStr,
         *args,
         **kwargs,
     ):
@@ -162,6 +169,7 @@ class T0DataModule(PromptDataModule):
         self.task_name = get_task_name(self.dataset_name, self.subset_name, self.template_name)
         self.sequence_length = sequence_length
         self.subsample_indices = None
+        self.cache_dir = cache_dir
         if subsample_indices_file is not None:
             self.subsample_indices = pickle.load(open(subsample_indices_file, "rb"))[
                 (dataset_name, subset_name)
@@ -250,7 +258,9 @@ class T0DataModule(PromptDataModule):
                 config.name: config for config in p3_module.P3.BUILDER_CONFIGS  # type: ignore
             }
 
-        dataset_dict = datasets.load_dataset("bigscience/P3", self.task_name)
+        dataset_dict = datasets.load_dataset(
+            "bigscience/P3", self.task_name, cache_dir=self.cache_dir
+        )
 
         if self.dataset_name == "story_cloze":
             # Story Cloze doesn't have a training split, so we use the validation split for training
