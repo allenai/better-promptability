@@ -1,147 +1,65 @@
 from __future__ import annotations
+import csv
 import importlib
 import json
 import os
-from pathlib import Path
 import pickle
 from typing import Any, Mapping, Optional
 
 from allennlp.training.metrics import Metric
 import datasets
 from datasets import DatasetDict
-import seqio
 from tango.common import PathOrStr
 
+from .config import Config
 from .data_utils import md5
 from .prompt_data_module import PromptDataModule
 
 
-GREEN_DATASETS = [  # no big bench
-    ("anli", "r1"),
-    ("anli", "r2"),
-    ("anli", "r3"),
-    ("hellaswag", None),
-    ("story_cloze", "2016"),
-    ("super_glue", "cb"),
-    ("super_glue", "copa"),
-    ("super_glue", "rte"),
-    ("super_glue", "wic"),
-    ("super_glue", "wsc.fixed"),
-    ("winogrande", "winogrande_xl"),
-]
-
-
-def get_task_name(dataset_name, subset_name, template_name):
-    # This import also populates seqio.MixtureRegistry. This is also the reason that it is put
-    # here, since otherwise it causes very long start up time for everything.
-    from promptsource.seqio_tasks import utils as ps_utils
-
-    if dataset_name == "anli":
-        assert subset_name in {"r1", "r2", "r3"}
-        task_name = ps_utils.get_task_name(dataset_name, None, template_name)
-        if task_name.endswith("_score_eval"):
-            task_name = task_name[: -(len("_score_eval"))] + f"_{subset_name}_score_eval"
-        else:
-            task_name = task_name + f"_{subset_name}"
-    else:
-        task_name = ps_utils.get_task_name(dataset_name, subset_name, template_name)
-    return task_name
-
-
 class T0Mixture:
     """
-    This class is used to intiialize a T0DataModule or a collection of them. Supports three modes:
-    1. Include all tasks in a mixture such as "d4_train" by providing `mixture_name`;
-    2. Include all templates for a given dataset by providing `dataset_name` and `subset_name`;
-    3. Include one specific dataset template by providing `dataset_name`, `subset_name`, and
-        `template_name`.
+    This class is used to initialize a collection of T0DataModule.
     """
 
     def __init__(
         self,
-        mixture_name: Optional[str] = None,  # most of the time either "d4_train" or "green"
-        dataset_name: Optional[str] = None,
-        subset_name: Optional[str] = None,
-        template_name: Optional[str] = None,
+        mixture_name: str,  # should be "d4_train" or "green"
+        config: Config,
+        data_dir: PathOrStr,
+        num_prefix: int,
+        transformer_model: PathOrStr,
         sequence_length: Optional[Mapping[str, int]] = None,
         subsample_indices_file: Optional[str] = None,
-        cache_dir: PathOrStr = Path.home() / ".cache" / "huggingface" / "datasets",
-        *args,
-        **kwargs,
+        hf_cache_dir: Optional[PathOrStr] = None,
+        **data_module_kwargs,
     ):
-        # This import also populates seqio.MixtureRegistry. This is also the reason that it is put
-        # here, since otherwise it causes very long start up time for everything.
-        from promptsource.seqio_tasks.tasks import all_templates
-
-        self.use_green_datasets = mixture_name == "green"
-        # green datasets are all within `d4_score_eval` but `d4_score_eval` has some extra ones
-        self.mixture_name = "d4_score_eval" if self.use_green_datasets else mixture_name
-        # There are local vars below with the same names, so saving these as fields & deleting them
-        self.dataset_name = dataset_name
-        self.subset_name = subset_name
-        self.template_name = template_name
-        del mixture_name, dataset_name, subset_name, template_name
-        assert (self.mixture_name is not None) != (self.dataset_name is not None)
-
-        self.task_name_to_info: dict[str, tuple[str, Optional[str], str]] = {}
-        for dataset_name, subset_name in all_templates.keys:
-            dataset = all_templates.get_dataset(dataset_name, subset_name)
-            for template_name in dataset.all_template_names:
-                if dataset_name == "anli":
-                    assert subset_name is None
-                    for round in ("r1", "r2", "r3"):
-                        task_name = get_task_name(dataset_name, round, template_name)
-                        self.task_name_to_info[task_name] = (dataset_name, round, template_name)  # type: ignore
-                        self.task_name_to_info[task_name + "_score_eval"] = (
-                            dataset_name,
-                            round,
-                            template_name + "_score_eval",  # type: ignore
-                        )
-                else:
-                    task_name = get_task_name(dataset_name, subset_name, template_name)
-                    self.task_name_to_info[task_name] = (dataset_name, subset_name, template_name)  # type: ignore
-                    self.task_name_to_info[task_name + "_score_eval"] = (
-                        dataset_name,
-                        subset_name,
-                        template_name + "_score_eval",  # type: ignore
-                    )
-
-        tasks = None
-        if self.mixture_name is not None:
-            mixture = seqio.MixtureRegistry.get(self.mixture_name)
-            tasks = mixture.tasks
-        else:
-            task_names = [
-                task_name
-                for task_name, (
-                    dataset_name,
-                    subset_name,
-                    template_name,
-                ) in self.task_name_to_info.items()
-                if dataset_name == self.dataset_name
-                and subset_name == self.subset_name
-                and (
-                    template_name == self.template_name if self.template_name is not None else True
+        assert mixture_name in {"d4_train", "green"}
+        self.mixture_name = mixture_name
+        self.task_name_to_info: dict[str, tuple[str, Optional[str], str]] = {}  # TODO
+        with open("data/t0_task_info.tsv", newline="") as task_info_file:
+            reader = csv.DictReader(task_info_file, delimiter="\t")
+            for row in reader:
+                self.task_name_to_info[row["task_name"]] = (
+                    row["dataset_name"],
+                    row["subset_name"],
+                    row["template_name"],
                 )
-            ]
-            tasks = [seqio.TaskRegistry.get(task_name) for task_name in task_names]
-
         self.data_modules: dict[str, T0DataModule] = {}
-        for task in tasks:
-            dataset_name, subset_name, template_name = self.task_name_to_info[task.name]
-            if self.use_green_datasets and (dataset_name, subset_name) not in GREEN_DATASETS:
-                continue
-
-            assert task.name not in self.data_modules
-            self.data_modules[task.name] = T0DataModule(
-                dataset_name,
-                subset_name,
-                template_name,
-                sequence_length,
-                subsample_indices_file,
-                cache_dir,
-                *args,
-                **kwargs,
+        for task_name in (line.strip() for line in open(f"data/{self.mixture_name}_tasks.txt")):
+            dataset_name, subset_name, template_name = self.task_name_to_info[task_name]
+            self.data_modules[task_name] = T0DataModule(
+                config=config,
+                data_dir=data_dir,
+                num_prefix=num_prefix,
+                transformer_model=transformer_model,
+                task_name=task_name,
+                dataset_name=dataset_name,
+                subset_name=subset_name,
+                template_name=template_name,
+                sequence_length=sequence_length,
+                subsample_indices_file=subsample_indices_file,
+                hf_cache_dir=hf_cache_dir,
+                **data_module_kwargs,
             )
         assert len(self.data_modules) > 0
 
@@ -154,27 +72,37 @@ class T0DataModule(PromptDataModule):
 
     def __init__(
         self,
+        config: Config,
+        data_dir: PathOrStr,
+        num_prefix: int,
+        transformer_model: PathOrStr,
+        task_name: str,
         dataset_name: str,
         subset_name: Optional[str],
         template_name: str,
-        sequence_length: Optional[Mapping[str, int]],
-        subsample_indices_file: Optional[str],
-        cache_dir: PathOrStr,
-        *args,
+        sequence_length: Optional[Mapping[str, int]] = None,
+        subsample_indices_file: Optional[str] = None,
+        hf_cache_dir: Optional[PathOrStr] = None,
         **kwargs,
     ):
+        self.task_name = task_name
         self.dataset_name = dataset_name
         self.subset_name = subset_name
         self.template_name = template_name
-        self.task_name = get_task_name(self.dataset_name, self.subset_name, self.template_name)
         self.sequence_length = sequence_length
         self.subsample_indices = None
-        self.cache_dir = cache_dir
+        self.hf_cache_dir = hf_cache_dir
         if subsample_indices_file is not None:
             self.subsample_indices = pickle.load(open(subsample_indices_file, "rb"))[
                 (dataset_name, subset_name)
             ]
-        super().__init__(*args, **kwargs)
+        super().__init__(
+            config=config,
+            data_dir=data_dir,
+            num_prefix=num_prefix,
+            transformer_model=transformer_model,
+            **kwargs,
+        )
 
     def setup(self, stage: Optional[str] = None):
         super().setup(stage=stage)
@@ -259,7 +187,7 @@ class T0DataModule(PromptDataModule):
             }
 
         dataset_dict = datasets.load_dataset(
-            "bigscience/P3", self.task_name, cache_dir=self.cache_dir
+            "bigscience/P3", self.task_name, cache_dir=self.hf_cache_dir
         )
 
         if self.dataset_name == "story_cloze":
