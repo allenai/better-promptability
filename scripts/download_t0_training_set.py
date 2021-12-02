@@ -13,9 +13,12 @@ def main(mixture_name: str, cache_dir: str):
     # we probably won't have to run this script more than once.
     with tqdm(tasks) as task_iter:
         for task_name in task_iter:
-            task_iter.set_postfix({"downloading": task_name})
+            task_iter.set_postfix({"task": task_name})
+            local_path = os.path.join(cache_dir, task_name)
+            if os.path.isdir(local_path) and os.listdir(local_path):
+                continue
             dataset = datasets.load_dataset("bigscience/P3", task_name, cache_dir=cache_dir)
-            dataset.save_to_disk(os.path.join(cache_dir, task_name))
+            dataset.save_to_disk(local_path)
 
 
 if __name__ == "__main__":
