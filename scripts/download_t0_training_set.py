@@ -1,3 +1,4 @@
+import os
 import sys
 
 import datasets
@@ -9,7 +10,8 @@ def main(mixture_name: str, cache_dir: str):
     with tqdm(tasks) as task_iter:
         for task_name in task_iter:
             task_iter.set_postfix({"downloading": task_name})
-            datasets.load_dataset("bigscience/P3", task_name, cache_dir=cache_dir)
+            dataset = datasets.load_dataset("bigscience/P3", task_name, cache_dir=cache_dir)
+            dataset.save_to_disk(os.path.join(cache_dir, task_name))
 
 
 if __name__ == "__main__":
