@@ -6,21 +6,38 @@ corresponding to a particular mixture. This script should only be run from the r
 import asyncio
 import os
 import sys
-from typing import Optional, Tuple
+from typing import Optional, List
 
 import datasets
 
 
-async def run(task_name: str, cmd: str) -> Tuple[int, str, str]:
-    print(f"Starting download for {task_name}")
+async def track(tasks: List[str], queue):
+    completed = 0
+    while completed < len(tasks):
+        task_name, returncode, stdout, stderr = await queue.get()
+        completed += 1
+        if returncode != 0:
+            print(f"Failed to download '{task_name}':\n[stdout]\n{stdout}\n[stderr]\n{stderr}")
+        else:
+            print(f"[{completed}/len(tasks)] download for '{task_name}' complete")
+        queue.task_done()
+
+
+async def run(task_name: str, cmd: str, queue) -> int:
     proc = await asyncio.create_subprocess_shell(
         cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
     )
-
     stdout, stderr = await proc.communicate()
-    print(f"Finished download for {task_name}")
     assert proc.returncode is not None
-    return proc.returncode, stdout.decode() if stdout else "", stderr.decode() if stderr else ""
+    queue.put_nowait(
+        (
+            task_name,
+            proc.returncode,
+            stdout.decode() if stdout else "",
+            stderr.decode() if stderr else "",
+        )
+    )
+    return proc.returncode
 
 
 async def main(mixture_name: str, cache_dir: str, task: Optional[str] = None):
@@ -42,18 +59,20 @@ async def main(mixture_name: str, cache_dir: str, task: Optional[str] = None):
         assert task in tasks
         download_task_dataset(task)
     else:
+        queue: asyncio.Queue = asyncio.Queue()
         results = await asyncio.gather(
+            track(tasks, queue),
             *[
                 run(
                     task_name,
                     f"python scripts/download_t0_training_set.py '{mixture_name}' '{cache_dir}' '{task_name}'",
+                    queue,
                 )
                 for task_name in tasks
-            ]
+            ],
         )
-        for task_name, (returncode, stdout, stderr) in zip(tasks, results):
+        for returncode in results[1:]:
             if returncode != 0:
-                print(f"Failed to download '{task_name}':\n[stdout]\n{stdout}\n[stderr]\n{stderr}")
                 exitcode = 1
 
     sys.exit(exitcode)
