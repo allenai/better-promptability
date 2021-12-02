@@ -11,12 +11,14 @@ from typing import Optional, Tuple
 import datasets
 
 
-async def run(cmd: str) -> Tuple[int, str, str]:
+async def run(task_name: str, cmd: str) -> Tuple[int, str, str]:
+    print(f"Starting download for {task_name}")
     proc = await asyncio.create_subprocess_shell(
         cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
     )
 
     stdout, stderr = await proc.communicate()
+    print(f"Finished download for {task_name}")
     assert proc.returncode is not None
     return proc.returncode, stdout.decode() if stdout else "", stderr.decode() if stderr else ""
 
@@ -34,18 +36,27 @@ async def main(mixture_name: str, cache_dir: str, task: Optional[str] = None):
         if not line.startswith("story_cloze_")  # these are handled separately
     ]
 
+    exitcode = 0
+
     if task is not None:
         assert task in tasks
         download_task_dataset(task)
     else:
-        await asyncio.gather(
+        results = await asyncio.gather(
             *[
                 run(
-                    f"python scripts/download_t0_training_set.py '{mixture_name}' '{cache_dir}' '{task}'"
+                    task_name,
+                    f"python scripts/download_t0_training_set.py '{mixture_name}' '{cache_dir}' '{task_name}'",
                 )
                 for task_name in tasks
             ]
         )
+        for task_name, (returncode, stdout, stderr) in zip(tasks, results):
+            if returncode != 0:
+                print(f"Failed to download '{task_name}':\n[stdout]\n{stdout}\n[stderr]\n{stderr}")
+                exitcode = 1
+
+    sys.exit(exitcode)
 
 
 if __name__ == "__main__":
