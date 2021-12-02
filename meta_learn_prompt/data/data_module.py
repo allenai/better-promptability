@@ -10,7 +10,7 @@ import datasets
 from datasets import Dataset as HFDataset, DatasetDict, IterableDatasetDict
 from tango.common.aliases import PathOrStr
 from tango.integrations.pytorch_lightning.data import LightningDataModule
-from torch.utils.data.dataloader import DataLoader
+from torch.utils.data import DataLoader, IterableDataset
 from transformers import PreTrainedTokenizerBase
 from transformers.trainer_pt_utils import LengthGroupedSampler
 
@@ -168,7 +168,7 @@ class DataModule(LightningDataModule):
 
     def dataloader(self, split: str, batch_size: int, shuffle=False) -> DataLoader:
         dataset_split = self.dataset_dict[split]
-        if shuffle:
+        if shuffle and not isinstance(dataset_split, IterableDataset):
             # LengthGroupedSampler sorts from longest to shortest; we want the reverse
             lens = [-len(ids) for ids in dataset_split[self.sort_key]]
             if self.config.gpus <= 1:
