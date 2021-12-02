@@ -19,7 +19,7 @@ async def track(tasks: List[str], queue):
         if returncode != 0:
             print(f"Failed to download '{task_name}':\n[stdout]\n{stdout}\n[stderr]\n{stderr}")
         else:
-            print(f"[{completed}/len(tasks)] download for '{task_name}' complete")
+            print(f"[{completed}/{len(tasks)}] download for '{task_name}' complete")
         queue.task_done()
 
 
