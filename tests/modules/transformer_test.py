@@ -5,7 +5,7 @@ from meta_learn_prompt.modules.transformer import Transformer
 
 @pytest.fixture(scope="module")
 def model_name():
-    return "t5-small"
+    return "google/t5-small-lm-adapt"
 
 
 @pytest.fixture(scope="module")

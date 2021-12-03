@@ -34,9 +34,9 @@ local template_name = "unittest";
                 "dataset_name": dataset_name,
                 "subset_name": subset_name,
                 "template_name": template_name,
-                "data_dir": "test_fixtures/data/sst2",
+                "data_dir": "test_fixtures/data/unittest",
                 "transformer_model": model,
-                "num_prefix": 20,
+                "num_prefix": 1,
             },
             "model": {
                 "transformer_model": model,

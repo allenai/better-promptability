@@ -49,33 +49,23 @@ class PromptDataModule(DataModule):
         return tokenizer
 
     def tokenize(self, example: dict[str, Any], split: str) -> dict[str, Any]:
-        if self.dataset_name == "unittest":
-            inputs = self.tokenizer(example["inputs"])["input_ids"][:self.inputs_max_length]
-            # print(inputs)
-            # inputs = self.tokenizer(inputs.decode(), add_special_tokens=False)["input_ids"][:self.inputs_max_length]
-            # print(inputs)
-            # assert False
-            targets = self.tokenizer(str(example["targets"]))["input_ids"][:self.targets_max_length]
-            # inputs = example["inputs"]
-            # targets = example["targets"]
-        else:
-            # For T0 datasets, they are already tokenized in seqio, but maybe it'd be great to do them
-            # again as a sanity check esp. considering differences between tf vs. huggingface tokenizers
-            inputs = self.tokenizer(example["inputs_pretokenized"].decode(), add_special_tokens=False)[
-                "input_ids"
-            ][: self.inputs_max_length]
-            targets = self.tokenizer(
-                example["targets_pretokenized"].decode(), add_special_tokens=False
-            )["input_ids"][: self.targets_max_length]
-            assert (
-                inputs == example["inputs"][: self.inputs_max_length]
-            ), f"{inputs} != {example['inputs'][: self.inputs_max_length]}"
-            assert (
-                targets
-                == example["targets"][:-1][  # exclude EOS in example['targets'] (we add later)
-                    : self.targets_max_length
-                ]
-            ), f"{targets} != {example['targets'][:-1][: self.targets_max_length]}"
+        # For T0 datasets, they are already tokenized in seqio, but maybe it'd be great to do them
+        # again as a sanity check esp. considering differences between tf vs. huggingface tokenizers
+        inputs = self.tokenizer(example["inputs_pretokenized"].decode(), add_special_tokens=False)[
+            "input_ids"
+        ][: self.inputs_max_length]
+        targets = self.tokenizer(
+            example["targets_pretokenized"].decode(), add_special_tokens=False
+        )["input_ids"][: self.targets_max_length]
+        assert (
+            inputs == example["inputs"][: self.inputs_max_length]
+        ), f"{inputs} != {example['inputs'][: self.inputs_max_length]}"
+        assert (
+            targets
+            == example["targets"][:-1][  # exclude EOS in example['targets'] (we add later)
+                : self.targets_max_length
+            ]
+        ), f"{targets} != {example['targets'][:-1][: self.targets_max_length]}"
 
         input_ids, attention_mask, targets_mask, targets = assemble_prompt(
             inputs, targets, self.tokenizer.eos_token_id, self.task_token_ids

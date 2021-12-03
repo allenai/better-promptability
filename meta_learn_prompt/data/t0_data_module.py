@@ -3,13 +3,12 @@ import importlib
 import json
 import os
 import pickle
-from typing import Any, Mapping, Optional
+from typing import Any, Callable, Mapping, Optional
 
-from allennlp.training.metrics import Metric
+import t5
 import datasets
 from datasets import DatasetDict
 import seqio
-from tango.common.aliases import PathOrStr
 
 from .data_utils import md5
 from .prompt_data_module import PromptDataModule
@@ -153,8 +152,6 @@ class T0DataModule(PromptDataModule):
 
     def __init__(
         self,
-        num_prefix: int,
-        transformer_model: PathOrStr,
         dataset_name: str,
         template_name: str,
         subset_name: Optional[str] = None,
@@ -173,7 +170,7 @@ class T0DataModule(PromptDataModule):
             self.subsample_indices = pickle.load(open(subsample_indices_file, "rb"))[
                 (dataset_name, subset_name)
             ]
-        super().__init__(num_prefix, transformer_model, *args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def setup(self, stage: Optional[str] = None):
         super().setup(stage=stage)
@@ -192,17 +189,18 @@ class T0DataModule(PromptDataModule):
         # Story Cloze doesn't have a training split, so we use the dev split for training
         return super().dev_splits if self.dataset_name != "story_cloze" else []
 
+    @classmethod
+    def get_metric_postprocessor(cls) -> Callable:
+        # Keeping t5 as a dependency for now; may want to evaluate on other tasks.
+        return t5.data.postprocessors.rank_classification
+
     @property
     def metric_names(self) -> list[str]:
-        # [metric_fn.__name__ for metric_fn in self.seqio_task.metric_fns]
-        # For all the non-big-bench green datasets, all tasks have accuracy as the metric.
-        return ["categorical_accuracy"]
+        # For all the green (i.e., d4_score_eval) datasets, all tasks have rank classification as the metric.
+        return ["rank_classification"]
 
-    def instantiate_metric(self, metric_name: str, split: str) -> Metric:
-        # Note: allennlp metrics take the prediction probabilities as input, whereas
-        # t5.evaluation.metrics take the argmax, i.e., the predicted labels.
-        # Also: t5.evaluation.metrics multiply everything by 100.
-        return Metric.by_name(metric_name)()
+    def instantiate_metric(self, metric_name: str, split: str) -> Callable:
+        return t5.evaluation.metrics.rank_classification
 
     @property
     def metric_watch_mode(self) -> str:
@@ -215,19 +213,7 @@ class T0DataModule(PromptDataModule):
     def load(self) -> DatasetDict:
         # Not the cleanest code, refactor later.
         if self.dataset_name == "unittest":
-            data_dir = "test_fixtures/data/sst2"
-            data_files = {
-                "train": os.path.join(data_dir, "train.tsv"),
-                "dev": os.path.join(data_dir, "dev_small.tsv"),
-                "test": os.path.join(data_dir, "test.tsv")
-            }
-            return datasets.load_dataset(
-                path="csv",
-                delimiter="\t",
-                skiprows=1,
-                column_names=["inputs", "targets"],
-                data_files=data_files
-            )
+            return datasets.load_from_disk("test_fixtures/data/unittest")
 
         if self.dataset_name == "story_cloze":
             data_dir = os.path.join(os.environ["STORY_CLOZE_PATH"], self.task_name)
