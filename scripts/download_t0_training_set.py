@@ -130,8 +130,8 @@ async def main(mixture_name: str, cache_dir: str, task: Optional[str] = None):
                 failures += 1
                 exitcode = 1
 
-    if failures:
-        print(f"There were {failures} task datasets that failed to download")
+        if failures:
+            print(f"There were {failures} task datasets that failed to download")
 
     sys.exit(exitcode)
 
