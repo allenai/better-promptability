@@ -9,6 +9,7 @@ from allennlp.training.metrics import Metric
 import datasets
 from datasets import DatasetDict
 import seqio
+from tango.common.aliases import PathOrStr
 
 from .data_utils import md5
 from .prompt_data_module import PromptDataModule
@@ -30,6 +31,10 @@ GREEN_DATASETS = [  # no big bench
 
 
 def get_task_name(dataset_name, subset_name, template_name):
+    # UGH: Since it's impossible to work on this codebase given the dead-slow promptsource registry.
+    if dataset_name == "unittest":
+        return "unittest_unittest_unittest"
+
     # This import also populates seqio.MixtureRegistry. This is also the reason that it is put
     # here, since otherwise it causes very long start up time for everything.
     from promptsource.seqio_tasks import utils as ps_utils
@@ -148,11 +153,13 @@ class T0DataModule(PromptDataModule):
 
     def __init__(
         self,
+        num_prefix: int,
+        transformer_model: PathOrStr,
         dataset_name: str,
-        subset_name: Optional[str],
         template_name: str,
-        sequence_length: Optional[Mapping[str, int]],
-        subsample_indices_file: Optional[str],
+        subset_name: Optional[str] = None,
+        sequence_length: Optional[Mapping[str, int]] = None,
+        subsample_indices_file: Optional[str] = None,
         *args,
         **kwargs,
     ):
@@ -166,11 +173,11 @@ class T0DataModule(PromptDataModule):
             self.subsample_indices = pickle.load(open(subsample_indices_file, "rb"))[
                 (dataset_name, subset_name)
             ]
-        super().__init__(*args, **kwargs)
+        super().__init__(num_prefix, transformer_model, *args, **kwargs)
 
     def setup(self, stage: Optional[str] = None):
         super().setup(stage=stage)
-        if self.subsamplme_indices is not None:
+        if self.subsample_indices is not None:
             indices, checksum = self.subsamplme_indices
             dataset = self.dataset_dict[self.train_split].select(indices)
             assert md5("".join(str(sorted(ex.items())) for ex in dataset)) == checksum
@@ -206,6 +213,22 @@ class T0DataModule(PromptDataModule):
         return "inputs"
 
     def load(self) -> DatasetDict:
+        # Not the cleanest code, refactor later.
+        if self.dataset_name == "unittest":
+            data_dir = "test_fixtures/data/sst2"
+            data_files = {
+                "train": os.path.join(data_dir, "train.tsv"),
+                "dev": os.path.join(data_dir, "dev_small.tsv"),
+                "test": os.path.join(data_dir, "test.tsv")
+            }
+            return datasets.load_dataset(
+                path="csv",
+                delimiter="\t",
+                skiprows=1,
+                column_names=["inputs", "targets"],
+                data_files=data_files
+            )
+
         if self.dataset_name == "story_cloze":
             data_dir = os.path.join(os.environ["STORY_CLOZE_PATH"], self.task_name)
 
