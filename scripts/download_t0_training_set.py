@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import List, Optional
 
 import datasets
+from tango.common.file_lock import FileLock
 
 STORY_CLOZE_PATH = Path("/net/nfs2.allennlp/zhaofengw/story_cloze_dir")
 
@@ -45,7 +46,11 @@ async def run(task_name: str, cmd: str, queue) -> int:
     return proc.returncode
 
 
-async def main(mixture_name: str, cache_dir: str, task: Optional[str] = None):
+async def main(
+    mixture_name: str,
+    cache_dir: str = "/net/nfs2.allennlp/petew/meta-learn-prompt/t0/cache",
+    task: Optional[str] = None,
+):
     cache_dir = Path(cache_dir)
 
     def download_task_dataset(task_name: str):
@@ -99,10 +104,18 @@ async def main(mixture_name: str, cache_dir: str, task: Optional[str] = None):
                     config.name: config for config in p3_module.P3.BUILDER_CONFIGS  # type: ignore
                 }
 
-            dataset = datasets.load_dataset(
-                "bigscience/P3", task_name, cache_dir=cache_dir / ".hf_cache"  # type: ignore
-            )
-            dataset.save_to_disk(local_path)
+            retries = 0
+            while True:
+                try:
+                    dataset = datasets.load_dataset("bigscience/P3", task_name)
+                    break
+                except ConnectionError:
+                    retries += 1
+                    if retries > 3:
+                        raise
+
+            with FileLock(str(local_path) + ".lock"):
+                dataset.save_to_disk(local_path)
 
     tasks = [line.strip() for line in open(f"data/{mixture_name}_tasks.txt")]
 

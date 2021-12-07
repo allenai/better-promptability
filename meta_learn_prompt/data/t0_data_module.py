@@ -21,7 +21,7 @@ class T0Mixture:
 
     def __init__(
         self,
-        mixture_name: str,  # should be "d4_train" or "green"
+        mixture_name: str,  # should be "d4_train", "d4_dev", or "green"
         config: Config,
         data_dir: PathOrStr,
         num_prefix: int,
@@ -31,7 +31,7 @@ class T0Mixture:
         subsample_indices_file: Optional[str] = None,
         **data_module_kwargs,
     ):
-        assert mixture_name in {"d4_train", "green"}
+        assert mixture_name in {"d4_train", "d4_dev", "green"}
         self.mixture_name = mixture_name
         self.task_name_to_info: dict[str, tuple[str, Optional[str], str]] = {}  # TODO
         with open("data/t0_task_info.tsv", newline="") as task_info_file:

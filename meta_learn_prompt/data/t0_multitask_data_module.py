@@ -12,7 +12,7 @@ from .t0_data_module import T0Mixture
 class T0MultiTaskDataModule(PromptDataModule):
     def __init__(
         self,
-        mixture_name: str,  # should be 'd4_train' or 'green' most of the time
+        mixture_name: str,  # should be 'd4_train', 'd4_dev', or 'green'.
         *args,
         **kwargs,
     ):
