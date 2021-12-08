@@ -78,7 +78,7 @@ class PrefixTransformer(Model):
         Input:
             logits: (bsz, num_classes, seq_len, vocab_size)
         Output:
-            loss: (bsz, num_classes)
+            scores: (bsz, num_classes)
         """
         mask = batch["targets_mask"]  # (bsz, num_classes, seq_len)
         loss = self.compute_loss(logits, batch["targets"], mask, reduce=False)
