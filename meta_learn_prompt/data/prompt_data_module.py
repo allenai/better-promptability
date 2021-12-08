@@ -51,12 +51,13 @@ class PromptDataModule(DataModule):
     def tokenize(self, example: dict[str, Any], split: str) -> dict[str, Any]:
         # For T0 datasets, they are already tokenized in seqio, but maybe it'd be great to do them
         # again as a sanity check esp. considering differences between tf vs. huggingface tokenizers
-        inputs = self.tokenizer(example["inputs_pretokenized"].decode(), add_special_tokens=False)[
+
+        inputs = self.tokenizer(example["inputs_pretokenized"], add_special_tokens=False)[
             "input_ids"
         ][: self.inputs_max_length]
-        targets = self.tokenizer(
-            example["targets_pretokenized"].decode(), add_special_tokens=False
-        )["input_ids"][: self.targets_max_length]
+        targets = self.tokenizer(example["targets_pretokenized"], add_special_tokens=False)[
+            "input_ids"
+        ][: self.targets_max_length]
         assert (
             inputs == example["inputs"][: self.inputs_max_length]
         ), f"{inputs} != {example['inputs'][: self.inputs_max_length]}"
