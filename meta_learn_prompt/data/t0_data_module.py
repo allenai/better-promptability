@@ -2,7 +2,7 @@ from __future__ import annotations
 import csv
 from pathlib import Path
 import pickle
-from typing import Any, Callable, Mapping, Optional
+from typing import Any, Mapping, Optional
 
 import t5
 from allennlp.training.metrics import Metric
@@ -135,7 +135,7 @@ class T0DataModule(PromptDataModule):
 
     @property
     def metric_watch_mode(self) -> str:
-        return "max"  # TODO(akshitab): verify
+        return "max"
 
     @property
     def sort_key(self) -> str:
