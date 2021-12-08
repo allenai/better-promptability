@@ -6,9 +6,11 @@ class ProcessDatasetTest(MetaLearnPromptTestCase):
     def test_process_dataset(self):
         step = ProcessDataset()
         result = step.run(
-            old_data_path=str(self.FIXTURES_ROOT / "data" / "hellaswag_complete_first_then"),
+            old_data_path=str(
+                self.FIXTURES_ROOT / "data" / "hellaswag_complete_first_then_score_eval"
+            ),
             new_data_path=str(
-                self.FIXTURES_ROOT / "data" / "hellaswag_complete_first_then_processed"
+                self.FIXTURES_ROOT / "data" / "hellaswag_complete_first_then_score_eval_processed"
             ),
         )
 
