@@ -5,9 +5,10 @@ local config = {
     "fp16": false,
 };
 local model = "google/t5-small-lm-adapt";
-local dataset_name = "unittest";
-local subset_name = "unittest";
-local template_name = "unittest";
+local task_name = "hellaswag_complete_first_then_score_eval";
+local dataset_name = "hellaswag";
+local subset_name = null;
+local template_name = "complete_first_then_score_eval";
 
 {
     "steps": {
@@ -31,10 +32,12 @@ local template_name = "unittest";
             },
             "datamodule": {
                 "type": "t0",
+                "task_name": task_name,
                 "dataset_name": dataset_name,
                 "subset_name": subset_name,
                 "template_name": template_name,
-                "data_dir": "test_fixtures/data/unittest",
+                "data_dir": "test_fixtures/data",
+                "t0_data_cache": "test_fixtures/data/processed_cache",
                 "transformer_model": model,
                 "num_prefix": 1,
             },

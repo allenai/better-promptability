@@ -129,7 +129,8 @@ class Model(LightningModule):
         reduce=True,
     ) -> torch.Tensor:
         assert mask is not None
-        assert mask.any(dim=-1).all()
+        # TODO: check what's happening here.
+        # assert mask.any(dim=-1).all()
         loss = F.cross_entropy(logits.view(-1, logits.shape[-1]), labels.view(-1), reduction="none")
         loss = loss.view_as(labels) * mask
         if reduce:
@@ -157,7 +158,8 @@ class Model(LightningModule):
 
         logits = self(batch)["logits"]
         preds = self.get_predictions(logits, batch)
-        labels = batch["targets"]
+        targets = batch["targets"]
+        labels = batch["is_correct"].argmax(dim=-1)
 
         splits = self.dataset.dev_splits if mode == "dev" else self.dataset.test_splits
         split = splits[dataloader_idx]
@@ -165,7 +167,7 @@ class Model(LightningModule):
             metric(*metric.detach_tensors(preds, labels))
 
         return (
-            {"loss": self.compute_loss(logits, labels, batch.get("targets_mask")).detach().cpu()}
+            {"loss": self.compute_loss(logits, targets, batch.get("targets_mask")).detach().cpu()}
             if compute_loss
             else {}
         )

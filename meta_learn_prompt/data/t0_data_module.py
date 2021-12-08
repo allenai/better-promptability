@@ -4,7 +4,6 @@ from pathlib import Path
 import pickle
 from typing import Any, Mapping, Optional
 
-import t5
 from allennlp.training.metrics import Metric
 import datasets
 from datasets import DatasetDict
@@ -120,18 +119,14 @@ class T0DataModule(PromptDataModule):
         # Story Cloze doesn't have a training split, so we use the dev split for training
         return super().dev_splits if self.dataset_name != "story_cloze" else []
 
-    @classmethod
-    def get_metric_postprocessor(cls) -> Callable:
-        # Keeping t5 as a dependency for now; may want to evaluate on other tasks.
-        return t5.data.postprocessors.rank_classification
-
     @property
     def metric_names(self) -> list[str]:
-        # For all the green (i.e., d4_score_eval) datasets, all tasks have rank classification as the metric.
-        return ["rank_classification"]
+        # For all the green (i.e., d4_score_eval) datasets, all tasks have accuracy as the metric.
+        return ["categorical_accuracy"]
 
-    def instantiate_metric(self, metric_name: str, split: str) -> Callable:
-        return t5.evaluation.metrics.rank_classification
+    def instantiate_metric(self, metric_name: str, split: str) -> Metric:
+        # return t5.evaluation.metrics.rank_classification
+        return Metric.by_name(metric_name)()
 
     @property
     def metric_watch_mode(self) -> str:

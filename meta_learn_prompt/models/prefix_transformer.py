@@ -61,17 +61,29 @@ class PrefixTransformer(Model):
         attention_mask = batch["attention_mask"]
 
         assert input_ids.shape == attention_mask.shape and input_ids.dim() in (2, 3)
-        assert self.training == (input_ids.dim() == 2)
-        if not self.training:  # for inference we have an additional dimension for classes
-            orig_shape = input_ids.shape
-            input_ids = input_ids.reshape(-1, orig_shape[-1])
-            attention_mask = attention_mask.reshape(-1, orig_shape[-1])
+        return_dict = {}
 
-        logits = self.transformer(input_ids=input_ids, attention_mask=attention_mask).logits
+        # if not self.training:  # for inference we have an additional dimension for classes
+        # TODO: confirm logic.
+        orig_shape = input_ids.shape  # bs x num_classes x seq_len
+        input_ids = input_ids.reshape(-1, orig_shape[-1])
+        attention_mask = attention_mask.reshape(-1, orig_shape[-1])
+        decoder_input_ids = batch["targets"]
+        decoder_attention_mask = batch["targets_mask"]
+        orig_decoder_shape = decoder_input_ids.shape
+        decoder_input_ids = decoder_input_ids.reshape(-1, orig_decoder_shape[-1])
+        decoder_attention_mask = decoder_attention_mask.reshape(-1, orig_decoder_shape[-1])
 
-        if not self.training:
-            logits = logits.reshape(*(orig_shape + (-1,)))
-        return {"logits": logits}
+        logits = self.transformer(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            decoder_input_ids=decoder_input_ids,
+            decoder_attention_mask=decoder_attention_mask,
+        ).logits
+        logits = logits.reshape(*(orig_shape + (-1,)))
+        return_dict["logits"] = logits
+
+        return return_dict
 
     def get_predictions(self, logits: torch.Tensor, batch: dict[str, torch.Tensor]) -> torch.Tensor:
         """
@@ -98,7 +110,8 @@ class PrefixTransformer(Model):
         )
 
     def on_save_checkpoint(self, checkpoint: dict[str, Any]):
-        weight_key = "transformer.model.transformer.wte.new_embed.weight"
+        weight_key = "transformer.model.shared.new_embed.weight"
+        print(checkpoint["state_dict"].keys())
         checkpoint["state_dict"] = {weight_key: checkpoint["state_dict"][weight_key]}
 
 

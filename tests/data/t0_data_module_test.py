@@ -16,3 +16,7 @@ class T0DataModuleTest(MetaLearnPromptTestCase):
             template_name="complete_first_then_score_eval",
             t0_data_cache=str(self.FIXTURES_ROOT / "data" / "processed_cache"),
         )
+
+        t0.setup()
+        data = t0.load()
+        assert "train" in data
