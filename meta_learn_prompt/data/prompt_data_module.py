@@ -49,9 +49,6 @@ class PromptDataModule(DataModule):
         return tokenizer
 
     def tokenize(self, example: dict[str, Any], split: str) -> dict[str, Any]:
-        # For T0 datasets, they are already tokenized in seqio, but maybe it'd be great to do them
-        # again as a sanity check esp. considering differences between tf vs. huggingface tokenizers
-
         inputs = example["inputs"][: self.inputs_max_length]
 
         # Make sure there are no other EOS in `inputs` and `targets`.
@@ -66,6 +63,12 @@ class PromptDataModule(DataModule):
             ]
             targets.append(updated_target)
             assert self.tokenizer.eos_token_id not in updated_target
+
+        # Make sure there are no other EOS in `inputs` and `targets`.
+        # The EOS token is really the only special token we are concerned about with T5.
+        # T5 has no BOS token. There might be UNK tokens in the inputs though, but that's okay.
+        assert self.tokenizer.eos_token_id not in inputs
+        assert self.tokenizer.eos_token_id not in targets
 
         input_ids, attention_mask, targets_mask, targets = assemble_prompt(
             inputs, targets, self.tokenizer.eos_token_id, self.task_token_ids
