@@ -129,8 +129,7 @@ class Model(LightningModule):
         reduce=True,
     ) -> torch.Tensor:
         assert mask is not None
-        # TODO: check what's happening here.
-        # assert mask.any(dim=-1).all()
+        assert mask.any(dim=-1).all()
         loss = F.cross_entropy(logits.view(-1, logits.shape[-1]), labels.view(-1), reduction="none")
         loss = loss.view_as(labels) * mask
         if reduce:

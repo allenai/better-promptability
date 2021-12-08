@@ -17,7 +17,7 @@ class ProcessDatasetTest(MetaLearnPromptTestCase):
             ),
         )
 
-        assert len(result["train"]) == 8
+        assert len(result["train"]) == 7
         assert len(result["train"][0]["targets"]) == 4
         assert len(result["train"][0]["targets_pretokenized"]) == 4
         assert len(result["train"][0]["is_correct"]) == 4
