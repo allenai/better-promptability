@@ -90,7 +90,11 @@ class Model(LightningModule):
         return [optimizer], [scheduler]
 
     def get_lr_scheduler(self, optimizer: Optimizer) -> dict:
-        num_devices = max(1, self.config.gpus)  # TODO: consider num_tpu_cores
+        # num_devices = max(1, self.config.gpus)  # TODO: consider num_tpu_cores
+        if self.config.gpus is not None:
+            num_devices = max(1, self.config.gpus)
+        else:
+            num_devices = 1
         # TODO: use world_size.
         if self.optimizer_kwargs["lr_scheduler_total_steps"] is not None:
             total_steps = self.optimizer_kwargs["lr_scheduler_total_steps"]
