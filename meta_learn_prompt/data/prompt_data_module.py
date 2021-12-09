@@ -51,15 +51,15 @@ class PromptDataModule(DataModule):
         assert self.tokenizer.eos_token_id not in inputs
         assert self.tokenizer.eos_token_id not in targets
 
-        input_ids, attention_mask, targets_mask, targets = assemble_prompt(
+        input_ids, target_ids, input_mask, target_mask = assemble_prompt(
             inputs, targets, self.tokenizer.eos_token_id, self.task_token_ids
         )
 
         return_dict = {
             "input_ids": input_ids,
-            "attention_mask": attention_mask,
-            "targets_mask": targets_mask,
-            "targets": targets,
+            "input_mask": input_mask,
+            "target_ids": target_ids,
+            "target_mask": target_mask,
         }
         return return_dict
 
@@ -70,33 +70,16 @@ class PromptDataModule(DataModule):
         """
         pad_token_map_ = {
             "input_ids": 0,
-            "attention_mask": False,
-            "targets_mask": False,
-            "targets": 0,
+            "input_mask": False,
+            "target_ids": -100,
+            "target_mask": False,
         }
         return pad_token_map_
 
 
-def assemble_prompt(prefix, input, eos_token_id, task_token_ids):
-    # (ZhaofengWu) Why don't we need BOS? I'm not sure -- this is following Min et al. (2021).
-    # I think it has something to do with GPT-2 not being trained with it
-    # see https://github.com/huggingface/transformers/issues/3311.
-    # (epwalsh) T5 also wasn't trained with a BOS token.
-    input_ids = prefix + input + [eos_token_id]
-    targets_mask = [False] * len(prefix) + [True] * (len(input) + 1)
-    # T: soft task tokens; P: prompt tokens; X: sentence
-    # input_ids    : P1 P2 P3 X1 X2 X3 EOS
-    # targets_mask : 0  0  0  1  1  1  1
-
-    n_task_tokens = len(task_token_ids)
-    new_input_ids = task_token_ids + input_ids[:-1]
-    targets = [0] * (n_task_tokens - 1) + input_ids
-    new_targets_mask = [False] * (n_task_tokens - 1) + targets_mask
-    # new_input_ids    : T1 T2 T3 P1 P2 P3 X1 X2 X3
-    # pred             : T2 T3 P1 P2 P3 X1 X2 X3 EOS       <-- this is what the model will predict
-    # targets          : 0  0  P1 P2 P3 X1 X2 X3 EOS
-    # new_targets_mask : 0  0  0  0  0  1  1  1  1
-
-    assert len(new_input_ids) == len(targets) == len(new_targets_mask)
-    attention_mask = [True] * len(targets)
-    return new_input_ids, attention_mask, new_targets_mask, targets
+def assemble_prompt(inputs, targets, eos_token_id, task_token_ids):
+    input_ids = task_token_ids + inputs + [eos_token_id]
+    target_ids = targets + [eos_token_id]
+    input_mask = [True] * len(input_ids)
+    target_mask = [True] * len(target_ids)
+    return input_ids, target_ids, input_mask, target_mask
