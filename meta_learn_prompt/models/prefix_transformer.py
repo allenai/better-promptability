@@ -58,16 +58,19 @@ class PrefixTransformer(Model):
 
     def forward(self, batch: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
         input_ids = batch["input_ids"]
-        attention_mask = batch["attention_mask"]
+        input_mask = batch["input_mask"]
+        target_ids = batch["target_ids"]
 
-        assert input_ids.shape == attention_mask.shape and input_ids.dim() in (2, 3)
+        assert input_ids.shape == input_mask.shape and input_ids.dim() in (2, 3)
         assert self.training == (input_ids.dim() == 2)
         if not self.training:  # for inference we have an additional dimension for classes
             orig_shape = input_ids.shape
             input_ids = input_ids.reshape(-1, orig_shape[-1])
-            attention_mask = attention_mask.reshape(-1, orig_shape[-1])
+            input_mask = input_mask.reshape(-1, orig_shape[-1])
 
-        logits = self.transformer(input_ids=input_ids, attention_mask=attention_mask).logits
+        logits = self.transformer(
+            input_ids=input_ids, attention_mask=input_mask, labels=target_ids
+        ).logits
 
         if not self.training:
             logits = logits.reshape(*(orig_shape + (-1,)))
@@ -80,8 +83,8 @@ class PrefixTransformer(Model):
         Output:
             scores: (bsz, num_classes)
         """
-        mask = batch["targets_mask"]  # (bsz, num_classes, seq_len)
-        loss = self.compute_loss(logits, batch["targets"], mask, reduce=False)
+        mask = batch["target_mask"]  # (bsz, num_classes, seq_len)
+        loss = self.compute_loss(logits, batch["target_ids"], mask, reduce=False)
         scores = -loss.sum(-1) / mask.sum(-1)  # already masekd in compute_loss()
         return scores
 
