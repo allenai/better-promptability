@@ -33,7 +33,7 @@ class T0Mixture:
     ):
         assert mixture_name in {"d4_train", "d4_dev", "green"}
         self.mixture_name = mixture_name
-        self.task_name_to_info: dict[str, tuple[str, Optional[str], str]] = {}  # TODO
+        self.task_name_to_info: dict[str, tuple[str, Optional[str], str]] = {}
         with open("data/t0_task_info.tsv", newline="") as task_info_file:
             reader = csv.DictReader(task_info_file, delimiter="\t")
             for row in reader:
