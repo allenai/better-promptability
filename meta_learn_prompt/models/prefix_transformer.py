@@ -1,5 +1,8 @@
 from __future__ import annotations
 import logging
+import os
+import pickle
+import re
 from typing import Any, Optional
 
 import torch
@@ -30,8 +33,12 @@ class PrefixTransformer(Model):
         accumulate_grad_batches: int = 1,
         warmup_steps: int = 0,
         lr_scheduler_total_steps: Optional[int] = None,
+        optstates_dir: Optional[str] = "/net/nfs2.allennlp/zhaofengw/optstates",
         **transformer_kwargs,
     ):
+        self.transformer_name = transformer_model
+        self.optstates_dir = optstates_dir
+
         super().__init__(
             config,
             dataset,
@@ -116,6 +123,73 @@ class PrefixTransformer(Model):
         weight_key = "transformer.model.shared.new_embed.weight"
         print(checkpoint["state_dict"].keys())
         checkpoint["state_dict"] = {weight_key: checkpoint["state_dict"][weight_key]}
+
+    def configure_optimizers(self) -> tuple[list[Optimizer], list[dict]]:
+        optimizers, schedulers = super().configure_optimizers()
+
+        if self._optimizer._params["type"] == "adafactor":
+            assert self.optstates_dir is not None
+            optstates_path = os.path.join(self.optstates_dir, self.transformer_name.split("/")[-1])
+            optstates = pickle.load(open(optstates_path, "rb"))
+            optimizer = optimizers[0]
+
+            for param_name, states in optstates.items():
+                name = param_name.split("/")
+                pointer = self.transformer.model.transformer
+                # Following the logic at https://github.com/huggingface/transformers/blob/027074f4d0503e4fc077beb069e651435979b7b2/src/transformers/models/t5/modeling_t5.py#L116
+                for m_name in name:
+                    if re.fullmatch(r"[A-Za-z]+_\d+", m_name):
+                        scope_names = re.split(r"_(\d+)", m_name)
+                    else:
+                        scope_names = [m_name]
+                    if scope_names[0] in ["kernel", "scale", "embedding"]:
+                        pointer = getattr(pointer, "weight")
+                    elif scope_names[0] == "self_attention":
+                        pointer = getattr(pointer, "layer")
+                        pointer = pointer[0]
+                    elif scope_names[0] == "enc_dec_attention":
+                        pointer = getattr(pointer, "layer")
+                        pointer = pointer[1]
+                    elif scope_names[0] == "dense_relu_dense":
+                        pointer = getattr(pointer, "layer")
+                        pointer = pointer[2]
+                    elif scope_names[0] == "rms_norm":
+                        if hasattr(pointer, "layer_norm"):
+                            pointer = getattr(pointer, "layer_norm")
+                        elif hasattr(pointer, "final_layer_norm"):
+                            pointer = getattr(pointer, "final_layer_norm")
+                    elif scope_names[0] == "scale":
+                        pointer = getattr(pointer, "weight")
+                    elif scope_names[0] == "output_bias" or scope_names[0] == "beta":
+                        pointer = getattr(pointer, "bias")
+                    elif scope_names[0] == "squad":
+                        pointer = getattr(pointer, "classifier")
+                    elif scope_names[0] == "decoder" and name[1] == "logits":
+                        continue
+                    elif scope_names[0] == "logits":
+                        pointer = getattr(pointer, "lm_head")
+                    elif (
+                        scope_names[0] == "wi" and len(scope_names) > 1 and scope_names[1].isdigit()
+                    ):
+                        pointer = getattr(pointer, f"wi_{scope_names[1]}")
+                        continue
+                    else:
+                        # try:
+                        pointer = getattr(pointer, scope_names[0])
+                        # except AttributeError:
+                        #     logger.info(f"Skipping {'/'.join(name)}")
+                        #     continue
+                    if len(scope_names) >= 2:
+                        num = int(scope_names[1])
+                        pointer = pointer[num]
+                if scope_names[0] not in ["kernel", "scale", "embedding"]:
+                    pointer = getattr(pointer, "weight")
+                optimizer.state[pointer]["exp_avg_sq_row"] = states["vr"]
+                optimizer.state[pointer]["exp_avg_sq_col"] = states["vc"]
+                optimizer.state[pointer]["exp_avg_sq"] = states["v"]
+                optimizer.state[pointer]["step"] = 0
+
+        return optimizers, schedulers
 
 
 # @Step.register("get_model")
