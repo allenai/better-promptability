@@ -1,14 +1,10 @@
 from __future__ import annotations
 import hashlib
-from itertools import accumulate, cycle, islice
-import math
 import random
-from typing import Iterable, Mapping, Union, TypeVar, Sequence, Optional, Iterator, Generic
+from typing import Iterable, Mapping, Union, TypeVar, Sequence, Optional
 
 import numpy as np
 import torch
-import torch.distributed as dist
-from torch.utils.data import IterableDataset, get_worker_info
 from torch.utils.data._utils.collate import default_collate
 
 PAD_TYPE = Union[int, float, bool]
@@ -99,73 +95,68 @@ def md5(s):
 T = TypeVar("T")
 
 
-class MixerStreamDataset(IterableDataset[T]):
+class MixerDataset(Sequence[T]):
     """
-    This dataset mixes multiple other datasets into a single :class:`IterableDataset`,
-    which becomes an infinite stream of elements from the original datasets, sampled
-    according to the given probabilities.
+    This dataset mixes multiple other datasets into a single :class:`Dataset`.
+
+    The `max_size` argument sets an artificial size limit for all of the datasets which
+    controls the sampling probability for each. This is useful when you have a mix of small
+    and large datasets. When using `max_size`, you should call :meth:`resample()` periodically
+    to randomize the examples that get picked from the undersampled datasets, i.e. the datasets
+    that are bigger than `max_size`.
     """
 
     def __init__(
         self,
         datasets: list[Sequence[T]],
-        probabilities: Optional[list[float]] = None,
-        seed: int = 27,
+        max_size: Optional[int] = None,
+        seed: Optional[int] = None,
     ):
-        self.seed = seed
-        self.datasets = datasets
-        self.probabilities = (
-            probabilities
-            if probabilities is not None
-            else [1.0 / len(self.datasets) for _ in range(len(self.datasets))]
-        )
-        assert len(self.datasets) == len(self.probabilities)
-        self.cumulative_dist = list(accumulate(self.probabilities))
-        assert math.isclose(self.cumulative_dist[-1], 1.0)
+        self._datasets: list[Sequence[T]] = []
+        self._total_size: int = 0
+        self._dataset_boundaries: list[tuple[int, int]] = []
+        for dataset in datasets:
+            start_boundary = 0 if not self._dataset_boundaries else self._dataset_boundaries[-1][-1]
+            if max_size is not None and len(dataset) > max_size:
+                self._total_size += max_size
+                self._dataset_boundaries.append((start_boundary, start_boundary + max_size))
+                self._datasets.append(_UndersampledDataset(dataset, max_size, seed=seed))
+            else:
+                self._total_size += len(dataset)
+                self._dataset_boundaries.append((start_boundary, start_boundary + len(dataset)))
+                self._datasets.append(dataset)
 
-    def __iter__(self) -> Iterator[T]:
-        data_streams: list[Iterator[T]] = [
-            cycle(_SingleStreamIterator(dataset, seed=self.seed)) for dataset in self.datasets
-        ]
-        return self.shard_iterable((next(data_streams[idx]) for idx in self.indices_stream()))
+    def __getitem__(self, i: int) -> T:  # type: ignore[override]
+        for dataset_idx, (start, end) in enumerate(self._dataset_boundaries):
+            if start <= i < end:
+                return self._datasets[dataset_idx][i - start]
+        raise IndexError("index out of bounds")
 
-    def next_idx(self) -> int:
-        p = random.random()
-        for idx, cutoff in enumerate(self.cumulative_dist):
-            if p < cutoff:
-                return idx
-        return len(self.cumulative_dist) - 1
+    def __len__(self) -> int:
+        return self._total_size
 
-    def indices_stream(self):
-        while True:
-            yield self.next_idx()
-
-    def shard_iterable(self, iterable: Iterable[T]) -> Iterator[T]:
-        """
-        Helper method that determines which items in an iterable object to skip based
-        on the current node rank (for distributed training) and worker ID (for multi-process data loading).
-        """
-        sharded_slice: Iterator[T] = iter(iterable)
-
-        if dist.is_available() and dist.is_initialized():
-            sharded_slice = islice(sharded_slice, dist.get_rank(), None, dist.get_world_size())
-
-        worker_info = get_worker_info()
-        if worker_info is not None and worker_info.num_workers > 1:
-            sharded_slice = islice(sharded_slice, worker_info.id, None, worker_info.num_workers)
-
-        return sharded_slice
+    def resample(self, seed: Optional[int] = None):
+        for dataset in self._datasets:
+            if isinstance(dataset, _UndersampledDataset):
+                dataset.resample(seed)
 
 
-class _SingleStreamIterator(Generic[T]):
-    def __init__(self, dataset: Sequence[T], seed: int = 27):
-        self.dataset = dataset
-        self.epochs = 0
-        self.seed = seed
+class _UndersampledDataset(Sequence[T]):
+    def __init__(self, dataset: Sequence[T], max_size: int, seed: Optional[int] = None):
+        self._dataset = dataset
+        self._max_size = max_size
+        self._indices: list[int]
+        self.resample(seed)
 
-    def __iter__(self) -> Iterator[T]:
-        indices = list(range(len(self.dataset)))
-        random.seed(self.seed + self.epochs)
+    def __getitem__(self, i: int) -> T:  # type: ignore[override]
+        return self._dataset[self._indices[i]]
+
+    def __len__(self) -> int:
+        return self._max_size
+
+    def resample(self, seed: Optional[int]):
+        if seed is not None:
+            random.seed(seed)
+        indices = list(range(len(self._dataset)))
         random.shuffle(indices)
-        self.epochs += 1
-        return (self.dataset[i] for i in indices)
+        self._indices = indices[: self._max_size]

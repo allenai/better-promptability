@@ -6,8 +6,7 @@ from typing import Any, Mapping, Optional
 
 from allennlp.training.metrics import Metric
 import datasets
-from datasets import DatasetDict
-from tango.common import PathOrStr
+from tango.common import PathOrStr, DatasetDict
 
 from .config import Config
 from .data_utils import md5

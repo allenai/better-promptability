@@ -7,10 +7,11 @@ from typing import Any, Mapping, Optional, Union
 
 from allennlp.training.metrics import Metric
 import datasets
-from datasets import Dataset as HFDataset, DatasetDict, IterableDatasetDict
+from datasets import Dataset as HFDataset, DatasetDict as HFDatasetDict
+from tango.common import DatasetDict
 from tango.common.aliases import PathOrStr
 from tango.integrations.pytorch_lightning.data import LightningDataModule
-from torch.utils.data import DataLoader, IterableDataset
+from torch.utils.data import DataLoader
 from transformers import PreTrainedTokenizerBase
 from transformers.trainer_pt_utils import LengthGroupedSampler
 
@@ -58,15 +59,13 @@ class DataModule(LightningDataModule):
             self.tokenizer = self.setup_tokenizer()
             if os.path.exists(self.cache_path):
                 logger.info(f"Reusing cache at {self.cache_path}")
-                self.dataset_dict = DatasetDict.load_from_disk(self.cache_path)
+                self.dataset_dict = HFDatasetDict.load_from_disk(self.cache_path)
                 return
 
         self.dataset_dict = self.load()
         if self.preprocess_and_save:
             self.dataset_dict = self.preprocess(self.dataset_dict)
-            if isinstance(
-                self.dataset_dict, DatasetDict
-            ):  # could be IterableDatasetDict, which we can't save to disk.
+            if isinstance(self.dataset_dict, HFDatasetDict):
                 logger.info(f"Saving dataset cache at {self.cache_path}")
                 self.dataset_dict.save_to_disk(self.cache_path)
 
@@ -133,7 +132,7 @@ class DataModule(LightningDataModule):
         raise NotImplementedError("This is an abstract property. Did you forget to implement it?")
 
     @abstractmethod
-    def load(self) -> Union[DatasetDict, IterableDatasetDict]:
+    def load(self) -> DatasetDict:
         raise NotImplementedError("This is an abstract method. Did you forget to implement it?")
 
     @abstractmethod
@@ -168,7 +167,7 @@ class DataModule(LightningDataModule):
 
     def dataloader(self, split: str, batch_size: int, shuffle=False) -> DataLoader:
         dataset_split = self.dataset_dict[split]
-        if shuffle and not isinstance(dataset_split, IterableDataset):
+        if shuffle:
             # LengthGroupedSampler sorts from longest to shortest; we want the reverse
             lens = [-len(ids) for ids in dataset_split[self.sort_key]]
             if self.config.gpus <= 1:
