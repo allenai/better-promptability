@@ -83,7 +83,7 @@ class PrefixTransformer(Model):
         ).logits
 
         if not self.training:
-            logits = logits.reshape(*(orig_shape + (-1,)))
+            logits = logits.reshape(*(orig_decoder_shape + (-1,)))
         return_dict["logits"] = logits
 
         return return_dict
