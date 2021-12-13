@@ -1,1 +1,2 @@
-from .t0_data_module import T0Mixture, T0DataModule
+from .t0_mixture import T0Mixture
+from .t0_module import T0Module

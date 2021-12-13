@@ -1,69 +1,22 @@
 from __future__ import annotations
-import csv
+from typing import Any, Mapping, Optional
+
+from tango.common.aliases import PathOrStr
+
 from pathlib import Path
 import pickle
-from typing import Any, Mapping, Optional
 
 from allennlp.training.metrics import Metric
 import datasets
 from datasets import DatasetDict
-from tango.common import PathOrStr
 
-from .config import Config
 from .data_utils import md5
 from .prompt_data_module import PromptDataModule
-
-
-class T0Mixture:
-    """
-    This class is used to initialize a collection of T0DataModule.
-    """
-
-    def __init__(
-        self,
-        mixture_name: str,  # should be "d4_train", "d4_dev", or "green"
-        config: Config,
-        data_dir: PathOrStr,
-        num_prefix: int,
-        transformer_model: PathOrStr,
-        t0_data_cache: PathOrStr = "/net/nfs2.allennlp/petew/meta-learn-prompt/t0/cache",
-        sequence_length: Optional[Mapping[str, int]] = None,
-        subsample_indices_file: Optional[str] = None,
-        **data_module_kwargs,
-    ):
-        assert mixture_name in {"d4_train", "d4_dev", "green"}
-        self.mixture_name = mixture_name
-        self.task_name_to_info: dict[str, tuple[str, Optional[str], str]] = {}
-        with open("data/t0_task_info.tsv", newline="") as task_info_file:
-            reader = csv.DictReader(task_info_file, delimiter="\t")
-            for row in reader:
-                self.task_name_to_info[row["task_name"]] = (
-                    row["dataset_name"],
-                    row["subset_name"],
-                    row["template_name"],
-                )
-        self.data_modules: dict[str, T0DataModule] = {}
-        for task_name in (line.strip() for line in open(f"data/{self.mixture_name}_tasks.txt")):
-            dataset_name, subset_name, template_name = self.task_name_to_info[task_name]
-            self.data_modules[task_name] = T0DataModule(
-                config=config,
-                data_dir=data_dir,
-                num_prefix=num_prefix,
-                transformer_model=transformer_model,
-                task_name=task_name,
-                dataset_name=dataset_name,
-                subset_name=subset_name,
-                template_name=template_name,
-                t0_data_cache=t0_data_cache,
-                sequence_length=sequence_length,
-                subsample_indices_file=subsample_indices_file,
-                **data_module_kwargs,
-            )
-        assert len(self.data_modules) > 0
+from .config import Config
 
 
 @PromptDataModule.register("t0", exist_ok=True)
-class T0DataModule(PromptDataModule):
+class T0Module(PromptDataModule):
     """
     Represents a single dataset AND template, but all the splits.
     """
@@ -74,6 +27,7 @@ class T0DataModule(PromptDataModule):
         data_dir: PathOrStr,
         num_prefix: int,
         transformer_model: PathOrStr,
+        mixture_name: str,
         task_name: str,
         dataset_name: str,
         subset_name: Optional[str],
@@ -83,6 +37,9 @@ class T0DataModule(PromptDataModule):
         subsample_indices_file: Optional[str] = None,
         **kwargs,
     ):
+
+        super().__init__(config, data_dir, num_prefix, transformer_model, mixture_name, **kwargs)
+
         self.task_name = task_name
         self.dataset_name = dataset_name
         self.subset_name = subset_name
@@ -94,13 +51,10 @@ class T0DataModule(PromptDataModule):
             self.subsample_indices = pickle.load(open(subsample_indices_file, "rb"))[
                 (dataset_name, subset_name)
             ]
-        super().__init__(
-            config=config,
-            data_dir=data_dir,
-            num_prefix=num_prefix,
-            transformer_model=transformer_model,
-            **kwargs,
-        )
+
+    @property
+    def hash_fields(self) -> list[Any]:
+        return super().hash_fields + [self.task_name]
 
     def setup(self, stage: Optional[str] = None):
         super().setup(stage=stage)
@@ -109,10 +63,6 @@ class T0DataModule(PromptDataModule):
             dataset = self.dataset_dict[self.train_split].select(indices)
             assert md5("".join(str(sorted(ex.items())) for ex in dataset)) == checksum
             self.dataset_dict[self.train_split] = dataset
-
-    @property
-    def hash_fields(self) -> list[Any]:
-        return super().hash_fields + [self.task_name]
 
     @property
     def dev_splits(self) -> list[str]:
@@ -148,3 +98,11 @@ class T0DataModule(PromptDataModule):
             del dataset_dict["validation"]
 
         return dataset_dict
+
+
+def assemble_prompt(inputs, targets, eos_token_id, task_token_ids):
+    input_ids = task_token_ids + inputs + [eos_token_id]
+    target_ids = targets + [eos_token_id]
+    input_mask = [True] * len(input_ids)
+    target_mask = [True] * len(target_ids)
+    return input_ids, target_ids, input_mask, target_mask

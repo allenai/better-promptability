@@ -32,6 +32,7 @@ local template_name = "complete_first_then_score_eval";
             },
             "datamodule": {
                 "type": "t0",
+                "mixture_name": "green",
                 "task_name": task_name,
                 "dataset_name": dataset_name,
                 "subset_name": subset_name,

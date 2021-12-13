@@ -1,4 +1,5 @@
 from __future__ import annotations
+import numpy as np
 from typing import Any, Mapping
 
 from tango.common.aliases import PathOrStr
@@ -12,15 +13,17 @@ from .config import Config
 class PromptDataModule(DataModule):
     def __init__(
         self,
-        num_prefix: int,
-        transformer_model: PathOrStr,
         config: Config,
         data_dir: PathOrStr,
+        num_prefix: int,
+        transformer_model: PathOrStr,
+        mixture_name: str,
         *args,
         **kwargs,
     ):
         self.num_prefix = num_prefix
         self.transformer_model = transformer_model
+        self.mixture_name = mixture_name
 
         self.task_tokens = ["<TASK{}>".format(str(i).zfill(2)) for i in range(self.num_prefix)]
 
@@ -56,35 +59,73 @@ class PromptDataModule(DataModule):
         # T5 has no BOS token. There might be UNK tokens in the inputs though, but that's okay.
         assert self.tokenizer.eos_token_id not in inputs
 
-        targets = []
+        single_target: bool = False
+        # is_correct: Optional[List[bool]] = None
+        targets = example["targets"]
 
-        input_ids_list = []
-        input_mask_list = []
-        target_mask_list = []
-        target_ids_list = []
+        if self.mixture_name == "d4_train":
+            single_target = True
+        elif self.mixture_name == "d4_dev":  # and split == self.train_split:
+            single_target = True
 
-        for target in example["targets"]:
-            updated_target = target[:-1][  # exclude EOS in example['targets'] (we add later)
+        # # This is what we would do if we wanted to evaluate d4_dev datasets
+        # # the same way as the green ones. But some d4_dev datasets do not have answer_choices
+        # # at all (eg. "web_questions_get_the_answer" simply wants a knowledge-based answer).
+        # elif self.mixture_name == "d4_dev" and split != self.train_split:
+        #    single_target = False
+        #    # The format in d4_dev is the same as train (there is no is_correct).
+        #    # To get multiple targets, we need to use "answer_choices", and tokenize them.
+        #    answer_choices = example["answer_choices"]
+        #    is_correct = [choice == example["targets"] for choice in (answer_choices)]
+        #    targets = [self.tokenizer(choice, add_special_tokens=False)["input_ids"] for choice in answer_choices]
+
+        elif self.mixture_name == "green" and split == self.train_split:
+            single_target = True
+
+            # Actually getting the single target.
+            correct_idx = np.argmax(example["is_correct"])
+            targets = targets[correct_idx]
+
+        else:  # green dev/test
+            single_target = False
+
+        if single_target:
+            targets = targets[:-1][  # exclude EOS in example['targets'] (we add later)
                 : self.targets_max_length
             ]
-            assert self.tokenizer.eos_token_id not in updated_target
-
+            assert self.tokenizer.eos_token_id not in targets
             input_ids, target_ids, input_mask, target_mask = assemble_prompt(
-                inputs, updated_target, self.tokenizer.eos_token_id, self.task_token_ids
+                inputs, targets, self.tokenizer.eos_token_id, self.task_token_ids
             )
-            input_ids_list.append(input_ids)
-            input_mask_list.append(input_mask)
-            target_ids_list.append(target_ids)
-            target_mask_list.append(target_mask)
+        else:
+            input_ids = []
+            input_mask = []
+            target_mask = []
+            target_ids = []
 
+            for target in targets:
+                target = target[:-1][  # exclude EOS in example['targets'] (we add later)
+                    : self.targets_max_length
+                ]
+                assert self.tokenizer.eos_token_id not in target
+
+                _input_ids, _target_ids, _input_mask, _target_mask = assemble_prompt(
+                    inputs, target, self.tokenizer.eos_token_id, self.task_token_ids
+                )
+                input_ids.append(_input_ids)
+                input_mask.append(_input_mask)
+                target_ids.append(_target_ids)
+                target_mask.append(_target_mask)
 
         return_dict = {
-            "input_ids": input_ids_list,
-            "input_mask": input_mask_list,
-            "target_ids": target_ids_list,
-            "target_mask": target_mask_list,
-            "is_correct": example["is_correct"],
+            "input_ids": input_ids,
+            "input_mask": input_mask,
+            "target_ids": target_ids,
+            "target_mask": target_mask,
         }
+
+        if self.mixture_name == "green" and split != self.train_split:
+            return_dict["is_correct"] = example["is_correct"]
         return return_dict
 
     def pad_token_map(self, split: str) -> Mapping[str, PAD_TYPE]:  # type: ignore
@@ -97,8 +138,10 @@ class PromptDataModule(DataModule):
             "input_mask": False,
             "target_ids": -100,
             "target_mask": False,
-            "is_correct": 0,
         }
+
+        if self.mixture_name == "green" and split != self.train_split:
+            pad_token_map_["is_correct"] = 0
         return pad_token_map_
 
 
