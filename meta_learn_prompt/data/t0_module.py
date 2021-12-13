@@ -98,11 +98,3 @@ class T0Module(PromptDataModule):
             del dataset_dict["validation"]
 
         return dataset_dict
-
-
-def assemble_prompt(inputs, targets, eos_token_id, task_token_ids):
-    input_ids = task_token_ids + inputs + [eos_token_id]
-    target_ids = targets + [eos_token_id]
-    input_mask = [True] * len(input_ids)
-    target_mask = [True] * len(target_ids)
-    return input_ids, target_ids, input_mask, target_mask
