@@ -58,27 +58,31 @@ class PrefixTransformer(Model):
 
     def forward(self, batch: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
         input_ids = batch["input_ids"]
-        attention_mask = batch["attention_mask"]
+        input_mask = batch["input_mask"]
+        target_ids = batch["target_ids"]
+        target_mask = batch["target_mask"]
 
-        assert input_ids.shape == attention_mask.shape and input_ids.dim() in (2, 3)
         return_dict = {}
 
+        # assert input_ids.shape == input_mask.shape and input_ids.dim() in (2, 3)
+        # assert self.training == (input_ids.dim() == 2)
         # if not self.training:  # for inference we have an additional dimension for classes
         # TODO: confirm logic.
         orig_shape = input_ids.shape  # bs x num_classes x seq_len
         input_ids = input_ids.reshape(-1, orig_shape[-1])
-        attention_mask = attention_mask.reshape(-1, orig_shape[-1])
+        attention_mask = input_mask.reshape(-1, orig_shape[-1])
         decoder_input_ids = batch["targets"]
         decoder_attention_mask = batch["targets_mask"]
-        orig_decoder_shape = decoder_input_ids.shape
-        decoder_input_ids = decoder_input_ids.reshape(-1, orig_decoder_shape[-1])
-        decoder_attention_mask = decoder_attention_mask.reshape(-1, orig_decoder_shape[-1])
+        orig_decoder_shape = target_ids.shape
+        target_ids = target_ids.reshape(-1, orig_decoder_shape[-1])
+        target_mask = target_mask.reshape(-1, orig_decoder_shape[-1])
 
         logits = self.transformer(
             input_ids=input_ids,
-            attention_mask=attention_mask,
-            decoder_input_ids=decoder_input_ids,
-            decoder_attention_mask=decoder_attention_mask,
+            attention_mask=input_mask,
+            # decoder_input_ids=target_ids,
+            # decoder_attention_mask=target_mask,
+            labels=target_ids,
         ).logits
         logits = logits.reshape(*(orig_shape + (-1,)))
         return_dict["logits"] = logits
@@ -92,8 +96,8 @@ class PrefixTransformer(Model):
         Output:
             scores: (bsz, num_classes)
         """
-        mask = batch["targets_mask"]  # (bsz, num_classes, seq_len)
-        loss = self.compute_loss(logits, batch["targets"], mask, reduce=False)
+        mask = batch["target_mask"]  # (bsz, num_classes, seq_len)
+        loss = self.compute_loss(logits, batch["target_ids"], mask, reduce=False)
         scores = -loss.sum(-1) / mask.sum(-1)  # already masked in compute_loss()
         return scores
 

@@ -137,7 +137,9 @@ class Model(LightningModule):
         return loss
 
     def training_step(self, batch: dict[str, torch.Tensor], batch_idx: int) -> dict[str, Any]:
-        loss = self.compute_loss(self(batch)["logits"], batch["targets"], batch.get("targets_mask"))
+        loss = self.compute_loss(
+            self(batch)["logits"], batch["target_ids"], batch.get("target_mask")
+        )
         self.log("train_loss", loss)
         self.log("lr", self.trainer.lr_schedulers[0]["scheduler"].get_last_lr()[-1], prog_bar=True)
         return {"loss": loss}
@@ -157,8 +159,9 @@ class Model(LightningModule):
 
         logits = self(batch)["logits"]
         preds = self.get_predictions(logits, batch)
-        targets = batch["targets"]
+        targets = batch["target_ids"]
         labels = batch["is_correct"].argmax(dim=-1)
+        # labels = batch["target_ids"]
 
         splits = self.dataset.dev_splits if mode == "dev" else self.dataset.test_splits
         split = splits[dataloader_idx]
@@ -166,7 +169,8 @@ class Model(LightningModule):
             metric(*metric.detach_tensors(preds, labels))
 
         return (
-            {"loss": self.compute_loss(logits, targets, batch.get("targets_mask")).detach().cpu()}
+            # {"loss": self.compute_loss(logits, targets, batch.get("targets_mask")).detach().cpu()}
+            {"loss": self.compute_loss(logits, labels, batch.get("target_mask")).detach().cpu()}
             if compute_loss
             else {}
         )
