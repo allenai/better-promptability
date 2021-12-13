@@ -136,7 +136,7 @@ class PromptDataModule(DataModule):
         pad_token_map_ = {
             "input_ids": 0,
             "input_mask": False,
-            "target_ids": -100,
+            "target_ids": 0,
             "target_mask": False,
         }
 
