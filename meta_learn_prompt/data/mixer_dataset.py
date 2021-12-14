@@ -21,7 +21,6 @@ class MixerDataset(Sequence[T]):
         self,
         datasets: list[Sequence[T]],
         sampling_cap: Optional[int] = None,
-        seed: Optional[int] = None,
     ):
         self._datasets: list[Sequence[T]] = []
         self._total_size: int = 0
@@ -31,7 +30,7 @@ class MixerDataset(Sequence[T]):
             if sampling_cap is not None and len(dataset) > sampling_cap:
                 self._total_size += sampling_cap
                 self._dataset_boundaries.append((start_boundary, start_boundary + sampling_cap))
-                self._datasets.append(_UndersampledDataset(dataset, sampling_cap, seed=seed))
+                self._datasets.append(_UndersampledDataset(dataset, sampling_cap))
             else:
                 self._total_size += len(dataset)
                 self._dataset_boundaries.append((start_boundary, start_boundary + len(dataset)))
@@ -46,22 +45,24 @@ class MixerDataset(Sequence[T]):
     def __len__(self) -> int:
         return self._total_size
 
-    def resample(self, seed: Optional[int] = None):
+    def resample(self):
         for dataset in self._datasets:
             if isinstance(dataset, _UndersampledDataset):
-                dataset.resample(seed)
+                dataset.resample()
 
 
 class _UndersampledDataset(Sequence[T]):
-    def __init__(self, dataset: Sequence[T], sampling_cap: int, seed: Optional[int] = None):
+    def __init__(
+        self,
+        dataset: Sequence[T],
+        sampling_cap: int,
+    ):
         assert sampling_cap < len(dataset)
         self._dataset = dataset
         self._sampling_cap = sampling_cap
         self._indices = list(range(len(self._dataset)))
         self._max_taken = sampling_cap
-        if seed is not None:
-            random.seed(seed)
-        #  random.shuffle(self._indices)
+        random.shuffle(self._indices)
 
     def __getitem__(self, i: int) -> T:  # type: ignore[override]
         if i > self._sampling_cap:
@@ -71,9 +72,7 @@ class _UndersampledDataset(Sequence[T]):
     def __len__(self) -> int:
         return self._sampling_cap
 
-    def resample(self, seed: Optional[int]):
-        if seed is not None:
-            random.seed(seed)
+    def resample(self):
         if self._max_taken + self._sampling_cap <= len(self._dataset):
             # Re-organize `self._indices` so that the latest used chunk is pulled off and put on the end.
             self._indices = (
