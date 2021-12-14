@@ -164,21 +164,33 @@ class _UndersampledDataset(Sequence[T]):
         if seed is not None:
             random.seed(seed)
         if self._max_taken + self._max_size <= len(self._dataset):
-            # re-organize self._indices so that the latest used chunk is pulled off and put on the end.
+            # Re-organize `self._indices` so that the latest used chunk is pulled off and put on the end.
             self._indices = self._indices[self._max_size :] + self._indices[: self._max_size]
             self._max_taken += self._max_size
         else:
-            # re-shuffle self._indices in a way that ensures the last chunk we have got to is
+            # Re-shuffle `self._indices` in a way that ensures the last chunk we have got to is
             # used next.
             used = (
                 self._indices[: self._max_size]
                 + self._indices[self._max_size + (len(self._dataset) - self._max_taken) :]
             )
-            random.shuffle(used)
             unused = self._indices[
                 self._max_size : self._max_size + (len(self._dataset) - self._max_taken)
             ]
+            # `used` will be sliced up and moved around before being added back into `self._indices`,
+            # so we shuffle it now to add randomness.
+            random.shuffle(used)
+
+            # `next_up` is the next chunk of `self._max_size` which will include all
+            # of `unused` and however many examples from `used` that we need to reach
+            # `self._max_size` instances.
             next_up = unused + used[: self._max_size - len(unused)]
             random.shuffle(next_up)
+
+            # Put everything back together into `self._indices`.
             self._indices = next_up + used[self._max_size - len(unused) :]
+
+            # clean up to hopefully help GC
+            del used, unused, next_up
+
             self._max_taken = self._max_size
