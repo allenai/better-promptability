@@ -143,12 +143,18 @@ class MixerDataset(Sequence[T]):
 
 class _UndersampledDataset(Sequence[T]):
     def __init__(self, dataset: Sequence[T], max_size: int, seed: Optional[int] = None):
+        assert max_size < len(dataset)
         self._dataset = dataset
         self._max_size = max_size
-        self._indices: list[int]
-        self.resample(seed)
+        self._indices = list(range(len(self._dataset)))
+        self._max_taken = max_size
+        if seed is not None:
+            random.seed(seed)
+        #  random.shuffle(self._indices)
 
     def __getitem__(self, i: int) -> T:  # type: ignore[override]
+        if i > self._max_size:
+            raise IndexError("index out of bounds")
         return self._dataset[self._indices[i]]
 
     def __len__(self) -> int:
@@ -157,6 +163,22 @@ class _UndersampledDataset(Sequence[T]):
     def resample(self, seed: Optional[int]):
         if seed is not None:
             random.seed(seed)
-        indices = list(range(len(self._dataset)))
-        random.shuffle(indices)
-        self._indices = indices[: self._max_size]
+        if self._max_taken + self._max_size <= len(self._dataset):
+            # re-organize self._indices so that the latest used chunk is pulled off and put on the end.
+            self._indices = self._indices[self._max_size :] + self._indices[: self._max_size]
+            self._max_taken += self._max_size
+        else:
+            # re-shuffle self._indices in a way that ensures the last chunk we have got to is
+            # used next.
+            used = (
+                self._indices[: self._max_size]
+                + self._indices[self._max_size + (len(self._dataset) - self._max_taken) :]
+            )
+            random.shuffle(used)
+            unused = self._indices[
+                self._max_size : self._max_size + (len(self._dataset) - self._max_taken)
+            ]
+            next_up = unused + used[: self._max_size - len(unused)]
+            random.shuffle(next_up)
+            self._indices = next_up + used[self._max_size - len(unused) :]
+            self._max_taken = self._max_size
