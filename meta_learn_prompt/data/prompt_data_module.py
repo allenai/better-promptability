@@ -77,11 +77,13 @@ class PromptDataModule(DataModule):
             single_target = False
             # The format in d4_dev is the same as train (there is no is_correct).
             # To get multiple targets, we need to use "answer_choices", and tokenize them.
-            answer_choices = example["answer_choices"]
-            is_correct = [choice == example["targets"] for choice in (answer_choices)]
+            is_correct = [
+                choice.strip() == example["targets_pretokenized"].strip()
+                for choice in (example["answer_choices"])
+            ]
             targets = [
                 self.tokenizer(choice, add_special_tokens=False)["input_ids"]
-                for choice in answer_choices
+                for choice in example["answer_choices"]
             ]
 
         elif self.mixture_name == "green" and split == self.train_split:
@@ -131,7 +133,7 @@ class PromptDataModule(DataModule):
         }
 
         if not single_target:
-            assert is_correct is not None
+            assert is_correct is not None and sum(is_correct) == 1
             return_dict["is_correct"] = is_correct
         return return_dict
 
