@@ -163,7 +163,6 @@ class Model(LightningModule):
 
         if "is_correct" in batch:
             labels = batch["is_correct"].argmax(dim=-1)
-            # labels = batch["target_ids"]
 
             # Right now, this will only happen for the green datasets. See commented code in
             # t0_module `tokenize` for the case of d4_dev datasets.

@@ -78,7 +78,7 @@ class PrefixTransformer(Model):
         logits = self.transformer(
             input_ids=input_ids,
             attention_mask=input_mask,
-            decoder_input_ids=target_ids,
+            labels=target_ids,
             decoder_attention_mask=target_mask,
         ).logits
 
