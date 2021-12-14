@@ -2,7 +2,7 @@ from typing import Optional
 
 from tango.common import Tqdm, DatasetDict
 
-from .data_utils import MixerDataset
+from .mixer_dataset import MixerDataset
 from .prompt_data_module import PromptDataModule
 from .t0_data_module import T0Mixture
 
@@ -13,12 +13,12 @@ class T0MultiTaskDataModule(PromptDataModule):
         self,
         mixture_name: str,  # should be 'd4_train', 'd4_dev', or 'green'.
         *args,
-        max_size: Optional[int] = 500000,
+        sampling_cap: Optional[int] = 500000,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.t0_mixture = T0Mixture(mixture_name, *args, **kwargs)
-        self.max_size = max_size
+        self.sampling_cap = sampling_cap
 
     def setup(self, stage: Optional[str] = None):
         with Tqdm.tqdm(
@@ -34,7 +34,7 @@ class T0MultiTaskDataModule(PromptDataModule):
             splits={
                 "train": MixerDataset(
                     [dm[dm.train_split] for dm in self.t0_mixture.data_modules.values()],
-                    max_size=self.max_size,
+                    sampling_cap=self.sampling_cap,
                 ),
                 "dev": MixerDataset(
                     [
