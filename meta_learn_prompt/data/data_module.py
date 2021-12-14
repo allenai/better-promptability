@@ -54,6 +54,7 @@ class DataModule(LightningDataModule):
 
     def setup(self, stage: Optional[str] = None):
 
+        logger.info("Setup tokenizer")
         if self.preprocess_and_save:
             self.tokenizer = self.setup_tokenizer()
             if os.path.exists(self.cache_path):
@@ -141,6 +142,7 @@ class DataModule(LightningDataModule):
         raise NotImplementedError("This is an abstract method. Did you forget to implement it?")
 
     def preprocess(self, dataset_dict: DatasetDict) -> DatasetDict:
+        logger.info("Begin preprocessing")
         dataset_dict = DatasetDict(  # reimplementing DatasetDict.map to provide `split`
             {
                 split: dataset.map(
@@ -151,6 +153,7 @@ class DataModule(LightningDataModule):
                 for split, dataset in dataset_dict.items()
             }
         )
+        logger.info("End preprocessing")
 
         # Rename validation -> dev
         if "validation" in dataset_dict and "dev" not in dataset_dict:
@@ -171,7 +174,7 @@ class DataModule(LightningDataModule):
         if shuffle and not isinstance(dataset_split, IterableDataset):
             # LengthGroupedSampler sorts from longest to shortest; we want the reverse
             lens = [-len(ids) for ids in dataset_split[self.sort_key]]
-            if self.config.gpus <= 1:
+            if self.config.gpus is None or self.config.gpus <= 1:
                 sampler = LengthGroupedSampler(None, batch_size, lengths=lens)
             else:
                 # TODO: support this when

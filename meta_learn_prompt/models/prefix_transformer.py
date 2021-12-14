@@ -52,7 +52,7 @@ class PrefixTransformer(Model):
         for param in self.transformer.parameters():
             param.requires_grad = False
 
-        transformer_model.transformer.set_input_embeddings(
+        transformer_model.set_input_embeddings(
             WithPrefixEmbedding(transformer_model.shared, self.dataset.num_prefix)
         )
 
@@ -60,21 +60,33 @@ class PrefixTransformer(Model):
         input_ids = batch["input_ids"]
         input_mask = batch["input_mask"]
         target_ids = batch["target_ids"]
+        target_mask = batch["target_mask"]
+
+        return_dict = {}
 
         assert input_ids.shape == input_mask.shape and input_ids.dim() in (2, 3)
-        assert self.training == (input_ids.dim() == 2)
+        # assert self.training == (input_ids.dim() == 2)
         if not self.training:  # for inference we have an additional dimension for classes
-            orig_shape = input_ids.shape
+            orig_shape = input_ids.shape  # bs x num_classes x seq_len
             input_ids = input_ids.reshape(-1, orig_shape[-1])
             input_mask = input_mask.reshape(-1, orig_shape[-1])
 
+            orig_decoder_shape = target_ids.shape
+            target_ids = target_ids.reshape(-1, orig_decoder_shape[-1])
+            target_mask = target_mask.reshape(-1, orig_decoder_shape[-1])
+
         logits = self.transformer(
-            input_ids=input_ids, attention_mask=input_mask, labels=target_ids
+            input_ids=input_ids,
+            attention_mask=input_mask,
+            labels=target_ids,
+            decoder_attention_mask=target_mask,
         ).logits
 
         if not self.training:
-            logits = logits.reshape(*(orig_shape + (-1,)))
-        return {"logits": logits}
+            logits = logits.reshape(*(orig_decoder_shape + (-1,)))
+        return_dict["logits"] = logits
+
+        return return_dict
 
     def get_predictions(self, logits: torch.Tensor, batch: dict[str, torch.Tensor]) -> torch.Tensor:
         """
@@ -85,7 +97,7 @@ class PrefixTransformer(Model):
         """
         mask = batch["target_mask"]  # (bsz, num_classes, seq_len)
         loss = self.compute_loss(logits, batch["target_ids"], mask, reduce=False)
-        scores = -loss.sum(-1) / mask.sum(-1)  # already masekd in compute_loss()
+        scores = -loss.sum(-1) / mask.sum(-1)  # already masked in compute_loss()
         return scores
 
     def eval_step(
@@ -101,7 +113,8 @@ class PrefixTransformer(Model):
         )
 
     def on_save_checkpoint(self, checkpoint: dict[str, Any]):
-        weight_key = "transformer.model.transformer.wte.new_embed.weight"
+        weight_key = "transformer.model.shared.new_embed.weight"
+        print(checkpoint["state_dict"].keys())
         checkpoint["state_dict"] = {weight_key: checkpoint["state_dict"][weight_key]}
 
 
