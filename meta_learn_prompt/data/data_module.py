@@ -156,12 +156,8 @@ class DataModule(LightningDataModule):
 
         # Rename validation -> dev
         if "validation" in dataset_dict and "dev" not in dataset_dict:
-            if isinstance(dataset_dict, DatasetDict):
-                dataset_dict.splits["dev"] = dataset_dict["validation"]
-                del dataset_dict.splits["validation"]
-            else:
-                dataset_dict = dataset_dict["validation"]
-                del dataset_dict["validation"]
+            dataset_dict.splits["dev"] = dataset_dict["validation"]
+            del dataset_dict.splits["validation"]
 
         return dataset_dict
 
