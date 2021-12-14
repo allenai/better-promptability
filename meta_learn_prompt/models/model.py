@@ -90,7 +90,11 @@ class Model(LightningModule):
         return [optimizer], [scheduler]
 
     def get_lr_scheduler(self, optimizer: Optimizer) -> dict:
-        num_devices = max(1, self.config.gpus)  # TODO: consider num_tpu_cores
+        # num_devices = max(1, self.config.gpus)  # TODO: consider num_tpu_cores
+        if self.config.gpus is not None:
+            num_devices = max(1, self.config.gpus)
+        else:
+            num_devices = 1
         # TODO: use world_size.
         if self.optimizer_kwargs["lr_scheduler_total_steps"] is not None:
             total_steps = self.optimizer_kwargs["lr_scheduler_total_steps"]
@@ -155,15 +159,20 @@ class Model(LightningModule):
 
         logits = self(batch)["logits"]
         preds = self.get_predictions(logits, batch)
-        labels = batch["target_ids"]
+        targets = batch["target_ids"]  # target sequences.
 
-        splits = self.dataset.dev_splits if mode == "dev" else self.dataset.test_splits
-        split = splits[dataloader_idx]
-        for metric in self.metrics[split].values():
-            metric(*metric.detach_tensors(preds, labels))
+        if "is_correct" in batch:
+            labels = batch["is_correct"].argmax(dim=-1)
+
+            # Right now, this will only happen for the green datasets. See commented code in
+            # t0_module `tokenize` for the case of d4_dev datasets.
+            splits = self.dataset.dev_splits if mode == "dev" else self.dataset.test_splits
+            split = splits[dataloader_idx]
+            for metric in self.metrics[split].values():
+                metric(*metric.detach_tensors(preds, labels))
 
         return (
-            {"loss": self.compute_loss(logits, labels, batch.get("target_mask")).detach().cpu()}
+            {"loss": self.compute_loss(logits, targets, batch.get("targets_mask")).detach().cpu()}
             if compute_loss
             else {}
         )

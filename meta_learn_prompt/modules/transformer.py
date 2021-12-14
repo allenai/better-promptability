@@ -46,6 +46,8 @@ class Transformer(torch.nn.Module):
     def forward(self, *args, **kwargs):
         if "attention_mask" in kwargs:  # `transformers` doesn't take bool masks which is crazy
             kwargs["attention_mask"] = kwargs["attention_mask"].float()
+        if "decoder_attention_mask" in kwargs:
+            kwargs["decoder_attention_mask"] = kwargs["decoder_attention_mask"].float()
         # If grad was previous disabled (e.g., in eval), don't change it
         with torch.set_grad_enabled(torch.is_grad_enabled() and self.trainable):
             return self.model(*args, **kwargs)

@@ -4,7 +4,7 @@ from tango.common import Tqdm, DatasetDict
 
 from .mixer_dataset import MixerDataset
 from .prompt_data_module import PromptDataModule
-from .t0_data_module import T0Mixture
+from .t0_mixture import T0Mixture
 
 
 @PromptDataModule.register("t0_multitask")
