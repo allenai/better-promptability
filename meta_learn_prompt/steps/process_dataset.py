@@ -1,4 +1,5 @@
 import logging
+import os
 from typing import Dict
 from datasets import Dataset, DatasetDict
 from tango.step import Step
@@ -12,7 +13,13 @@ class ProcessDataset(Step):
     DETERMINISTIC: bool = True
     CACHEABLE = False  # use datasets caching.
 
-    def run(self, old_data_path: str, new_data_path: str) -> DatasetDict:  # type: ignore[override]
+    def run(
+        self, old_data_path: str, new_data_path: str, process_if_exists: bool = False
+    ) -> DatasetDict:  # type: ignore[override]
+
+        if not process_if_exists and os.path.exists(new_data_path):
+            return DatasetDict.load_from_disk(new_data_path)
+
         dataset_dict = DatasetDict.load_from_disk(old_data_path)
         new_splits = {}
 

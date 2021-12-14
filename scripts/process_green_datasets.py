@@ -9,7 +9,7 @@ def process_green_datasets(old_base_path, new_base_path):
 
     for dataset in datasets:
         step = ProcessDataset()
-        result = step.run(
+        step.run(
             old_data_path=os.path.join(old_base_path, dataset),
             new_data_path=os.path.join(new_base_path, dataset),
         )

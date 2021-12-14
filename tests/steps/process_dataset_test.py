@@ -15,6 +15,7 @@ class ProcessDatasetTest(MetaLearnPromptTestCase):
                 / "processed_cache"
                 / "hellaswag_complete_first_then_score_eval"
             ),
+            process_if_exists=True,
         )
 
         assert len(result["train"]) == 7
