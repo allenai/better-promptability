@@ -15,7 +15,7 @@ def test_mixer_dataset(datasets):
 
 
 def test_mixer_dataset_with_size_limit(datasets):
-    mixer = MixerDataset(datasets, seed=0, sampling_cap=3)
+    mixer = MixerDataset(datasets, sampling_cap=3)
     assert len(mixer) == 6
     assert [x for x in mixer][:3] == ["a1", "a2", "a3"]
     for x in [x for x in mixer][3:]:

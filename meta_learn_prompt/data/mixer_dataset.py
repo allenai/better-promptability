@@ -61,7 +61,7 @@ class _UndersampledDataset(Sequence[T]):
         self._dataset = dataset
         self._sampling_cap = sampling_cap
         self._indices = list(range(len(self._dataset)))
-        self._max_taken = sampling_cap
+        self._num_taken = sampling_cap
         random.shuffle(self._indices)
 
     def __getitem__(self, i: int) -> T:  # type: ignore[override]
@@ -73,21 +73,21 @@ class _UndersampledDataset(Sequence[T]):
         return self._sampling_cap
 
     def resample(self):
-        if self._max_taken + self._sampling_cap <= len(self._dataset):
+        if self._num_taken + self._sampling_cap <= len(self._dataset):
             # Re-organize `self._indices` so that the latest used chunk is pulled off and put on the end.
             self._indices = (
                 self._indices[self._sampling_cap :] + self._indices[: self._sampling_cap]
             )
-            self._max_taken += self._sampling_cap
+            self._num_taken += self._sampling_cap
         else:
             # Re-shuffle `self._indices` in a way that ensures the last chunk we have got to is
             # used next.
             used = (
                 self._indices[: self._sampling_cap]
-                + self._indices[self._sampling_cap + (len(self._dataset) - self._max_taken) :]
+                + self._indices[self._sampling_cap + (len(self._dataset) - self._num_taken) :]
             )
             unused = self._indices[
-                self._sampling_cap : self._sampling_cap + (len(self._dataset) - self._max_taken)
+                self._sampling_cap : self._sampling_cap + (len(self._dataset) - self._num_taken)
             ]
             # `used` will be sliced up and moved around before being added back into `self._indices`,
             # so we shuffle it now to add randomness.
@@ -105,4 +105,4 @@ class _UndersampledDataset(Sequence[T]):
             # clean up to hopefully help GC
             del used, unused, next_up
 
-            self._max_taken = self._sampling_cap
+            self._num_taken = self._sampling_cap
