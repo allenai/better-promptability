@@ -77,4 +77,4 @@ class T0ModuleTest(MetaLearnPromptTestCase):
         assert train_batch["target_ids"].dim() == 2
 
         val_batch = list(t0.val_dataloader()[0])[0]
-        assert val_batch["target_ids"].dim() == 2
+        assert val_batch["target_ids"].dim() == 3

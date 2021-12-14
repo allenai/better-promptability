@@ -1,6 +1,6 @@
 from __future__ import annotations
 import numpy as np
-from typing import Any, Mapping
+from typing import Any, List, Mapping, Optional
 
 from tango.common.aliases import PathOrStr
 from transformers import T5Tokenizer, PreTrainedTokenizerBase
@@ -60,24 +60,29 @@ class PromptDataModule(DataModule):
         assert self.tokenizer.eos_token_id not in inputs
 
         single_target: bool = False
-        # is_correct: Optional[List[bool]] = None
+        is_correct: Optional[List[bool]] = None
         targets = example["targets"]
 
         if self.mixture_name == "d4_train":
             single_target = True
-        elif self.mixture_name == "d4_dev":  # and split == self.train_split:
+        elif self.mixture_name == "d4_dev" and split == self.train_split:
             single_target = True
 
-        # # This is what we would do if we wanted to evaluate d4_dev datasets
-        # # the same way as the green ones. But some d4_dev datasets do not have answer_choices
-        # # at all (eg. "web_questions_get_the_answer" simply wants a knowledge-based answer).
-        # elif self.mixture_name == "d4_dev" and split != self.train_split:
-        #    single_target = False
-        #    # The format in d4_dev is the same as train (there is no is_correct).
-        #    # To get multiple targets, we need to use "answer_choices", and tokenize them.
-        #    answer_choices = example["answer_choices"]
-        #    is_correct = [choice == example["targets"] for choice in (answer_choices)]
-        #    targets = [self.tokenizer(choice, add_special_tokens=False)["input_ids"] for choice in answer_choices]
+        # We want to evaluate d4_dev datasets same way as the green ones.
+        # Some d4_dev datasets do not have answer_choices at all
+        # (eg. "web_questions_get_the_answer" simply wants a knowledge-based answer).
+        # We ignore these datasets.
+
+        elif self.mixture_name == "d4_dev" and split != self.train_split:
+            single_target = False
+            # The format in d4_dev is the same as train (there is no is_correct).
+            # To get multiple targets, we need to use "answer_choices", and tokenize them.
+            answer_choices = example["answer_choices"]
+            is_correct = [choice == example["targets"] for choice in (answer_choices)]
+            targets = [
+                self.tokenizer(choice, add_special_tokens=False)["input_ids"]
+                for choice in answer_choices
+            ]
 
         elif self.mixture_name == "green" and split == self.train_split:
             single_target = True
@@ -88,6 +93,7 @@ class PromptDataModule(DataModule):
 
         else:  # green dev/test
             single_target = False
+            is_correct = example["is_correct"]
 
         if single_target:
             targets = targets[:-1][  # exclude EOS in example['targets'] (we add later)
@@ -124,8 +130,9 @@ class PromptDataModule(DataModule):
             "target_mask": target_mask,
         }
 
-        if self.mixture_name == "green" and split != self.train_split:
-            return_dict["is_correct"] = example["is_correct"]
+        if not single_target:
+            assert is_correct is not None
+            return_dict["is_correct"] = is_correct
         return return_dict
 
     def pad_token_map(self, split: str) -> Mapping[str, PAD_TYPE]:  # type: ignore
