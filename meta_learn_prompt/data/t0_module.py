@@ -8,7 +8,7 @@ import pickle
 
 from allennlp.training.metrics import Metric
 import datasets
-from datasets import DatasetDict
+from tango.common import DatasetDict
 
 from .data_utils import md5
 from .prompt_data_module import PromptDataModule

@@ -1,9 +1,8 @@
-from typing import Optional, Union
+from typing import Optional
 
-from datasets import DatasetDict, IterableDatasetDict
-from tango.common import Tqdm
+from tango.common import Tqdm, DatasetDict
 
-from .data_utils import MixerStreamDataset
+from .mixer_dataset import MixerDataset
 from .prompt_data_module import PromptDataModule
 from .t0_mixture import T0Mixture
 
@@ -14,10 +13,12 @@ class T0MultiTaskDataModule(PromptDataModule):
         self,
         mixture_name: str,  # should be 'd4_train', 'd4_dev', or 'green'.
         *args,
+        sampling_cap: Optional[int] = 500000,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.t0_mixture = T0Mixture(mixture_name, *args, **kwargs)
+        self.sampling_cap = sampling_cap
 
     def setup(self, stage: Optional[str] = None):
         with Tqdm.tqdm(
@@ -28,21 +29,19 @@ class T0MultiTaskDataModule(PromptDataModule):
                 data_module.setup()
         super().setup(stage)
 
-    def load(self) -> Union[DatasetDict, IterableDatasetDict]:
-        return IterableDatasetDict(
-            {
-                "train": MixerStreamDataset(
-                    [dm[dm.train_split] for dm in self.t0_mixture.data_modules.values()]
+    def load(self) -> DatasetDict:
+        return DatasetDict(
+            splits={
+                "train": MixerDataset(
+                    [dm[dm.train_split] for dm in self.t0_mixture.data_modules.values()],
+                    sampling_cap=self.sampling_cap,
                 ),
-                "dev": MixerStreamDataset(
+                "dev": MixerDataset(
                     [
                         dm[dev_split]
                         for dm in self.t0_mixture.data_modules.values()
                         for dev_split in dm.dev_splits
-                    ]
+                    ],
                 ),
             }
         )
-
-    def preprocess(self, dataset_dict: DatasetDict) -> DatasetDict:
-        return dataset_dict
