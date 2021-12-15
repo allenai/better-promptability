@@ -31,6 +31,30 @@ class T0ModuleTest(MetaLearnPromptTestCase):
         test_batch = list(t0.test_dataloader()[0])[0]
         assert test_batch["target_ids"].dim() == 3
 
+    def test_t0_module_green_story_cloze(self):
+
+        # Story_cloze special case.
+
+        t0 = T0Module(
+            config=Config(),
+            data_dir=str(self.FIXTURES_ROOT / "data"),
+            num_prefix=1,
+            transformer_model="google/t5-small-lm-adapt",
+            mixture_name="green",
+            task_name="story_cloze_2016_Story_Continuation_and_Options_score_eval",
+            dataset_name="story_cloze",
+            subset_name="2016",
+            template_name="Story_Continuation_and_Options_score_eval",
+            t0_data_cache=str(self.FIXTURES_ROOT / "data" / "processed_cache"),
+        )
+
+        t0.setup()
+        data = t0.load()
+        assert "test" in data
+
+        test_batch = list(t0.test_dataloader()[0])[0]
+        assert test_batch["target_ids"].dim() == 3
+
     def test_t0_module_d4_train(self):
         t0 = T0Module(
             config=Config(),
