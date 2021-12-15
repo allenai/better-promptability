@@ -1,6 +1,10 @@
 import os
 from meta_learn_prompt.steps.process_dataset import ProcessDataset
 
+import logging
+
+logging.basicConfig(level=logging.INFO)
+
 
 def process_green_datasets(old_base_path, new_base_path):
 
@@ -8,11 +12,15 @@ def process_green_datasets(old_base_path, new_base_path):
         datasets = f.readlines()
 
     for dataset in datasets:
+        dataset = dataset.strip()
         step = ProcessDataset()
-        step.run(
-            old_data_path=os.path.join(old_base_path, dataset),
-            new_data_path=os.path.join(new_base_path, dataset),
-        )
+        try:
+            step.run(
+                old_data_path=os.path.join(old_base_path, dataset),
+                new_data_path=os.path.join(new_base_path, dataset),
+            )
+        except:
+            print(f"error in {dataset}")
 
 
 if __name__ == "__main__":
