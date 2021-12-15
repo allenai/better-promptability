@@ -16,13 +16,11 @@ class PromptDataModule(DataModule):
         data_dir: PathOrStr,
         num_prefix: int,
         transformer_model: PathOrStr,
-        mixture_name: str,
         *args,
         **kwargs,
     ):
         self.num_prefix = num_prefix
         self.transformer_model = transformer_model
-        self.mixture_name = mixture_name
 
         self.task_tokens = ["<TASK{}>".format(str(i).zfill(2)) for i in range(self.num_prefix)]
 
@@ -64,9 +62,6 @@ class PromptDataModule(DataModule):
             "target_ids": 0,
             "target_mask": False,
         }
-
-        if self.mixture_name == "green" and split != self.train_split:
-            pad_token_map_["is_correct"] = 0
         return pad_token_map_
 
 

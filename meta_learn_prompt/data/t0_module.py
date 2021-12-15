@@ -11,7 +11,7 @@ from allennlp.training.metrics import Metric
 import datasets
 from datasets import DatasetDict
 
-from .data_utils import md5
+from .data_utils import md5, PAD_TYPE
 from .prompt_data_module import PromptDataModule
 from .config import Config
 
@@ -39,8 +39,9 @@ class T0Module(PromptDataModule):
         **kwargs,
     ):
 
-        super().__init__(config, data_dir, num_prefix, transformer_model, mixture_name, **kwargs)
+        super().__init__(config, data_dir, num_prefix, transformer_model, **kwargs)
 
+        self.mixture_name = mixture_name
         self.task_name = task_name
         self.dataset_name = dataset_name
         self.subset_name = subset_name
@@ -191,6 +192,22 @@ class T0Module(PromptDataModule):
             assert is_correct is not None and sum(is_correct) == 1
             return_dict["is_correct"] = is_correct
         return return_dict
+
+    def pad_token_map(self, split: str) -> Mapping[str, PAD_TYPE]:  # type: ignore
+        """
+        Specifies the padding for each key. Only keys including in this map will be
+        included in the batch.
+        """
+        pad_token_map_ = {
+            "input_ids": 0,
+            "input_mask": False,
+            "target_ids": 0,
+            "target_mask": False,
+        }
+
+        if self.mixture_name == "green" and split != self.train_split:
+            pad_token_map_["is_correct"] = 0
+        return pad_token_map_
 
 
 def assemble_prompt(inputs, targets, eos_token_id, task_token_ids):
