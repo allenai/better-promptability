@@ -140,9 +140,11 @@ class PrefixTransformer(Model):
                 and isinstance(opt_conf[0][0], Optimizer)
             ):
                 # optimizers + schedulers
-                optimizer = opt_conf[0][0]
+                optimizers = opt_conf[0]
             else:
-                optimizer = opt_conf[0]
+                optimizers = opt_conf
+            assert len(optimizers) == 1
+            optimizer = optimizers[0]
 
             for param_name, states in optstates.items():
                 name = param_name.split("/")
@@ -186,6 +188,7 @@ class PrefixTransformer(Model):
                         continue
                     else:
                         pointer = getattr(pointer, scope_names[0])
+                        # We added WithPrefixEmbedding, so need another layer of indirection
                         if isinstance(pointer, WithPrefixEmbedding):
                             pointer = pointer.embed
                     if len(scope_names) >= 2:
