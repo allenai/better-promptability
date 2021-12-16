@@ -62,7 +62,7 @@ class Model(LightningModule):
             for split in self.dataset.dev_splits + self.dataset.test_splits
         }
 
-    def configure_optimizers(self) -> Tuple[List[Optimizer], List[Dict]]:
+    def configure_optimizers(self) -> Union[List[Optimizer], Tuple[List[Optimizer], List[Dict]]]:
         """Prepare optimizer and schedule (linear warmup and decay)"""
 
         no_decay = ["bias", "LayerNorm.weight", "layernorm.weight", "layer_norm.weight"]

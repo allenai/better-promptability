@@ -3,7 +3,7 @@ import logging
 import os
 import pickle
 import re
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 import torch
 from tango.common.lazy import Lazy
@@ -126,7 +126,7 @@ class PrefixTransformer(Model):
         print(checkpoint["state_dict"].keys())
         checkpoint["state_dict"] = {weight_key: checkpoint["state_dict"][weight_key]}
 
-    def configure_optimizers(self) -> tuple[list[Optimizer], list[dict]]:
+    def configure_optimizers(self) -> Union[list[Optimizer], tuple[list[Optimizer], list[dict]]]:
         opt_conf = super().configure_optimizers()
 
         if self._optimizer._params["type"] == "adafactor":
@@ -149,7 +149,7 @@ class PrefixTransformer(Model):
             for param_name, states in optstates.items():
                 name = param_name.split("/")
                 pointer = self.transformer.model
-                # Following the logic at https://github.com/huggingface/transformers/blob/027074f4d0503e4fc077beb069e651435979b7b2/src/transformers/models/t5/modeling_t5.py#L116
+                # Following the logic at https://github.com/huggingface/transformers/blob/027074f4d0503e4fc077beb069e651435979b7b2/src/transformers/models/t5/modeling_t5.py#L116  # noqa: E501
                 for m_name in name:
                     if re.fullmatch(r"[A-Za-z]+_\d+", m_name):
                         scope_names = re.split(r"_(\d+)", m_name)
