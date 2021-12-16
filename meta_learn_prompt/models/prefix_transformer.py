@@ -1,6 +1,9 @@
 from __future__ import annotations
 import logging
-from typing import Any, Optional
+import os
+import pickle
+import re
+from typing import Any, Optional, Union
 
 import torch
 from tango.common.lazy import Lazy
@@ -25,24 +28,30 @@ class PrefixTransformer(Model):
         dataset: PromptDataModule,
         transformer_model: str,
         optimizer: Lazy[Optimizer],
+        scheduler: Optional[str] = None,
         epochs: int = 3,
         weight_decay: float = 0.0,
         accumulate_grad_batches: int = 1,
         warmup_steps: int = 0,
         lr_scheduler_total_steps: Optional[int] = None,
+        optstates_dir: Optional[str] = "/net/nfs2.allennlp/zhaofengw/optstates",
         **transformer_kwargs,
     ):
+        self.transformer_name = transformer_model
+        self.optstates_dir = optstates_dir
+
         super().__init__(
             config,
             dataset,
             optimizer,
-            epochs,
+            scheduler=scheduler,
+            epochs=epochs,
             # lr,
-            weight_decay,
-            accumulate_grad_batches,
+            weight_decay=weight_decay,
+            accumulate_grad_batches=accumulate_grad_batches,
             # adam_epsilon,
-            warmup_steps,
-            lr_scheduler_total_steps,
+            warmup_steps=warmup_steps,
+            lr_scheduler_total_steps=lr_scheduler_total_steps,
         )
 
         self.transformer = Transformer(transformer_model, "seq2seq-lm", **transformer_kwargs)
@@ -116,6 +125,88 @@ class PrefixTransformer(Model):
         weight_key = "transformer.model.shared.new_embed.weight"
         print(checkpoint["state_dict"].keys())
         checkpoint["state_dict"] = {weight_key: checkpoint["state_dict"][weight_key]}
+
+    def configure_optimizers(self) -> Union[list[Optimizer], tuple[list[Optimizer], list[dict]]]:
+        opt_conf = super().configure_optimizers()
+
+        if self._optimizer._params["type"] == "adafactor":
+            assert self.optstates_dir is not None
+            optstates_path = os.path.join(self.optstates_dir, self.transformer_name.split("/")[-1])
+            optstates = pickle.load(open(optstates_path, "rb"))
+
+            if (
+                isinstance(opt_conf, (list, tuple))
+                and len(opt_conf) == 2
+                and isinstance(opt_conf[0][0], Optimizer)
+            ):
+                # optimizers + schedulers
+                optimizers = opt_conf[0]
+            else:
+                optimizers = opt_conf
+            assert len(optimizers) == 1
+            optimizer = optimizers[0]
+
+            for param_name, states in optstates.items():
+                name = param_name.split("/")
+                pointer = self.transformer.model
+                # Following the logic at https://github.com/huggingface/transformers/blob/027074f4d0503e4fc077beb069e651435979b7b2/src/transformers/models/t5/modeling_t5.py#L116  # noqa: E501
+                for m_name in name:
+                    if re.fullmatch(r"[A-Za-z]+_\d+", m_name):
+                        scope_names = re.split(r"_(\d+)", m_name)
+                    else:
+                        scope_names = [m_name]
+                    if scope_names[0] in ["kernel", "scale", "embedding"]:
+                        pointer = getattr(pointer, "weight")
+                    elif scope_names[0] == "self_attention":
+                        pointer = getattr(pointer, "layer")
+                        pointer = pointer[0]
+                    elif scope_names[0] == "enc_dec_attention":
+                        pointer = getattr(pointer, "layer")
+                        pointer = pointer[1]
+                    elif scope_names[0] == "dense_relu_dense":
+                        pointer = getattr(pointer, "layer")
+                        pointer = pointer[2]
+                    elif scope_names[0] == "rms_norm":
+                        if hasattr(pointer, "layer_norm"):
+                            pointer = getattr(pointer, "layer_norm")
+                        elif hasattr(pointer, "final_layer_norm"):
+                            pointer = getattr(pointer, "final_layer_norm")
+                    elif scope_names[0] == "scale":
+                        pointer = getattr(pointer, "weight")
+                    elif scope_names[0] == "output_bias" or scope_names[0] == "beta":
+                        pointer = getattr(pointer, "bias")
+                    elif scope_names[0] == "squad":
+                        pointer = getattr(pointer, "classifier")
+                    elif scope_names[0] == "decoder" and name[1] == "logits":
+                        continue
+                    elif scope_names[0] == "logits":
+                        pointer = getattr(pointer, "lm_head")
+                    elif (
+                        scope_names[0] == "wi" and len(scope_names) > 1 and scope_names[1].isdigit()
+                    ):
+                        pointer = getattr(pointer, f"wi_{scope_names[1]}")
+                        continue
+                    else:
+                        pointer = getattr(pointer, scope_names[0])
+                        # We added WithPrefixEmbedding, so need another layer of indirection
+                        if isinstance(pointer, WithPrefixEmbedding):
+                            pointer = pointer.embed
+                    if len(scope_names) >= 2:
+                        num = int(scope_names[1])
+                        pointer = pointer[num]
+                if scope_names[0] not in ["kernel", "scale", "embedding"]:
+                    pointer = getattr(pointer, "weight")
+                assert (("vr" in states) == ("vc" in states)) and (
+                    ("vr" in states) != ("v" in states)
+                )
+                if "vr" in states:
+                    optimizer.state[pointer]["exp_avg_sq_row"] = states["vr"]
+                    optimizer.state[pointer]["exp_avg_sq_col"] = states["vc"]
+                else:
+                    optimizer.state[pointer]["exp_avg_sq"] = states["v"]
+                optimizer.state[pointer]["step"] = 0
+
+        return opt_conf
 
 
 # @Step.register("get_model")

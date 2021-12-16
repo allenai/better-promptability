@@ -42,9 +42,10 @@ local template_name = "Answer_Given_options_score_eval";
             "model": {
                 "transformer_model": model,
                 "optimizer": {
-                    "type": "transformers_adamw",
+                    "type": "adafactor",
                     "lr": 0.001,
-                    "eps": 1e-8,
+                    "scale_parameter": false,
+                    "relative_step": false,
                 },
                 "weight_decay": 1e-5,
             }

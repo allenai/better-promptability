@@ -23,6 +23,7 @@ class Model(LightningModule):
         config: Config,
         dataset: DataModule,
         optimizer: Lazy[Optimizer],
+        scheduler: Optional[str] = None,
         epochs: int = 3,
         weight_decay: float = 0.0,
         accumulate_grad_batches: int = 1,
@@ -34,6 +35,7 @@ class Model(LightningModule):
         self.config = config
         self.dataset = dataset
         self._optimizer = optimizer
+        self._scheduler = scheduler
 
         self.epochs = epochs
         self.optimizer_kwargs = {
@@ -60,7 +62,7 @@ class Model(LightningModule):
             for split in self.dataset.dev_splits + self.dataset.test_splits
         }
 
-    def configure_optimizers(self) -> Tuple[List[Optimizer], List[Dict]]:
+    def configure_optimizers(self) -> Union[List[Optimizer], Tuple[List[Optimizer], List[Dict]]]:
         """Prepare optimizer and schedule (linear warmup and decay)"""
 
         no_decay = ["bias", "LayerNorm.weight", "layernorm.weight", "layer_norm.weight"]
@@ -85,11 +87,16 @@ class Model(LightningModule):
         # )
 
         optimizer = self._optimizer.construct(params=optimizer_grouped_parameters)
-        scheduler = self.get_lr_scheduler(optimizer)
 
-        return [optimizer], [scheduler]
+        if self._scheduler is None:
+            return [optimizer]
+        else:
+            scheduler = self.get_lr_scheduler(optimizer)
+            return [optimizer], [scheduler]
 
     def get_lr_scheduler(self, optimizer: Optimizer) -> dict:
+        assert self._scheduler == "linear", "We only support linear scheduler for now."
+
         # num_devices = max(1, self.config.gpus)  # TODO: consider num_tpu_cores
         if self.config.gpus is not None:
             num_devices = max(1, self.config.gpus)
@@ -141,7 +148,10 @@ class Model(LightningModule):
             self(batch)["logits"], batch["target_ids"], batch.get("target_mask")
         )
         self.log("train_loss", loss)
-        self.log("lr", self.trainer.lr_schedulers[0]["scheduler"].get_last_lr()[-1], prog_bar=True)
+        if len(self.trainer.lr_schedulers) > 0:
+            self.log(
+                "lr", self.trainer.lr_schedulers[0]["scheduler"].get_last_lr()[-1], prog_bar=True
+            )
         return {"loss": loss}
 
     def get_predictions(self, logits: torch.Tensor, batch: dict[str, torch.Tensor]) -> torch.Tensor:

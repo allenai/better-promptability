@@ -1,9 +1,10 @@
-from transformers.optimization import AdamW, get_linear_schedule_with_warmup
+from transformers.optimization import AdamW, Adafactor, get_linear_schedule_with_warmup
 from tango.integrations.torch.optim import Optimizer, LRScheduler
 
 
-# Register the AdamW optimizer from HF as an `Optimizer` so we can use it in the train step.
+# Register optimizers from HF as `Optimizer`s so we can use them in the train step.
 Optimizer.register("transformers_adamw")(AdamW)
+Optimizer.register("adafactor")(Adafactor)
 
 
 # We also want to use `get_linear_schedule_with_warmup()` from HF, but we need a class
