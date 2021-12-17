@@ -25,7 +25,6 @@ class T0Module(PromptDataModule):
     def __init__(
         self,
         config: Config,
-        data_dir: PathOrStr,
         num_prefix: int,
         transformer_model: PathOrStr,
         mixture_name: str,
@@ -39,7 +38,7 @@ class T0Module(PromptDataModule):
         **kwargs,
     ):
 
-        super().__init__(config, data_dir, num_prefix, transformer_model, **kwargs)
+        super().__init__(config, num_prefix, transformer_model, **kwargs)
 
         self.mixture_name = mixture_name
         self.task_name = task_name
@@ -59,7 +58,7 @@ class T0Module(PromptDataModule):
         return super().hash_fields + [self.task_name]
 
     def setup(self, stage: Optional[str] = None):
-        super().setup(stage=stage)
+        self.dataset_dict = self.load()
         if self.subsample_indices is not None:
             indices, checksum = self.subsamplme_indices
             dataset = self.dataset_dict[self.train_split].select(indices)
@@ -69,7 +68,11 @@ class T0Module(PromptDataModule):
     @property
     def dev_splits(self) -> list[str]:
         # Story Cloze doesn't have a training split, so we use the dev split for training
-        return super().dev_splits if self.dataset_name != "story_cloze" else []
+        if self.dataset_name != "story_cloze":
+            for split in ("dev", "validation"):
+                if split in self.dataset_dict:
+                    return [split]
+        return []
 
     @property
     def metric_names(self) -> list[str]:
