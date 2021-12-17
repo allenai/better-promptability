@@ -95,7 +95,7 @@ jobs:
       - name: Check install
         run: |
           . .venv/bin/activate
-          tango --no-logging run configs/check_install.yml -i meta_learn_prompt
+          tango run configs/check_install.yml
 
       - name: ${{ matrix.task.name }}
         run: |
