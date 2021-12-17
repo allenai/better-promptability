@@ -140,7 +140,7 @@ class DataModule(LightningDataModule):
 
     def preprocess(self, dataset_dict: DatasetDict) -> DatasetDict:
         logger.info("Begin preprocessing")
-        dataset_dict = DatasetDict(  # reimplementing DatasetDict.map to provide `split`
+        dataset_dict = HFDatasetDict(  # reimplementing DatasetDict.map to provide `split`
             {
                 split: dataset.map(
                     lambda examples: self.tokenize(examples, split),
@@ -154,8 +154,8 @@ class DataModule(LightningDataModule):
 
         # Rename validation -> dev
         if "validation" in dataset_dict and "dev" not in dataset_dict:
-            dataset_dict.splits["dev"] = dataset_dict["validation"]
-            del dataset_dict.splits["validation"]
+            dataset_dict["dev"] = dataset_dict["validation"]
+            del dataset_dict["validation"]
 
         return dataset_dict
 
