@@ -58,9 +58,7 @@ class T0Module(PromptDataModule):
         return super().hash_fields + [self.task_name]
 
     def setup(self, stage: Optional[str] = None):
-        self.dataset_dict = self.load()
-        if self.preprocess_and_save:
-            self.dataset_dict = self.preprocess(self.dataset_dict)
+        super().setup(stage)
         if self.subsample_indices is not None:
             indices, checksum = self.subsamplme_indices
             dataset = self.dataset_dict[self.train_split].select(indices)
