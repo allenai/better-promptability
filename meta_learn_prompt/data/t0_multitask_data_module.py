@@ -28,6 +28,7 @@ class T0MultiTaskDataModule(PromptDataModule):
             for name, data_module in dm_iter:
                 dm_iter.set_postfix({"module": name if len(name) < 30 else (name[:27] + "...")})
                 data_module.tokenizer = self.tokenizer
+                data_module.task_token_ids = self.task_token_ids
                 data_module.setup()
         self.dataset_dict = self.load()
         # No need for additional preprocessing, since each individual data module
