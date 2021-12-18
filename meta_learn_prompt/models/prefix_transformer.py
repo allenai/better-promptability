@@ -123,7 +123,6 @@ class PrefixTransformer(Model):
 
     def on_save_checkpoint(self, checkpoint: dict[str, Any]):
         weight_key = "transformer.model.shared.new_embed.weight"
-        print(checkpoint["state_dict"].keys())
         checkpoint["state_dict"] = {weight_key: checkpoint["state_dict"][weight_key]}
 
     def configure_optimizers(self) -> Union[list[Optimizer], tuple[list[Optimizer], list[dict]]]:

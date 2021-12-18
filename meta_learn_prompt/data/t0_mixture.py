@@ -8,6 +8,22 @@ from .config import Config
 from .t0_module import T0Module
 
 
+# TODO: make this a singleton or something, if it's slow
+def read_task_info() -> dict[str, tuple[str, Optional[str], str]]:
+    task_name_to_info: dict[str, tuple[str, Optional[str], str]] = {}
+    with open("data/t0_task_info.tsv", newline="") as task_info_file:
+        reader = csv.DictReader(task_info_file, delimiter="\t")
+        for row in reader:
+            if len(row["subset_name"]) == 0:
+                row["subset_name"] = None
+            task_name_to_info[row["task_name"]] = (
+                row["dataset_name"],
+                row["subset_name"],
+                row["template_name"],
+            )
+    return task_name_to_info
+
+
 class T0Mixture:
     """
     This class is used to initialize a collection of T0DataModule.
@@ -26,15 +42,7 @@ class T0Mixture:
     ):
         assert mixture_name in {"d4_train", "d4_dev", "green"}
         self.mixture_name = mixture_name
-        self.task_name_to_info: dict[str, tuple[str, Optional[str], str]] = {}
-        with open("data/t0_task_info.tsv", newline="") as task_info_file:
-            reader = csv.DictReader(task_info_file, delimiter="\t")
-            for row in reader:
-                self.task_name_to_info[row["task_name"]] = (
-                    row["dataset_name"],
-                    row["subset_name"],
-                    row["template_name"],
-                )
+        self.task_name_to_info = read_task_info()
         self.data_modules: dict[str, T0Module] = {}
         for task_name in (line.strip() for line in open(f"data/{self.mixture_name}_tasks.txt")):
             dataset_name, subset_name, template_name = self.task_name_to_info[task_name]

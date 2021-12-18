@@ -29,29 +29,23 @@ class T0Module(PromptDataModule):
         transformer_model: PathOrStr,
         mixture_name: str,
         task_name: str,
-        dataset_name: str,
-        subset_name: Optional[str],
-        template_name: str,
         t0_data_cache: PathOrStr = "/net/nfs2.allennlp/petew/meta-learn-prompt/t0/cache",
         sequence_length: Optional[Mapping[str, int]] = None,
         subsample_indices_file: Optional[str] = None,
         **kwargs,
     ):
+        from .t0_mixture import read_task_info
 
         super().__init__(config, num_prefix, transformer_model, **kwargs)
 
         self.mixture_name = mixture_name
         self.task_name = task_name
-        self.dataset_name = dataset_name
-        self.subset_name = subset_name
-        self.template_name = template_name
+        self.dataset_name, self.subset_name, self.template_name = read_task_info()[self.task_name]
         self.t0_data_cache = Path(t0_data_cache)
         self.sequence_length = sequence_length
         self.subsample_indices = None
         if subsample_indices_file is not None:
-            self.subsample_indices = pickle.load(open(subsample_indices_file, "rb"))[
-                (dataset_name, subset_name)
-            ]
+            self.subsample_indices = pickle.load(open(subsample_indices_file, "rb"))[task_name]
 
     @property
     def hash_fields(self) -> list[Any]:
@@ -60,10 +54,12 @@ class T0Module(PromptDataModule):
     def setup(self, stage: Optional[str] = None):
         super().setup(stage)
         if self.subsample_indices is not None:
-            indices, checksum = self.subsamplme_indices
+            indices, checksum = self.subsample_indices
             dataset = self.dataset_dict[self.train_split].select(indices)
-            assert md5("".join(str(sorted(ex.items())) for ex in dataset)) == checksum
-            self.dataset_dict[self.train_split] = dataset
+            assert md5("".join(str(ex["inputs"] + ex["targets"]) for ex in dataset)) == checksum
+            # TODO(petew): this is not blocking, but this is not elegant, and we might reconsider
+            # https://github.com/allenai/tango/pull/112
+            self.dataset_dict.splits[self.train_split] = dataset
 
     @property
     def dev_splits(self) -> list[str]:
@@ -72,6 +68,12 @@ class T0Module(PromptDataModule):
             for split in ("dev", "validation"):
                 if split in self.dataset_dict:
                     return [split]
+        return []
+
+    @property
+    def test_splits(self) -> list[str]:
+        # We don't need the test sets. The test set labels of some datasets are hidden
+        # (e.g., superglue), and T0 only evaluated on the dev sets.
         return []
 
     @property
@@ -101,6 +103,9 @@ class T0Module(PromptDataModule):
             # Story Cloze doesn't have a training split, so we use the validation split for training
             dataset_dict[self.train_split] = dataset_dict["validation"]
             del dataset_dict["validation"]
+
+        # See comment in test_splits(), above
+        del dataset_dict["test"]
 
         return dataset_dict
 
@@ -152,7 +157,7 @@ class T0Module(PromptDataModule):
                 correct_idx = np.argmax(example["is_correct"])
                 targets = targets[correct_idx]
 
-        else:  # green dev/test
+        else:  # green dev
             single_target = False
             is_correct = example["is_correct"]
 

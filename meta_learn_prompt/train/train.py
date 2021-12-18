@@ -17,6 +17,7 @@ from ..data.prompt_data_module import PromptDataModule
 from ..models.prefix_transformer import PrefixTransformer
 
 logger = logging.getLogger(__name__)
+logger.setLevel("INFO")
 
 
 @LightningCallback.register("my_logger")
