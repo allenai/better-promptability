@@ -62,7 +62,9 @@ class PrefixTransformer(Model):
             param.requires_grad = False
 
         transformer_model.set_input_embeddings(
-            WithPrefixEmbedding(transformer_model.shared, self.dataset.num_prefix)
+            WithPrefixEmbedding(
+                transformer_model.shared, self.dataset.tokenizer.vocab_size, self.dataset.num_prefix
+            )
         )
 
     def forward(self, batch: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
