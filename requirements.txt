@@ -1,8 +1,8 @@
 ################################
 ###### Core dependencies #######
 ################################
-torch==1.9.1
-ai2-tango[all]==0.4.0rc3
+torch==1.10.1
+ai2-tango[all]==0.4.0rc4
 allennlp==2.9.0.dev20211215
 git+https://github.com/bigscience-workshop/promptsource.git@v0.1.0#egg=promptsource
 seqio==0.0.7

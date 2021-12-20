@@ -3,7 +3,7 @@
 ## Setup
 
 1. Create a new Python virtual environment with Python 3.7.
-2. Install PyTorch 1.9.1 according to the [official instructions](https://pytorch.org/get-started/locally/).
+2. Install PyTorch 1.10.1 according to the [official instructions](https://pytorch.org/get-started/locally/).
 3. Run
 
     ```
