@@ -57,9 +57,7 @@ class T0Module(PromptDataModule):
             indices, checksum = self.subsample_indices
             dataset = self.dataset_dict[self.train_split].select(indices)
             assert md5("".join(str(ex["inputs"] + ex["targets"]) for ex in dataset)) == checksum
-            # TODO(petew): this is not blocking, but this is not elegant, and we might reconsider
-            # https://github.com/allenai/tango/pull/112
-            self.dataset_dict.splits[self.train_split] = dataset
+            self.dataset_dict[self.train_split] = dataset
 
     @property
     def dev_splits(self) -> list[str]:
