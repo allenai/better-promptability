@@ -109,7 +109,7 @@ class PrefixTransformer(Model):
         """
         mask = batch["target_mask"]  # (bsz, num_classes, seq_len)
         loss = self.compute_loss(logits, batch["target_ids"], mask, reduce=False)
-        scores = -loss.sum(-1) / mask.sum(-1)  # already masked in compute_loss()
+        scores = -loss.sum(-1) / (mask.sum(-1) + 1e-6)  # already masked in compute_loss()
         return scores
 
     def eval_step(

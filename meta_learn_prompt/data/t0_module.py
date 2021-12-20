@@ -199,6 +199,7 @@ class T0Module(PromptDataModule):
         if not single_target:
             assert is_correct is not None and sum(is_correct) == 1
             return_dict["is_correct"] = is_correct
+            return_dict["is_correct_mask"] = [True] * len(is_correct)
         return return_dict
 
     def pad_token_map(self, split: str) -> Mapping[str, PAD_TYPE]:  # type: ignore
@@ -214,7 +215,8 @@ class T0Module(PromptDataModule):
         }
 
         if self.mixture_name == "green" and split != self.train_split:
-            pad_token_map_["is_correct"] = 0
+            pad_token_map_["is_correct"] = False
+            pad_token_map_["is_correct_mask"] = False
         return pad_token_map_
 
 
