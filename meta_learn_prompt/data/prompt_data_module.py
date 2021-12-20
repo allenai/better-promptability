@@ -13,10 +13,8 @@ class PromptDataModule(DataModule):
     def __init__(
         self,
         config: Config,
-        data_dir: PathOrStr,
         num_prefix: int,
         transformer_model: PathOrStr,
-        *args,
         **kwargs,
     ):
         self.num_prefix = num_prefix
@@ -24,7 +22,7 @@ class PromptDataModule(DataModule):
 
         self.task_tokens = ["<TASK{}>".format(str(i).zfill(2)) for i in range(self.num_prefix)]
 
-        super().__init__(config, data_dir, *args, **kwargs)
+        super().__init__(config, **kwargs)
 
         # Following T0 paper
         self.inputs_max_length = 1024

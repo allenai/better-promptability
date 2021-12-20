@@ -3,6 +3,8 @@ from __future__ import annotations
 import random
 from typing import Optional, Sequence, TypeVar
 
+from tango.common import Tqdm
+
 T = TypeVar("T")
 
 
@@ -25,7 +27,7 @@ class MixerDataset(Sequence[T]):
         self._datasets: list[Sequence[T]] = []
         self._total_size: int = 0
         self._dataset_boundaries: list[tuple[int, int]] = []
-        for dataset in datasets:
+        for dataset in Tqdm.tqdm(datasets, desc="Mixing datasets"):
             start_boundary = 0 if not self._dataset_boundaries else self._dataset_boundaries[-1][-1]
             if sampling_cap is not None and len(dataset) > sampling_cap:
                 self._total_size += sampling_cap

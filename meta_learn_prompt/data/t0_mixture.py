@@ -17,10 +17,9 @@ class T0Mixture:
         self,
         mixture_name: str,  # should be "d4_train", "d4_dev", or "green"
         config: Config,
-        data_dir: PathOrStr,
         num_prefix: int,
         transformer_model: PathOrStr,
-        t0_data_cache: PathOrStr = "/net/nfs2.allennlp/petew/meta-learn-prompt/t0/cache",
+        t0_data_cache: PathOrStr = "/net/nfs2.allennlp/akshitab/meta-learn-prompt/t0/processed_cache/",
         sequence_length: Optional[Mapping[str, int]] = None,
         subsample_indices_file: Optional[str] = None,
         **data_module_kwargs,
@@ -41,7 +40,6 @@ class T0Mixture:
             dataset_name, subset_name, template_name = self.task_name_to_info[task_name]
             self.data_modules[task_name] = T0Module(
                 config=config,
-                data_dir=data_dir,
                 num_prefix=num_prefix,
                 transformer_model=transformer_model,
                 mixture_name=self.mixture_name,

@@ -36,7 +36,7 @@ class DataModule(LightningDataModule):
     def __init__(
         self,
         config: Config,
-        data_dir: PathOrStr,
+        data_dir: Optional[PathOrStr] = None,
         max_length: Optional[int] = None,
         preprocess_and_save: bool = True,
         batch_size: int = 32,
@@ -45,19 +45,17 @@ class DataModule(LightningDataModule):
     ):
         super().__init__()
         self.config = config
-        self.data_dir = data_dir
+        self.data_dir = data_dir or "/tmp/meta-learn-prompt/data-dir"
         self.max_length = max_length
         self.preprocess_and_save = preprocess_and_save
-
         self.batch_size = batch_size
         self.eval_batch_size = eval_batch_size
         self.num_workers = num_workers
+        self._tokenizer: Optional[PreTrainedTokenizerBase] = None
 
     def setup(self, stage: Optional[str] = None):
-
         logger.info("Setup tokenizer")
         if self.preprocess_and_save:
-            self.tokenizer = self.setup_tokenizer()
             if os.path.exists(self.cache_path):
                 logger.info(f"Reusing cache at {self.cache_path}")
                 self.dataset_dict = HFDatasetDict.load_from_disk(self.cache_path)
@@ -142,7 +140,7 @@ class DataModule(LightningDataModule):
 
     def preprocess(self, dataset_dict: DatasetDict) -> DatasetDict:
         logger.info("Begin preprocessing")
-        dataset_dict = DatasetDict(  # reimplementing DatasetDict.map to provide `split`
+        dataset_dict = HFDatasetDict(  # reimplementing DatasetDict.map to provide `split`
             {
                 split: dataset.map(
                     lambda examples: self.tokenize(examples, split),
@@ -156,10 +154,23 @@ class DataModule(LightningDataModule):
 
         # Rename validation -> dev
         if "validation" in dataset_dict and "dev" not in dataset_dict:
-            dataset_dict.splits["dev"] = dataset_dict["validation"]
-            del dataset_dict.splits["validation"]
+            dataset_dict["dev"] = dataset_dict["validation"]
+            del dataset_dict["validation"]
 
         return dataset_dict
+
+    @property
+    def tokenizer(self) -> PreTrainedTokenizerBase:
+        if self._tokenizer is None:
+            tokenizer = self.setup_tokenizer()
+            self._tokenizer = tokenizer
+            return tokenizer
+        else:
+            return self._tokenizer
+
+    @tokenizer.setter
+    def tokenizer(self, tokenizer: PreTrainedTokenizerBase):
+        self._tokenizer = tokenizer
 
     @abstractmethod
     def setup_tokenizer(self) -> PreTrainedTokenizerBase:

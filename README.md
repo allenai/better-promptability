@@ -3,7 +3,7 @@
 ## Setup
 
 1. Create a new Python virtual environment with Python 3.7.
-2. Install PyTorch according to the [official instructions](https://pytorch.org/get-started/locally/).
+2. Install PyTorch 1.10.1 according to the [official instructions](https://pytorch.org/get-started/locally/).
 3. Run
 
     ```
@@ -18,9 +18,5 @@
 You can verify that your environment is set up properly by running:
 
 ```
-tango --no-logging run configs/check_install.yml -i meta_learn_prompt
+tango run configs/check_install.yml
 ```
-
-## Story Cloze
-
-In order to run story cloze you have to set an environment variable `STORY_CLOZE_PATH` to the story cloze data. Ask Zhaofeng for the data.
