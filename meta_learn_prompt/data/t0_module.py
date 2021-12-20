@@ -105,7 +105,7 @@ class T0Module(PromptDataModule):
             del dataset_dict["validation"]
 
         # See comment in test_splits(), above
-        del dataset_dict["test"]
+        dataset_dict.pop("test", None)
 
         return dataset_dict
 
@@ -214,7 +214,7 @@ class T0Module(PromptDataModule):
             "target_mask": False,
         }
 
-        if self.mixture_name == "green" and split != self.train_split:
+        if self.mixture_name in {"d4_dev", "green"} and split != self.train_split:
             pad_token_map_["is_correct"] = False
             pad_token_map_["is_correct_mask"] = False
         return pad_token_map_

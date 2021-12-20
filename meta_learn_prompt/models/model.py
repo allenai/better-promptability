@@ -176,8 +176,6 @@ class Model(LightningModule):
         if "is_correct" in batch:
             labels = (batch["is_correct"] & batch["is_correct_mask"]).byte().argmax(dim=-1)
 
-            # Right now, this will only happen for the green datasets. See commented code in
-            # t0_module `tokenize` for the case of d4_dev datasets.
             splits = self.dataset.dev_splits if mode == "dev" else self.dataset.test_splits
             split = splits[dataloader_idx]
             for metric in self.metrics[split].values():

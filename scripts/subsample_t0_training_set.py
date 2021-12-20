@@ -20,14 +20,14 @@ from meta_learn_prompt.data.data_utils import md5  # noqa: E402
 from meta_learn_prompt.data.t0_mixture import T0Mixture  # noqa: E402
 
 
-def main(n_shot, seed, output_file):
+def main(mixture_name, n_shot, seed, output_file):
     n_shot = int(n_shot)
     seed = int(seed)
     random.seed(seed)
 
     # All arguments apart from the first two are dummy
     mixture = T0Mixture(
-        mixture_name="green",
+        mixture_name=mixture_name,
         t0_data_cache="/net/nfs2.allennlp/akshitab/meta-learn-prompt/t0/processed_cache",
         config=Config(),
         data_dir="tmp",
