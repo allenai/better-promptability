@@ -52,3 +52,6 @@ site/
 
 # cache
 *.datacache
+
+output/*
+!output/.gitkeep
