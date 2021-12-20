@@ -6,9 +6,6 @@ local config = {
 };
 local model = "google/t5-small-lm-adapt";
 local task_name = "hellaswag_complete_first_then_score_eval";
-local dataset_name = "hellaswag";
-local subset_name = null;
-local template_name = "complete_first_then_score_eval";
 
 {
     "steps": {
@@ -34,9 +31,6 @@ local template_name = "complete_first_then_score_eval";
                 "type": "t0",
                 "mixture_name": "green",
                 "task_name": task_name,
-                "dataset_name": dataset_name,
-                "subset_name": subset_name,
-                "template_name": template_name,
                 "data_dir": "test_fixtures/data",
                 "t0_data_cache": "test_fixtures/data/processed_cache",
                 "transformer_model": model,
