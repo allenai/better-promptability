@@ -61,11 +61,3 @@ class PromptDataModule(DataModule):
             "target_mask": False,
         }
         return pad_token_map_
-
-
-def assemble_prompt(inputs, targets, eos_token_id, task_token_ids):
-    input_ids = task_token_ids + inputs + [eos_token_id]
-    target_ids = targets + [eos_token_id]
-    input_mask = [True] * len(input_ids)
-    target_mask = [True] * len(target_ids)
-    return input_ids, target_ids, input_mask, target_mask
