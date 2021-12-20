@@ -149,6 +149,9 @@ class PrefixTransformer(Model):
             optimizer = optimizers[0]
 
             for param_name, states in optstates.items():
+                if param_name == "global_step":
+                    continue
+
                 name = param_name.split("/")
                 pointer = self.transformer.model
                 # Following the logic at https://github.com/huggingface/transformers/blob/027074f4d0503e4fc077beb069e651435979b7b2/src/transformers/models/t5/modeling_t5.py#L116  # noqa: E501
@@ -224,7 +227,6 @@ class PrefixTransformer(Model):
                     if vr_len != pointer.shape[0]:
                         states["vr"], states["vc"] = states["vc"], states["vr"]
 
-                    # print(name, scope_names[0], pointer.shape, states["vr"].shape, states["vc"].shape)
                     optimizer.state[pointer]["exp_avg_sq_row"] = torch.from_numpy(states["vr"])
                     optimizer.state[pointer]["exp_avg_sq_col"] = torch.from_numpy(states["vc"])
                 else:
@@ -238,7 +240,7 @@ class PrefixTransformer(Model):
                         )
                         states["v"] = np.transpose(states["v"])
                     optimizer.state[pointer]["exp_avg_sq"] = torch.from_numpy(states["v"])
-                optimizer.state[pointer]["step"] = 0
+                optimizer.state[pointer]["step"] = optstates["global_step"]
 
         return opt_conf
 
