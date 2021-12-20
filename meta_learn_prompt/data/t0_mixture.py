@@ -15,7 +15,7 @@ def read_task_info() -> dict[str, tuple[str, Optional[str], str]]:
         reader = csv.DictReader(task_info_file, delimiter="\t")
         for row in reader:
             if len(row["subset_name"]) == 0:
-                row["subset_name"] = None
+                row["subset_name"] = None  # type: ignore
             task_name_to_info[row["task_name"]] = (
                 row["dataset_name"],
                 row["subset_name"],
