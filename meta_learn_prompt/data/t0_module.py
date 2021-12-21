@@ -64,7 +64,7 @@ class T0Module(PromptDataModule):
         for split in ("dev", "validation"):
             if split in self.dataset_dict:
                 return [split]
-        return []
+        raise KeyError("No dev split found in dataset dict")
 
     @property
     def test_splits(self) -> list[str]:
