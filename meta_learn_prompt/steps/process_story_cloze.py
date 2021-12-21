@@ -68,6 +68,8 @@ class ProcessStoryCloze(Step):
                 new_instances["targets_pretokenized"].append(targets_pretokenized)
                 new_instances["is_correct"].append(is_correct)
 
+            # Story cloze doesn't have a training set, so we use validation for training and test
+            # for validation. We in general don't use test sets.
             if split_name == "validation":
                 split_name = "train"
             if split_name == "test":
