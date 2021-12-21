@@ -32,3 +32,5 @@ for name in $(cat data/d4_dev_tasks.txt); do
 done
 ```
 If you're not on AI2 NFS, you probably need to pass in the location of the data cache and the pretrained optimizer states with `--overrides "{\"steps.output_model.datamodule.t0_data_cache\": \"${DATA_CACHE_PATH}\", \"steps.output_model.model.optstates_dir\": \"${OPT_STATES_PATH}\"}"`
+
+The set up to run 0-shot evaluation without a soft prompt is very similar, with the config `configs/0shot_eval.jsonnet`.
