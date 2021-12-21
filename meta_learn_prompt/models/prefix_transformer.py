@@ -28,7 +28,7 @@ class PrefixTransformer(Model):
         config: Config,
         dataset: PromptDataModule,
         transformer_model: str,
-        optimizer: Lazy[Optimizer],
+        optimizer: Optional[Lazy[Optimizer]] = None,
         scheduler: Optional[str] = None,
         epochs: int = 3,
         weight_decay: float = 0.0,
@@ -116,12 +116,11 @@ class PrefixTransformer(Model):
         self,
         batch: dict[str, torch.Tensor],
         batch_idx: int,
-        mode: str,
         dataloader_idx=0,
         compute_loss=True,
     ) -> dict[str, Any]:
         return super().eval_step(
-            batch, batch_idx, mode, dataloader_idx=dataloader_idx, compute_loss=False
+            batch, batch_idx, dataloader_idx=dataloader_idx, compute_loss=False
         )
 
     def on_save_checkpoint(self, checkpoint: dict[str, Any]):
