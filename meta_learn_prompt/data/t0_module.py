@@ -76,12 +76,8 @@ class T0Module(PromptDataModule):
 
     @property
     def dev_splits(self) -> list[str]:
-        # Story Cloze doesn't have a training split, so we use the dev split for training
-        if self.dataset_name != "story_cloze" and (
-            # d4_dev and green datasets should have dev splits, d4_train may not.
-            self.mixture_name in {"d4_dev", "green"}
-            or "dev" in self.dataset_dict
-        ):
+        # d4_dev and green datasets should have dev splits, d4_train may not.
+        if self.mixture_name in {"d4_dev", "green"} or "dev" in self.dataset_dict:
             return ["dev"]
         return []
 
