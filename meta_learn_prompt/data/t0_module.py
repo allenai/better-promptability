@@ -64,8 +64,7 @@ class T0Module(PromptDataModule):
         for split in ("dev", "validation"):
             if split in self.dataset_dict:
                 return [split]
-        else:
-            return []
+        return []
 
     @property
     def test_splits(self) -> list[str]:
