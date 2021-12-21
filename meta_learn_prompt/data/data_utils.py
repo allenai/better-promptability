@@ -56,7 +56,7 @@ def _pad(
 
 def _tensorize(sequence: np.ndarray, name: str) -> torch.Tensor:
     dtype = torch.long
-    if "_mask" in name:
+    if "_mask" in name or "is_correct" in name:  # TODO: there should be a smarter way to do this
         dtype = torch.bool
     return torch.tensor(sequence, dtype=dtype)
 

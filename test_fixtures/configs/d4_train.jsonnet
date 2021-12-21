@@ -6,9 +6,6 @@ local config = {
 };
 local model = "google/t5-small-lm-adapt";
 local task_name = "adversarial_qa_dbert_based_on";
-local dataset_name = "adversarial_qa";
-local subset_name = "dbert";
-local template_name = "based_on";
 
 {
     "steps": {
@@ -34,9 +31,6 @@ local template_name = "based_on";
                 "type": "t0",
                 "mixture_name": "d4_train",
                 "task_name": task_name,
-                "dataset_name": dataset_name,
-                "subset_name": subset_name,
-                "template_name": template_name,
                 "data_dir": "test_fixtures/data",
                 "t0_data_cache": "test_fixtures/data/cache",
                 "transformer_model": model,

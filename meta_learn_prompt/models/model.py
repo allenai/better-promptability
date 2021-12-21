@@ -22,7 +22,7 @@ class Model(LightningModule):
         self,
         config: Config,
         dataset: DataModule,
-        optimizer: Lazy[Optimizer],
+        optimizer: Optional[Lazy[Optimizer]] = None,
         scheduler: Optional[str] = None,
         epochs: int = 3,
         weight_decay: float = 0.0,
@@ -136,10 +136,10 @@ class Model(LightningModule):
         reduce=True,
     ) -> torch.Tensor:
         assert mask is not None
-        assert mask.any(dim=-1).all()
         loss = F.cross_entropy(logits.view(-1, logits.shape[-1]), labels.view(-1), reduction="none")
         loss = loss.view_as(labels) * mask
         if reduce:
+            assert mask.any(dim=-1).all()
             loss = loss.sum() / mask.sum()  # type: ignore
         return loss
 
@@ -161,23 +161,19 @@ class Model(LightningModule):
         self,
         batch: dict[str, torch.Tensor],
         batch_idx: int,
-        mode: str,
         dataloader_idx=0,
         compute_loss=True,
     ) -> dict[str, Any]:
-        assert mode in {"dev", "test"}
-
         logits = self(batch)["logits"]
-        preds = self.get_predictions(logits, batch)
+        preds = self.get_predictions(logits, batch).masked_fill(
+            ~batch["is_correct_mask"], torch.finfo(logits.dtype).min
+        )
         targets = batch["target_ids"]  # target sequences.
 
         if "is_correct" in batch:
-            labels = batch["is_correct"].argmax(dim=-1)
+            labels = (batch["is_correct"] & batch["is_correct_mask"]).byte().argmax(dim=-1)
 
-            # Right now, this will only happen for the green datasets. See commented code in
-            # t0_module `tokenize` for the case of d4_dev datasets.
-            splits = self.dataset.dev_splits if mode == "dev" else self.dataset.test_splits
-            split = splits[dataloader_idx]
+            split = self.dataset.dev_splits[dataloader_idx]
             for metric in self.metrics[split].values():
                 metric(*metric.detach_tensors(preds, labels))
 
@@ -187,11 +183,7 @@ class Model(LightningModule):
             else {}
         )
 
-    def eval_epoch_end(
-        self, outputs: Union[list[list[dict[str, Any]]], list[dict[str, Any]]], mode: str
-    ):
-        assert mode in {"dev", "test"}
-
+    def eval_epoch_end(self, outputs: Union[list[list[dict[str, Any]]], list[dict[str, Any]]]):
         # pytorch-lightning "conveniently" unwraps the list when there's only one dataloader,
         # so we need a check here.
         num_splits = 1 if isinstance(outputs[0], dict) else len(outputs)
@@ -201,7 +193,7 @@ class Model(LightningModule):
         if num_splits > 1:
             sums: defaultdict = defaultdict(int)
         for i in range(num_splits):
-            split = (self.dataset.dev_splits if mode == "dev" else self.dataset.test_splits)[i]
+            split = self.dataset.dev_splits[i]
             assert split != "avg"  # reserved keyword for below
             metrics = self.get_metrics(split, reset=True)
             for k, v in metrics.items():
@@ -224,15 +216,15 @@ class Model(LightningModule):
     def validation_step(
         self, batch: dict[str, torch.Tensor], batch_idx: int, dataloader_idx=0
     ) -> dict[str, Any]:
-        return self.eval_step(batch, batch_idx, "dev", dataloader_idx=dataloader_idx)
+        return self.eval_step(batch, batch_idx, dataloader_idx=dataloader_idx)
 
     def validation_epoch_end(self, outputs: list[dict[str, Any]]):
-        return self.eval_epoch_end(outputs, "dev")
+        return self.eval_epoch_end(outputs)
 
     def test_step(
         self, batch: dict[str, torch.Tensor], batch_idx: int, dataloader_idx=0
     ) -> dict[str, Any]:
-        return self.eval_step(batch, batch_idx, "test", dataloader_idx=dataloader_idx)
+        return self.eval_step(batch, batch_idx, dataloader_idx=dataloader_idx)
 
     def test_epoch_end(self, outputs: list[dict[str, Any]]):
-        return self.eval_epoch_end(outputs, "test")
+        return self.eval_epoch_end(outputs)
