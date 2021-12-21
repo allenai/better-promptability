@@ -23,6 +23,7 @@ class MixerDataset(Sequence[T]):
         self,
         datasets: list[Sequence[T]],
         sampling_cap: Optional[int] = None,
+        seed: int = 3,  # this is important during distributed training
     ):
         self._datasets: list[Sequence[T]] = []
         self._total_size: int = 0
@@ -32,7 +33,7 @@ class MixerDataset(Sequence[T]):
             if sampling_cap is not None and len(dataset) > sampling_cap:
                 self._total_size += sampling_cap
                 self._dataset_boundaries.append((start_boundary, start_boundary + sampling_cap))
-                self._datasets.append(_UndersampledDataset(dataset, sampling_cap))
+                self._datasets.append(_UndersampledDataset(dataset, sampling_cap, seed=seed))
             else:
                 self._total_size += len(dataset)
                 self._dataset_boundaries.append((start_boundary, start_boundary + len(dataset)))
@@ -58,13 +59,19 @@ class _UndersampledDataset(Sequence[T]):
         self,
         dataset: Sequence[T],
         sampling_cap: int,
+        seed: int = 3,
     ):
         assert sampling_cap < len(dataset)
         self._dataset = dataset
         self._sampling_cap = sampling_cap
         self._indices = list(range(len(self._dataset)))
         self._num_taken = sampling_cap
+        self._seed = seed
+
+        state = random.getstate()
+        random.seed(self._seed)
         random.shuffle(self._indices)
+        random.setstate(state)
 
     def __getitem__(self, i: int) -> T:  # type: ignore[override]
         if i > self._sampling_cap:
@@ -75,6 +82,9 @@ class _UndersampledDataset(Sequence[T]):
         return self._sampling_cap
 
     def resample(self):
+        self._seed += 1
+        state = random.getstate()
+        random.seed(self._seed)
         if self._num_taken + self._sampling_cap <= len(self._dataset):
             # Re-organize `self._indices` so that the latest used chunk is pulled off and put on the end.
             self._indices = (
@@ -108,3 +118,4 @@ class _UndersampledDataset(Sequence[T]):
             del used, unused, next_up
 
             self._num_taken = self._sampling_cap
+        random.setstate(state)

@@ -14,6 +14,7 @@ from tango.step import Step
 
 from ..data.config import Config
 from ..data.prompt_data_module import PromptDataModule
+from ..data.t0_multitask_data_module import T0MultiTaskDataModule
 from ..models.prefix_transformer import PrefixTransformer
 
 logger = logging.getLogger(__name__)
@@ -66,6 +67,18 @@ class LoggingCallback(LightningCallback):
                 logger.info(f"best_{key} = {value}")
 
 
+@LightningCallback.register("t0_multitask")
+class T0MultiTaskCallback(LightningCallback):
+    """
+    A Lightning callback for resampling the ``MixerDataset`` at the end of each epoch.
+    """
+
+    def on_epoch_end(self, trainer: LightningTrainer, pl_module: LightningModule):
+        assert isinstance(pl_module.dataset, T0MultiTaskDataModule)
+        for dataset in pl_module.dataset.dataset_dict.values():
+            dataset.resample()
+
+
 @Step.register("train_step")
 class TrainStep(Step):
 
@@ -95,7 +108,19 @@ class TrainStep(Step):
             gpus=config.gpus,
             accelerator="gpu" if config.gpus else "cpu",
             auto_select_gpus=True,
+            # Need to reload the dataloaders each epoch when using the T0MultiTaskDataModule.
+            reload_dataloaders_every_n_epochs=1
+            if isinstance(datamodule, T0MultiTaskDataModule)
+            else 0,
         )
+
+        # Make sure we're using the `T0MultiTaskCallback` if using the `T0MultiTaskDataModule`
+        if isinstance(datamodule, T0MultiTaskDataModule):
+            for callback in trainer.callbacks:
+                if isinstance(callback, T0MultiTaskCallback):
+                    break
+            else:
+                raise RuntimeError("T0MultiTaskCallback required when using T0MultiTaskDataModule")
 
         epochs = trainer.max_epochs
 

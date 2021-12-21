@@ -9,8 +9,8 @@ import pickle
 
 from allennlp.training.metrics import Metric
 import datasets
-from tango.common import DatasetDict
 
+from .data_module import DatasetDictType
 from .data_utils import md5, PAD_TYPE
 from .prompt_data_module import PromptDataModule
 from .config import Config
@@ -68,10 +68,8 @@ class T0Module(PromptDataModule):
     @property
     def dev_splits(self) -> list[str]:
         # Story Cloze doesn't have a training split, so we use the dev split for training
-        if self.dataset_name != "story_cloze":
-            for split in ("dev", "validation"):
-                if split in self.dataset_dict:
-                    return [split]
+        if self.dataset_name != "story_cloze" and "dev" in self.dataset_dict:
+            return ["dev"]
         return []
 
     @property
@@ -91,7 +89,7 @@ class T0Module(PromptDataModule):
     def sort_key(self) -> str:
         return "inputs"
 
-    def load(self) -> DatasetDict:
+    def load(self) -> DatasetDictType:
         data_path = self.t0_data_cache / self.task_name
         assert data_path.is_dir()
 
