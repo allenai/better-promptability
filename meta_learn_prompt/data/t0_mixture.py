@@ -1,5 +1,4 @@
 from __future__ import annotations
-import csv
 from typing import Mapping, Optional
 
 from tango.common import PathOrStr
