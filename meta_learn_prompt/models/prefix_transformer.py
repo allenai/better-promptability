@@ -5,6 +5,7 @@ import pickle
 import re
 from typing import Any, Optional, Union
 
+import numpy as np
 import torch
 from tango.common.lazy import Lazy
 from tango.integrations.pytorch_lightning.model import LightningModule
@@ -62,7 +63,9 @@ class PrefixTransformer(Model):
             param.requires_grad = False
 
         transformer_model.set_input_embeddings(
-            WithPrefixEmbedding(transformer_model.shared, self.dataset.num_prefix)
+            WithPrefixEmbedding(
+                transformer_model.shared, self.dataset.tokenizer.vocab_size, self.dataset.num_prefix
+            )
         )
 
     def forward(self, batch: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
@@ -106,7 +109,7 @@ class PrefixTransformer(Model):
         """
         mask = batch["target_mask"]  # (bsz, num_classes, seq_len)
         loss = self.compute_loss(logits, batch["target_ids"], mask, reduce=False)
-        scores = -loss.sum(-1) / mask.sum(-1)  # already masked in compute_loss()
+        scores = -loss.sum(-1) / (mask.sum(-1) + 1e-6)  # already masked in compute_loss()
         return scores
 
     def eval_step(
@@ -123,7 +126,6 @@ class PrefixTransformer(Model):
 
     def on_save_checkpoint(self, checkpoint: dict[str, Any]):
         weight_key = "transformer.model.shared.new_embed.weight"
-        print(checkpoint["state_dict"].keys())
         checkpoint["state_dict"] = {weight_key: checkpoint["state_dict"][weight_key]}
 
     def configure_optimizers(self) -> Union[list[Optimizer], tuple[list[Optimizer], list[dict]]]:
@@ -147,6 +149,9 @@ class PrefixTransformer(Model):
             optimizer = optimizers[0]
 
             for param_name, states in optstates.items():
+                if param_name == "global_step":
+                    continue
+
                 name = param_name.split("/")
                 pointer = self.transformer.model
                 # Following the logic at https://github.com/huggingface/transformers/blob/027074f4d0503e4fc077beb069e651435979b7b2/src/transformers/models/t5/modeling_t5.py#L116  # noqa: E501
@@ -200,11 +205,42 @@ class PrefixTransformer(Model):
                     ("vr" in states) != ("v" in states)
                 )
                 if "vr" in states:
-                    optimizer.state[pointer]["exp_avg_sq_row"] = states["vr"]
-                    optimizer.state[pointer]["exp_avg_sq_col"] = states["vc"]
+                    # mesh-tensorflow sorts vr and vc s.t. vr's length always <= vc's, see
+                    # https://github.com/tensorflow/mesh/blob/57ed4018e6a173952501b074daabad32b6449f3d/mesh_tensorflow/optimize.py#L283
+                    # But in HF's implementation, vr/vc corresponds to the first/second dimension,
+                    # respectively, and they correspond to the correct dimensions in TF iff in the
+                    # TF parameter shape, the first dimension >= the second, in which case no
+                    # sorting is performed (note the stable-ness of the `sorted()` function for
+                    # square matrices), in which case vr/vc correspond to the second/first dimension
+                    # in TF, and this matches since HF transposes TF weights. See
+                    # https://github.com/huggingface/transformers/blob/v4.11.3/src/transformers/models/t5/modeling_t5.py#L163
+                    # Otherwise, we need to re-match the dimensions.
+                    # To confirm this is right, print out `{vr/vc}_shape` in the mesh-transformer
+                    # repo, linked above, and look at the name of the dimensions.
+                    # Technically, it seems that embeddings aren't transposed, so the condition
+                    # below is a bit more general than comparing dimensions, which handles
+                    # embeddings automatically (unless there's a square embedding matrix, which is
+                    # unlikely).
+                    assert pointer.ndim == 2
+                    vr_len, vc_len = states["vr"].shape[0], states["vc"].shape[0]
+                    assert vr_len + vc_len == sum(pointer.shape)
+                    if vr_len != pointer.shape[0]:
+                        states["vr"], states["vc"] = states["vc"], states["vr"]
+
+                    optimizer.state[pointer]["exp_avg_sq_row"] = torch.from_numpy(states["vr"])
+                    optimizer.state[pointer]["exp_avg_sq_col"] = torch.from_numpy(states["vc"])
                 else:
-                    optimizer.state[pointer]["exp_avg_sq"] = states["v"]
-                optimizer.state[pointer]["step"] = 0
+                    assert pointer.ndim <= 2
+                    if pointer.ndim == 2:
+                        # This is because HF transpopses matrices when loading from the tf
+                        # checkpoints. See the link above.
+                        assert (
+                            pointer.shape[0] == states["v"].shape[1]
+                            and pointer.shape[1] == states["v"].shape[0]
+                        )
+                        states["v"] = np.transpose(states["v"])
+                    optimizer.state[pointer]["exp_avg_sq"] = torch.from_numpy(states["v"])
+                optimizer.state[pointer]["step"] = optstates["global_step"]
 
         return opt_conf
 

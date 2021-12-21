@@ -136,10 +136,10 @@ class Model(LightningModule):
         reduce=True,
     ) -> torch.Tensor:
         assert mask is not None
-        assert mask.any(dim=-1).all()
         loss = F.cross_entropy(logits.view(-1, logits.shape[-1]), labels.view(-1), reduction="none")
         loss = loss.view_as(labels) * mask
         if reduce:
+            assert mask.any(dim=-1).all()
             loss = loss.sum() / mask.sum()  # type: ignore
         return loss
 
@@ -168,14 +168,14 @@ class Model(LightningModule):
         assert mode in {"dev", "test"}
 
         logits = self(batch)["logits"]
-        preds = self.get_predictions(logits, batch)
+        preds = self.get_predictions(logits, batch).masked_fill(
+            ~batch["is_correct_mask"], torch.finfo(logits.dtype).min
+        )
         targets = batch["target_ids"]  # target sequences.
 
         if "is_correct" in batch:
-            labels = batch["is_correct"].argmax(dim=-1)
+            labels = (batch["is_correct"] & batch["is_correct_mask"]).byte().argmax(dim=-1)
 
-            # Right now, this will only happen for the green datasets. See commented code in
-            # t0_module `tokenize` for the case of d4_dev datasets.
             splits = self.dataset.dev_splits if mode == "dev" else self.dataset.test_splits
             split = splits[dataloader_idx]
             for metric in self.metrics[split].values():

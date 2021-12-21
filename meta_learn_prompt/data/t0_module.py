@@ -1,4 +1,5 @@
 from __future__ import annotations
+import csv
 from typing import Any, List, Mapping, Optional
 import numpy as np
 
@@ -16,6 +17,22 @@ from .prompt_data_module import PromptDataModule
 from .config import Config
 
 
+# TODO: make this a singleton or something, if it's slow
+def read_task_info() -> dict[str, tuple[str, Optional[str], str]]:
+    task_name_to_info: dict[str, tuple[str, Optional[str], str]] = {}
+    with open("data/t0_task_info.tsv", newline="") as task_info_file:
+        reader = csv.DictReader(task_info_file, delimiter="\t")
+        for row in reader:
+            if len(row["subset_name"]) == 0:
+                row["subset_name"] = None  # type: ignore
+            task_name_to_info[row["task_name"]] = (
+                row["dataset_name"],
+                row["subset_name"],
+                row["template_name"],
+            )
+    return task_name_to_info
+
+
 @PromptDataModule.register("t0", exist_ok=True)
 class T0Module(PromptDataModule):
     """
@@ -29,29 +46,21 @@ class T0Module(PromptDataModule):
         transformer_model: PathOrStr,
         mixture_name: str,
         task_name: str,
-        dataset_name: str,
-        subset_name: Optional[str],
-        template_name: str,
         t0_data_cache: PathOrStr = "/net/nfs2.allennlp/petew/meta-learn-prompt/t0/cache",
         sequence_length: Optional[Mapping[str, int]] = None,
         subsample_indices_file: Optional[str] = None,
         **kwargs,
     ):
-
         super().__init__(config, num_prefix, transformer_model, **kwargs)
 
         self.mixture_name = mixture_name
         self.task_name = task_name
-        self.dataset_name = dataset_name
-        self.subset_name = subset_name
-        self.template_name = template_name
+        self.dataset_name, self.subset_name, self.template_name = read_task_info()[self.task_name]
         self.t0_data_cache = Path(t0_data_cache)
         self.sequence_length = sequence_length
         self.subsample_indices = None
         if subsample_indices_file is not None:
-            self.subsample_indices = pickle.load(open(subsample_indices_file, "rb"))[
-                (dataset_name, subset_name)
-            ]
+            self.subsample_indices = pickle.load(open(subsample_indices_file, "rb"))[task_name]
 
     @property
     def hash_fields(self) -> list[Any]:
@@ -60,18 +69,22 @@ class T0Module(PromptDataModule):
     def setup(self, stage: Optional[str] = None):
         super().setup(stage)
         if self.subsample_indices is not None:
-            indices, checksum = self.subsamplme_indices
+            indices, checksum = self.subsample_indices
             dataset = self.dataset_dict[self.train_split].select(indices)
-            assert md5("".join(str(sorted(ex.items())) for ex in dataset)) == checksum
+            assert md5("".join(str(ex["inputs"] + ex["targets"]) for ex in dataset)) == checksum
             self.dataset_dict[self.train_split] = dataset
 
     @property
     def dev_splits(self) -> list[str]:
-        # Story Cloze doesn't have a training split, so we use the dev split for training
-        if self.dataset_name != "story_cloze":
-            for split in ("dev", "validation"):
-                if split in self.dataset_dict:
-                    return [split]
+        for split in ("dev", "validation"):
+            if split in self.dataset_dict:
+                return [split]
+        raise KeyError("No dev split found in dataset dict")
+
+    @property
+    def test_splits(self) -> list[str]:
+        # We don't need the test sets. The test set labels of some datasets are hidden
+        # (e.g., superglue), and T0 only evaluated on the dev sets.
         return []
 
     @property
@@ -97,10 +110,8 @@ class T0Module(PromptDataModule):
 
         dataset_dict = datasets.load_from_disk(data_path)
 
-        if self.dataset_name == "story_cloze":
-            # Story Cloze doesn't have a training split, so we use the validation split for training
-            dataset_dict[self.train_split] = dataset_dict["validation"]
-            del dataset_dict["validation"]
+        # See comment in test_splits(), above
+        dataset_dict.pop("test", None)
 
         return dataset_dict
 
@@ -126,11 +137,8 @@ class T0Module(PromptDataModule):
         # (eg. "web_questions_get_the_answer" simply wants a knowledge-based answer).
         # We ignore these datasets.
 
-        elif (self.mixture_name == "d4_dev" and split != self.train_split) or (
-            self.mixture_name == "green"
-            and split != self.train_split
-            and self.dataset_name == "story_cloze"
-        ):
+        elif self.mixture_name == "d4_dev" and split != self.train_split:
+
             single_target = False
             # The format in d4_dev is the same as train (there is no is_correct).
             # To get multiple targets, we need to use "answer_choices", and tokenize them.
@@ -148,11 +156,10 @@ class T0Module(PromptDataModule):
 
             # Actually getting the single target.
 
-            if self.dataset_name != "story_cloze":
-                correct_idx = np.argmax(example["is_correct"])
-                targets = targets[correct_idx]
+            correct_idx = np.argmax(example["is_correct"])
+            targets = targets[correct_idx]
 
-        else:  # green dev/test
+        else:  # green dev
             single_target = False
             is_correct = example["is_correct"]
 
@@ -194,6 +201,7 @@ class T0Module(PromptDataModule):
         if not single_target:
             assert is_correct is not None and sum(is_correct) == 1
             return_dict["is_correct"] = is_correct
+            return_dict["is_correct_mask"] = [True] * len(is_correct)
         return return_dict
 
     def pad_token_map(self, split: str) -> Mapping[str, PAD_TYPE]:  # type: ignore
@@ -208,8 +216,9 @@ class T0Module(PromptDataModule):
             "target_mask": False,
         }
 
-        if self.mixture_name == "green" and split != self.train_split:
-            pad_token_map_["is_correct"] = 0
+        if self.mixture_name in {"d4_dev", "green"} and split != self.train_split:
+            pad_token_map_["is_correct"] = False
+            pad_token_map_["is_correct_mask"] = False
         return pad_token_map_
 
 

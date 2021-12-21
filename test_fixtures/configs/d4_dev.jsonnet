@@ -6,9 +6,6 @@ local config = {
 };
 local model = "google/t5-small-lm-adapt";
 local task_name = "openbookqa_main_choices";
-local dataset_name = "openbookqa";
-local subset_name = "main";
-local template_name = "choices";
 
 {
     "steps": {
@@ -34,9 +31,6 @@ local template_name = "choices";
                 "type": "t0",
                 "mixture_name": "d4_dev",
                 "task_name": task_name,
-                "dataset_name": dataset_name,
-                "subset_name": subset_name,
-                "template_name": template_name,
                 "data_dir": "test_fixtures/data",
                 "t0_data_cache": "test_fixtures/data/cache",
                 "transformer_model": model,

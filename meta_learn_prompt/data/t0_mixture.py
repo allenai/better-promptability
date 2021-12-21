@@ -1,5 +1,4 @@
 from __future__ import annotations
-import csv
 from typing import Mapping, Optional
 
 from tango.common import PathOrStr
@@ -26,27 +25,14 @@ class T0Mixture:
     ):
         assert mixture_name in {"d4_train", "d4_dev", "green"}
         self.mixture_name = mixture_name
-        self.task_name_to_info: dict[str, tuple[str, Optional[str], str]] = {}
-        with open("data/t0_task_info.tsv", newline="") as task_info_file:
-            reader = csv.DictReader(task_info_file, delimiter="\t")
-            for row in reader:
-                self.task_name_to_info[row["task_name"]] = (
-                    row["dataset_name"],
-                    row["subset_name"],
-                    row["template_name"],
-                )
         self.data_modules: dict[str, T0Module] = {}
         for task_name in (line.strip() for line in open(f"data/{self.mixture_name}_tasks.txt")):
-            dataset_name, subset_name, template_name = self.task_name_to_info[task_name]
             self.data_modules[task_name] = T0Module(
                 config=config,
                 num_prefix=num_prefix,
                 transformer_model=transformer_model,
                 mixture_name=self.mixture_name,
                 task_name=task_name,
-                dataset_name=dataset_name,
-                subset_name=subset_name,
-                template_name=template_name,
                 t0_data_cache=t0_data_cache,
                 sequence_length=sequence_length,
                 subsample_indices_file=subsample_indices_file,

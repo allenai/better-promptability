@@ -12,9 +12,6 @@ class T0ModuleTest(MetaLearnPromptTestCase):
             transformer_model="google/t5-small-lm-adapt",
             mixture_name="green",
             task_name="hellaswag_complete_first_then_score_eval",
-            dataset_name="hellaswag",
-            subset_name=None,
-            template_name="complete_first_then_score_eval",
             t0_data_cache=str(self.FIXTURES_ROOT / "data" / "processed_cache"),
         )
 
@@ -28,9 +25,6 @@ class T0ModuleTest(MetaLearnPromptTestCase):
         val_batch = list(t0.val_dataloader()[0])[0]
         assert val_batch["target_ids"].dim() == 3
 
-        test_batch = list(t0.test_dataloader()[0])[0]
-        assert test_batch["target_ids"].dim() == 3
-
     def test_t0_module_green_story_cloze(self):
 
         # Story_cloze special case.
@@ -42,18 +36,18 @@ class T0ModuleTest(MetaLearnPromptTestCase):
             transformer_model="google/t5-small-lm-adapt",
             mixture_name="green",
             task_name="story_cloze_2016_Story_Continuation_and_Options_score_eval",
-            dataset_name="story_cloze",
-            subset_name="2016",
-            template_name="Story_Continuation_and_Options_score_eval",
             t0_data_cache=str(self.FIXTURES_ROOT / "data" / "processed_cache"),
         )
 
         t0.setup()
         data = t0.load()
-        assert "test" in data
+        assert "train" in data
 
-        test_batch = list(t0.test_dataloader()[0])[0]
-        assert test_batch["target_ids"].dim() == 3
+        train_batch = list(t0.train_dataloader())[0]
+        assert train_batch["target_ids"].dim() == 2
+
+        val_batch = list(t0.val_dataloader()[0])[0]
+        assert val_batch["target_ids"].dim() == 3
 
     def test_t0_module_d4_train(self):
         t0 = T0Module(
@@ -63,9 +57,6 @@ class T0ModuleTest(MetaLearnPromptTestCase):
             transformer_model="google/t5-small-lm-adapt",
             mixture_name="d4_train",
             task_name="adversarial_qa_dbert_based_on",
-            dataset_name="adversarial_qa",
-            subset_name="dbert",
-            template_name="based_on",
             t0_data_cache=str(self.FIXTURES_ROOT / "data" / "cache"),
         )
 
@@ -87,9 +78,6 @@ class T0ModuleTest(MetaLearnPromptTestCase):
             transformer_model="google/t5-small-lm-adapt",
             mixture_name="d4_dev",
             task_name="openbookqa_main_choices",
-            dataset_name="openbookqa",
-            subset_name="main",
-            template_name="choices",
             t0_data_cache=str(self.FIXTURES_ROOT / "data" / "cache"),
         )
 

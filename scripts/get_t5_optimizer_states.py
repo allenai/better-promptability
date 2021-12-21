@@ -20,6 +20,8 @@ def main(ckpt_path, output_path):
         state = tf.train.load_variable(ckpt_path, name)
         states[param_name][state_type] = state
 
+    states["global_step"] = tf.train.load_variable(ckpt_path, "global_step")
+
     pickle.dump(states, open(output_path, "wb"))
 
 

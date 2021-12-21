@@ -1,5 +1,6 @@
 import os
 from meta_learn_prompt.steps.process_dataset import ProcessDataset
+from meta_learn_prompt.steps.process_story_cloze import ProcessStoryCloze
 
 import logging
 
@@ -13,7 +14,10 @@ def process_green_datasets(old_base_path, new_base_path):
 
     for dataset in datasets:
         dataset = dataset.strip()
-        step = ProcessDataset()
+        if "story_cloze" not in dataset:
+            step = ProcessDataset()
+        else:
+            step = ProcessStoryCloze()
         try:
             step.run(
                 old_data_path=os.path.join(old_base_path, dataset),
