@@ -33,12 +33,14 @@ class LoggingCallback(LightningCallback):
         logger.info(f"***** Validation results at epoch {trainer.current_epoch} *****")
 
         assert pl_module.dataset.metric_watch_mode in {"max", "min"}
+        self.metrics_history.append({})
 
         metrics = trainer.callback_metrics
         # Log results
         for key in sorted(metrics):
             if key not in ["log", "progress_bar"]:
                 logger.info("{} = {}".format(key, str(metrics[key])))
+                self.metrics_history[-1][key] = metrics[key]
 
             if key == pl_module.dataset.metric_to_watch and not trainer.sanity_checking:
                 curr_metric = pl_module.dataset.postprocess_metric(key, metrics[key])
@@ -63,10 +65,10 @@ class LoggingCallback(LightningCallback):
 
         if not trainer.sanity_checking:
             logger.info(f"best_epoch = {self.best_epoch}")
+            self.metrics_history[-1]["best_epoch"] = self.best_epoch
             for key, value in sorted(self.best_dev_metrics.items()):
                 logger.info(f"best_{key} = {value}")
-            self.metrics_history.append(self.best_dev_metrics)
-            self.metrics_history[-1]["best_epoch"] = self.best_epoch
+                self.metrics_history[-1][f"best_{key}"] = value
 
 
 @Step.register("train_step")
