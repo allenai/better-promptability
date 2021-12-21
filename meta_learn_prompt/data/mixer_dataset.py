@@ -68,6 +68,11 @@ class _UndersampledDataset(Sequence[T]):
         self._num_taken = sampling_cap
         self._seed = seed
 
+        # It's important that we can shuffle deterministically in order to guarantee
+        # that different processes shuffle the data in exactly the same way during distributed
+        # data parallel training, so we always set the seed before shuffling in this class.
+        # However, we don't want to mess with the RNG state outside of this class, so
+        # we make sure to reset it right after we shuffle.
         state = random.getstate()
         random.seed(self._seed)
         random.shuffle(self._indices)
