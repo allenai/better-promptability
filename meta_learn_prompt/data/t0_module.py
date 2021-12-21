@@ -61,12 +61,11 @@ class T0Module(PromptDataModule):
 
     @property
     def dev_splits(self) -> list[str]:
-        # Story Cloze doesn't have a training split, so we use the dev split for training
-        if self.dataset_name != "story_cloze":
-            for split in ("dev", "validation"):
-                if split in self.dataset_dict:
-                    return [split]
-        return []
+        for split in ("dev", "validation"):
+            if split in self.dataset_dict:
+                return [split]
+        else:
+            return []
 
     @property
     def test_splits(self) -> list[str]:
@@ -97,11 +96,6 @@ class T0Module(PromptDataModule):
 
         dataset_dict = datasets.load_from_disk(data_path)
 
-        if self.dataset_name == "story_cloze":
-            # Story Cloze doesn't have a training split, so we use the validation split for training
-            dataset_dict[self.train_split] = dataset_dict["validation"]
-            del dataset_dict["validation"]
-
         # See comment in test_splits(), above
         dataset_dict.pop("test", None)
 
@@ -129,11 +123,8 @@ class T0Module(PromptDataModule):
         # (eg. "web_questions_get_the_answer" simply wants a knowledge-based answer).
         # We ignore these datasets.
 
-        elif (self.mixture_name == "d4_dev" and split != self.train_split) or (
-            self.mixture_name == "green"
-            and split != self.train_split
-            and self.dataset_name == "story_cloze"
-        ):
+        elif self.mixture_name == "d4_dev" and split != self.train_split:
+
             single_target = False
             # The format in d4_dev is the same as train (there is no is_correct).
             # To get multiple targets, we need to use "answer_choices", and tokenize them.
@@ -151,9 +142,8 @@ class T0Module(PromptDataModule):
 
             # Actually getting the single target.
 
-            if self.dataset_name != "story_cloze":
-                correct_idx = np.argmax(example["is_correct"])
-                targets = targets[correct_idx]
+            correct_idx = np.argmax(example["is_correct"])
+            targets = targets[correct_idx]
 
         else:  # green dev
             single_target = False

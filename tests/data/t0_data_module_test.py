@@ -41,10 +41,13 @@ class T0ModuleTest(MetaLearnPromptTestCase):
 
         t0.setup()
         data = t0.load()
-        assert "test" in data
+        assert "train" in data
 
-        test_batch = list(t0.test_dataloader()[0])[0]
-        assert test_batch["target_ids"].dim() == 3
+        train_batch = list(t0.train_dataloader())[0]
+        assert train_batch["target_ids"].dim() == 2
+
+        val_batch = list(t0.val_dataloader()[0])[0]
+        assert val_batch["target_ids"].dim() == 3
 
     def test_t0_module_d4_train(self):
         t0 = T0Module(

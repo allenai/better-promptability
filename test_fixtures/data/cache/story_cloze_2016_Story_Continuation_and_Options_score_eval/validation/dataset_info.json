@@ -7,6 +7,16 @@
   "download_checksums": null,
   "download_size": null,
   "features": {
+    "answer_choices": {
+      "feature": {
+        "dtype": "string",
+        "id": null,
+        "_type": "Value"
+      },
+      "length": -1,
+      "id": null,
+      "_type": "Sequence"
+    },
     "inputs": {
       "feature": {
         "dtype": "int64",
@@ -24,38 +34,18 @@
     },
     "targets": {
       "feature": {
-        "feature": {
-          "dtype": "int64",
-          "id": null,
-          "_type": "Value"
-        },
-        "length": -1,
+        "dtype": "int64",
         "id": null,
-        "_type": "Sequence"
+        "_type": "Value"
       },
       "length": -1,
       "id": null,
       "_type": "Sequence"
     },
     "targets_pretokenized": {
-      "feature": {
-        "dtype": "string",
-        "id": null,
-        "_type": "Value"
-      },
-      "length": -1,
+      "dtype": "string",
       "id": null,
-      "_type": "Sequence"
-    },
-    "is_correct": {
-      "feature": {
-        "dtype": "bool",
-        "id": null,
-        "_type": "Value"
-      },
-      "length": -1,
-      "id": null,
-      "_type": "Sequence"
+      "_type": "Value"
     }
   },
   "homepage": "",
