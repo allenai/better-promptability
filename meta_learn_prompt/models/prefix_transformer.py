@@ -132,6 +132,17 @@ class PrefixTransformer(Model):
             # No need to save full state_dict.
             checkpoint["state_dict"] = {weight_key: checkpoint["state_dict"][weight_key]}
 
+        # PyTorch's native optimizer state checkpoint logic is very fragile, so we also do it on our
+        # own. See https://github.com/pytorch/pytorch/issues/1489
+        optimizer_states = self.optimizers(use_pl_optimizer=False).state
+        if True:  # TODO(pete): change to some MTL-related flag, perhaps
+            name_to_param = {n: p for n, p in self.named_parameters()}
+            states = {weight_key: optimizer_states[name_to_param[weight_key]]}
+        else:
+            param_to_name = {p: n for n, p in self.named_parameters()}
+            states = {param_to_name[p]: states for p, states in optimizer_states.items()}
+        checkpoint["custom_optimizer_states"] = states
+
     def configure_optimizers(self) -> Union[list[Optimizer], tuple[list[Optimizer], list[dict]]]:
         opt_conf = super().configure_optimizers()
 
