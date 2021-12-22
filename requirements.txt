@@ -8,6 +8,6 @@ git+https://github.com/bigscience-workshop/promptsource.git@v0.1.0#egg=promptsou
 seqio==0.0.7
 py7zr==0.16.2
 t5==0.9.3
-pytorch_lightning==1.5.5
+pytorch-lightning==1.5.5
 transformers==4.11.3
 tqdm==4.62.2

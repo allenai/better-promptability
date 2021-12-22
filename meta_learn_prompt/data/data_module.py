@@ -8,7 +8,7 @@ from typing import Any, Mapping, Optional, Union
 from allennlp.training.metrics import Metric
 import datasets
 from datasets import Dataset as HFDataset, DatasetDict as HFDatasetDict
-from tango.common import DatasetDict
+from tango.common import DatasetDict as TangoDatasetDict
 from tango.common.aliases import PathOrStr
 from tango.integrations.pytorch_lightning.data import LightningDataModule
 from torch.utils.data import DataLoader
@@ -25,6 +25,9 @@ datasets.set_caching_enabled(False)
 
 
 logger = logging.getLogger(__name__)
+
+
+DatasetDictType = Union[TangoDatasetDict, HFDatasetDict]
 
 
 class DataModule(LightningDataModule):
@@ -131,15 +134,16 @@ class DataModule(LightningDataModule):
         raise NotImplementedError("This is an abstract property. Did you forget to implement it?")
 
     @abstractmethod
-    def load(self) -> DatasetDict:
+    def load(self) -> DatasetDictType:
         raise NotImplementedError("This is an abstract method. Did you forget to implement it?")
 
     @abstractmethod
     def tokenize(self, examples: dict[str, list], split: str) -> dict[str, list]:
         raise NotImplementedError("This is an abstract method. Did you forget to implement it?")
 
-    def preprocess(self, dataset_dict: DatasetDict) -> DatasetDict:
+    def preprocess(self, dataset_dict: DatasetDictType) -> DatasetDictType:
         logger.info("Begin preprocessing")
+        assert isinstance(dataset_dict, HFDatasetDict)
         dataset_dict = HFDatasetDict(  # reimplementing DatasetDict.map to provide `split`
             {
                 split: dataset.map(

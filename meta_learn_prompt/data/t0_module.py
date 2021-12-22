@@ -10,8 +10,8 @@ import pickle
 
 from allennlp.training.metrics import Metric
 import datasets
-from tango.common import DatasetDict
 
+from .data_module import DatasetDictType
 from .data_utils import md5, PAD_TYPE
 from .prompt_data_module import PromptDataModule
 from .config import Config
@@ -76,10 +76,10 @@ class T0Module(PromptDataModule):
 
     @property
     def dev_splits(self) -> list[str]:
-        for split in ("dev", "validation"):
-            if split in self.dataset_dict:
-                return [split]
-        raise KeyError("No dev split found in dataset dict")
+        # d4_dev and green datasets should have dev splits, d4_train may not.
+        if self.mixture_name in {"d4_dev", "green"} or "dev" in self.dataset_dict:
+            return ["dev"]
+        return []
 
     @property
     def test_splits(self) -> list[str]:
@@ -104,7 +104,7 @@ class T0Module(PromptDataModule):
     def sort_key(self) -> str:
         return "inputs"
 
-    def load(self) -> DatasetDict:
+    def load(self) -> DatasetDictType:
         data_path = self.t0_data_cache / self.task_name
         assert data_path.is_dir()
 
