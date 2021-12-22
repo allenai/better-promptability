@@ -36,10 +36,12 @@ class PrefixTransformer(Model):
         warmup_steps: int = 0,
         lr_scheduler_total_steps: Optional[int] = None,
         optstates_dir: Optional[str] = "/net/nfs2.allennlp/zhaofengw/optstates",
+        train_full_model: bool = False,
         **transformer_kwargs,
     ):
         self.transformer_name = transformer_model
         self.optstates_dir = optstates_dir
+        self.train_full_model = train_full_model
 
         super().__init__(
             config,
@@ -59,8 +61,9 @@ class PrefixTransformer(Model):
         transformer_model: T5ForConditionalGeneration = self.transformer.model
         assert isinstance(transformer_model, T5ForConditionalGeneration)
 
-        for param in self.transformer.parameters():
-            param.requires_grad = False
+        if not self.train_full_model:
+            for param in self.transformer.parameters():
+                param.requires_grad = False
 
         transformer_model.set_input_embeddings(
             WithPrefixEmbedding(
@@ -125,7 +128,9 @@ class PrefixTransformer(Model):
 
     def on_save_checkpoint(self, checkpoint: dict[str, Any]):
         weight_key = "transformer.model.shared.new_embed.weight"
-        checkpoint["state_dict"] = {weight_key: checkpoint["state_dict"][weight_key]}
+        if not self.train_full_model:
+            # No need to save full state_dict.
+            checkpoint["state_dict"] = {weight_key: checkpoint["state_dict"][weight_key]}
 
     def configure_optimizers(self) -> Union[list[Optimizer], tuple[list[Optimizer], list[dict]]]:
         opt_conf = super().configure_optimizers()
