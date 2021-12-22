@@ -64,6 +64,7 @@ class Model(LightningModule):
 
     def configure_optimizers(self) -> Union[List[Optimizer], Tuple[List[Optimizer], List[Dict]]]:
         """Prepare optimizer and schedule (linear warmup and decay)"""
+        assert self._optimizer is not None
 
         no_decay = ["bias", "LayerNorm.weight", "layernorm.weight", "layer_norm.weight"]
         optimizer_grouped_parameters = [
@@ -77,7 +78,7 @@ class Model(LightningModule):
                 "params": [
                     p for n, p in self.named_parameters() if any(nd in n for nd in no_decay)
                 ],
-                "weight_decay": self.optimizer_kwargs["weight_decay"],
+                "weight_decay": 0.0,
             },
         ]
         # optimizer = AdamW(
@@ -86,7 +87,7 @@ class Model(LightningModule):
         #     eps=self.optimizer_kwargs["adam_epsilon"],
         # )
 
-        optimizer = self._optimizer.construct(params=optimizer_grouped_parameters)
+        optimizer = self._optimizer.construct(params=optimizer_grouped_parameters)  # type: ignore
 
         if self._scheduler is None:
             return [optimizer]

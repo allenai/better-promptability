@@ -127,15 +127,27 @@ class PrefixTransformer(Model):
         )
 
     def on_save_checkpoint(self, checkpoint: dict[str, Any]):
-        weight_key = "transformer.model.shared.new_embed.weight"
+        """
+        PyTorch's native optimizer state checkpoint logic is very fragile, so we also do it on our
+        own. See https://github.com/pytorch/pytorch/issues/1489
+        Also, when prompt-tuning, only stores prompt embedding in the checkpoint.
+        """
+        optimizer_states = self.optimizers(use_pl_optimizer=False).state
         if not self.train_full_model:
-            # No need to save full state_dict.
+            weight_key = "transformer.model.shared.new_embed.weight"
             checkpoint["state_dict"] = {weight_key: checkpoint["state_dict"][weight_key]}
+
+            name_to_param = {n: p for n, p in self.named_parameters()}
+            states = {weight_key: optimizer_states[name_to_param[weight_key]]}
+        else:
+            param_to_name = {p: n for n, p in self.named_parameters()}
+            states = {param_to_name[p]: states for p, states in optimizer_states.items()}
+        checkpoint["custom_optimizer_states"] = states
 
     def configure_optimizers(self) -> Union[list[Optimizer], tuple[list[Optimizer], list[dict]]]:
         opt_conf = super().configure_optimizers()
 
-        if self._optimizer._params["type"] == "adafactor":
+        if self._optimizer._params["type"] == "adafactor":  # type: ignore
             assert self.optstates_dir is not None
             optstates_path = os.path.join(self.optstates_dir, self.transformer_name.split("/")[-1])
             optstates = pickle.load(open(optstates_path, "rb"))
