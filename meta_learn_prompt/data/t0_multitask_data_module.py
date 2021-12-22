@@ -17,10 +17,18 @@ class T0MultiTaskDataModule(PromptDataModule):
         num_prefix: int,
         transformer_model: PathOrStr,
         sampling_cap: Optional[int] = 500000,
+        t0_data_cache: PathOrStr = "/net/nfs2.allennlp/petew/meta-learn-prompt/t0/cache",
         **kwargs,
     ):
         super().__init__(config, num_prefix, transformer_model, preprocess_and_save=False, **kwargs)
-        self.t0_mixture = T0Mixture(mixture_name, config, num_prefix, transformer_model, **kwargs)
+        self.t0_mixture = T0Mixture(
+            mixture_name,
+            config,
+            num_prefix,
+            transformer_model,
+            t0_data_cache=t0_data_cache,
+            **kwargs,
+        )
         self.sampling_cap = sampling_cap
 
     def load(self) -> DatasetDict:
