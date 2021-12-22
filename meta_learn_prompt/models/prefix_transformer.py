@@ -127,15 +127,16 @@ class PrefixTransformer(Model):
         )
 
     def on_save_checkpoint(self, checkpoint: dict[str, Any]):
-        weight_key = "transformer.model.shared.new_embed.weight"
+        """
+        PyTorch's native optimizer state checkpoint logic is very fragile, so we also do it on our
+        own. See https://github.com/pytorch/pytorch/issues/1489
+        Also, when prompt-tuning, only stores prompt embedding in the checkpoint.
+        """
+        optimizer_states = self.optimizers(use_pl_optimizer=False).state
         if not self.train_full_model:
-            # No need to save full state_dict.
+            weight_key = "transformer.model.shared.new_embed.weight"
             checkpoint["state_dict"] = {weight_key: checkpoint["state_dict"][weight_key]}
 
-        # PyTorch's native optimizer state checkpoint logic is very fragile, so we also do it on our
-        # own. See https://github.com/pytorch/pytorch/issues/1489
-        optimizer_states = self.optimizers(use_pl_optimizer=False).state
-        if True:  # TODO(pete): change to some MTL-related flag, perhaps
             name_to_param = {n: p for n, p in self.named_parameters()}
             states = {weight_key: optimizer_states[name_to_param[weight_key]]}
         else:
