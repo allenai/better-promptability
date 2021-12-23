@@ -35,12 +35,15 @@ class MixerDataset(Dataset):
                 self._total_size += len(dataset)
                 self._datasets.append(dataset)
 
-    def __getitem__(self, i: int) -> Any:  # type: ignore[override]
-        for dataset in self._datasets:
-            if i < len(dataset):
-                return dataset[i]
-            i -= len(dataset)
-        raise IndexError("index out of bounds")
+    def __getitem__(self, key: Union[int, str]) -> Any:  # type: ignore[override]
+        if isinstance(key, str):
+            return (self[idx][key] for idx in range(len(self)))  # type: ignore
+        else:
+            for dataset in self._datasets:
+                if key < len(dataset):
+                    return dataset[key]
+                key -= len(dataset)
+            raise IndexError("index out of bounds")
 
     def __len__(self) -> int:
         return self._total_size

@@ -14,7 +14,7 @@ local train_full_model = true;
             "config": config,
             "trainer": {
                 "type": "default",
-                "max_epochs": 10,
+                "max_epochs": 50,
                 "gradient_clip_val": 1.0,
                 "accumulate_grad_batches": 1.0,
                 "log_every_n_steps": 3,

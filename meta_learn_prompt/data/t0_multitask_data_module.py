@@ -42,6 +42,10 @@ class T0MultiTaskDataModule(PromptDataModule):
         ]
 
     @property
+    def dev_splits(self) -> list[str]:
+        return []
+
+    @property
     def test_splits(self) -> list[str]:
         # We don't need the test sets. The test set labels of some datasets are hidden
         # (e.g., superglue), and T0 only evaluated on the dev sets.
@@ -82,13 +86,6 @@ class T0MultiTaskDataModule(PromptDataModule):
 
         return DatasetDict(
             splits={
-                "dev": MixerDataset(
-                    [
-                        dm[dev_split]
-                        for dm in self.t0_mixture.data_modules.values()
-                        for dev_split in dm.dev_splits
-                    ],
-                ),
                 "train": MixerDataset(
                     [dm[dm.train_split] for dm in self.t0_mixture.data_modules.values()],
                     sampling_cap=self.sampling_cap,
