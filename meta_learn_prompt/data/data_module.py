@@ -13,7 +13,7 @@ from tango.common.aliases import PathOrStr
 from tango.integrations.pytorch_lightning.data import LightningDataModule
 from torch.utils.data import DataLoader
 from transformers import PreTrainedTokenizerBase
-from transformers.trainer_pt_utils import LengthGroupedSampler
+from transformers.trainer_pt_utils import LengthGroupedSampler, DistributedLengthGroupedSampler
 
 from .config import Config
 from .data_utils import PAD_TYPE, collate_fn, md5
@@ -67,9 +67,8 @@ class DataModule(LightningDataModule):
         self.dataset_dict = self.load()
         if self.preprocess_and_save:
             self.dataset_dict = self.preprocess(self.dataset_dict)
-            if isinstance(self.dataset_dict, HFDatasetDict):
-                logger.info(f"Saving dataset cache at {self.cache_path}")
-                self.dataset_dict.save_to_disk(self.cache_path)
+            logger.info(f"Saving dataset cache at {self.cache_path}")
+            self.dataset_dict.save_to_disk(self.cache_path)
 
     def _to_params(self):
         return {}
@@ -189,12 +188,9 @@ class DataModule(LightningDataModule):
             # LengthGroupedSampler sorts from longest to shortest; we want the reverse
             lens = [-len(ids) for ids in dataset_split[self.sort_key]]
             if self.config.gpus is None or self.config.gpus <= 1:
-                sampler = LengthGroupedSampler(None, batch_size, lengths=lens)
+                sampler = LengthGroupedSampler(batch_size, lengths=lens)
             else:
-                # TODO: support this when
-                # https://github.com/huggingface/transformers/commit/1b74af76b7e5c259d1470dec9d8d68c303dea5db
-                # is released and also remove the None from above
-                raise NotImplementedError()
+                sampler = DistributedLengthGroupedSampler(batch_size, lengths=lens)
         else:
             sampler = None
         pad_token_map = self.pad_token_map(split)

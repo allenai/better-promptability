@@ -19,22 +19,18 @@ class T0MultiTaskDataModule(PromptDataModule):
         sampling_cap: Optional[int] = 500000,
         **kwargs,
     ):
-        super().__init__(config, num_prefix, transformer_model, **kwargs)
+        super().__init__(config, num_prefix, transformer_model, preprocess_and_save=False, **kwargs)
         self.t0_mixture = T0Mixture(mixture_name, config, num_prefix, transformer_model, **kwargs)
         self.sampling_cap = sampling_cap
 
-    def setup(self, stage: Optional[str] = None):
+    def load(self) -> DatasetDict:
         with Tqdm.tqdm(self.t0_mixture.data_modules.items(), "Loading T0 datasets") as dm_iter:
             for name, data_module in dm_iter:
                 dm_iter.set_postfix({"module": name if len(name) < 30 else (name[:27] + "...")})
                 data_module.tokenizer = self.tokenizer
                 data_module.task_token_ids = self.task_token_ids
                 data_module.setup()
-        self.dataset_dict = self.load()
-        # No need for additional preprocessing, since each individual data module
-        # will already be proprocessed at this point.
 
-    def load(self) -> DatasetDict:
         return DatasetDict(
             splits={
                 "dev": MixerDataset(
