@@ -46,7 +46,7 @@ class PrefixTransformer(Model):
         super().__init__(
             config,
             dataset,
-            optimizer,
+            optimizer=optimizer,
             scheduler=scheduler,
             epochs=epochs,
             # lr,

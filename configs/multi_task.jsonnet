@@ -5,6 +5,7 @@ local config = {
     "fp16": false,
 };
 local model = "google/t5-small-lm-adapt";
+local train_full_model = true;
 
 {
     "steps": {
@@ -39,6 +40,7 @@ local model = "google/t5-small-lm-adapt";
                     "scale_parameter": false,
                     "relative_step": false,
                 },
+                "train_full_model": train_full_model,
             },
             "datamodule": {
                 "type": "t0_multitask",
