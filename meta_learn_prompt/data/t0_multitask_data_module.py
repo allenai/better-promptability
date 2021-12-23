@@ -76,7 +76,7 @@ class T0MultiTaskDataModule(PromptDataModule):
             pad_token_map_["is_correct_mask"] = False
         return pad_token_map_
 
-    def load(self, stage: Optional[str] = None):
+    def load(self) -> DatasetDict:
         with Tqdm.tqdm(self.t0_mixture.data_modules.items(), "Loading T0 datasets") as dm_iter:
             for name, data_module in dm_iter:
                 dm_iter.set_postfix({"module": name if len(name) < 30 else (name[:27] + "...")})
