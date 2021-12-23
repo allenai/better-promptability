@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 import random
-from typing import Optional, Sequence, TypeVar
+from typing import Optional, Union
 
+from datasets import Dataset as HFDataset
+from torch.utils.data import Dataset
 from tango.common import Tqdm
 
-T = TypeVar("T")
 
-
-class MixerDataset(Sequence[T]):
+class MixerDataset(Dataset):
     """
     This dataset mixes multiple other datasets into a single :class:`Dataset`.
 
@@ -21,28 +21,25 @@ class MixerDataset(Sequence[T]):
 
     def __init__(
         self,
-        datasets: list[Sequence[T]],
+        datasets: list[HFDataset],
         sampling_cap: Optional[int] = None,
         seed: int = 3,  # this is important during distributed training
     ):
-        self._datasets: list[Sequence[T]] = []
+        self._datasets: list[Union[Dataset, HFDataset]] = []
         self._total_size: int = 0
-        self._dataset_boundaries: list[tuple[int, int]] = []
         for dataset in Tqdm.tqdm(datasets, desc="Mixing datasets"):
-            start_boundary = 0 if not self._dataset_boundaries else self._dataset_boundaries[-1][-1]
             if sampling_cap is not None and len(dataset) > sampling_cap:
                 self._total_size += sampling_cap
-                self._dataset_boundaries.append((start_boundary, start_boundary + sampling_cap))
                 self._datasets.append(_UndersampledDataset(dataset, sampling_cap, seed=seed))
             else:
                 self._total_size += len(dataset)
-                self._dataset_boundaries.append((start_boundary, start_boundary + len(dataset)))
                 self._datasets.append(dataset)
 
     def __getitem__(self, i: int) -> T:  # type: ignore[override]
-        for dataset_idx, (start, end) in enumerate(self._dataset_boundaries):
-            if start <= i < end:
-                return self._datasets[dataset_idx][i - start]
+        for dataset in self._datasets:
+            if i < len(dataset):
+                return dataset[i]
+            i -= len(dataset)
         raise IndexError("index out of bounds")
 
     def __len__(self) -> int:
@@ -54,10 +51,10 @@ class MixerDataset(Sequence[T]):
                 dataset.resample()
 
 
-class _UndersampledDataset(Sequence[T]):
+class _UndersampledDataset(Dataset):
     def __init__(
         self,
-        dataset: Sequence[T],
+        dataset: list[HFDataset],
         sampling_cap: int,
         seed: int = 3,
     ):
