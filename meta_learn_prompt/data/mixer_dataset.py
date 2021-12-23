@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import random
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 from datasets import Dataset as HFDataset
 from torch.utils.data import Dataset
@@ -35,7 +35,7 @@ class MixerDataset(Dataset):
                 self._total_size += len(dataset)
                 self._datasets.append(dataset)
 
-    def __getitem__(self, i: int) -> T:  # type: ignore[override]
+    def __getitem__(self, i: int) -> Any:  # type: ignore[override]
         for dataset in self._datasets:
             if i < len(dataset):
                 return dataset[i]
@@ -75,7 +75,7 @@ class _UndersampledDataset(Dataset):
         random.shuffle(self._indices)
         random.setstate(state)
 
-    def __getitem__(self, i: int) -> T:  # type: ignore[override]
+    def __getitem__(self, i: int) -> Any:  # type: ignore[override]
         if i > self._sampling_cap:
             raise IndexError("index out of bounds")
         return self._dataset[self._indices[i]]
