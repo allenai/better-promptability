@@ -13,7 +13,7 @@ from .t0_multitask_data_module import T0MultiTaskDataModule
 
 
 @PromptDataModule.register("t0_meta_learning")
-class T0MeatLearningDataModule(T0MultiTaskDataModule):
+class T0MetaLearningDataModule(T0MultiTaskDataModule):
     def __init__(
         self,
         meta_batch_size: int,
@@ -28,10 +28,6 @@ class T0MeatLearningDataModule(T0MultiTaskDataModule):
         super().__init__(
             mixture_name, config, num_prefix, transformer_model, sampling_cap=sampling_cap, **kwargs
         )
-
-    @property
-    def sort_key(self) -> str:
-        return "inputs"
 
     def dataloader(self, split: str, batch_size: int, shuffle=False) -> DataLoader:
         dataset_split = self.dataset_dict[split]
