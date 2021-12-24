@@ -14,11 +14,13 @@ local train_full_model = true;
             "config": config,
             "trainer": {
                 "type": "default",
-                "max_epochs": 50,
+                "max_epochs": 100,
                 "gradient_clip_val": 1.0,
                 "accumulate_grad_batches": 1.0,
+                "num_sanity_val_steps": 0,
                 "log_every_n_steps": 3,
                 "logger": [
+                    {"type": "pytorch_lightning::TensorBoardLogger"},
                     {
                         "type": "pytorch_lightning::WandbLogger",
                         "project": "meta-learn-prompt-multi-task",
@@ -45,7 +47,7 @@ local train_full_model = true;
             "datamodule": {
                 "type": "t0_multitask",
                 "mixture_name": "d4_train",
-                "data_dir": "/net/nfs2.allennlp/petew/meta-learn-prompt/cache",
+                "data_dir": "data",
                 "t0_data_cache": "/net/nfs2.allennlp/akshitab/meta-learn-prompt/t0/processed_cache",
                 "transformer_model": model,
                 "batch_size": 32,
