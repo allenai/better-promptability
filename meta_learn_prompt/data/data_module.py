@@ -17,6 +17,7 @@ from transformers.trainer_pt_utils import LengthGroupedSampler, DistributedLengt
 
 from .config import Config
 from .data_utils import PAD_TYPE, collate_fn, md5
+from .mixer_dataset import MixerDataset
 
 
 # Sometimes we want to change the implementation of methods, etc., which cache ignores.
@@ -57,10 +58,8 @@ class DataModule(LightningDataModule):
         self._tokenizer: Optional[PreTrainedTokenizerBase] = None
 
     def setup(self, stage: Optional[str] = None):
-        logger.info("Setup tokenizer")
         if self.preprocess_and_save:
             if os.path.exists(self.cache_path):
-                logger.info(f"Reusing cache at {self.cache_path}")
                 self.dataset_dict = HFDatasetDict.load_from_disk(self.cache_path)
                 return
 
@@ -186,7 +185,11 @@ class DataModule(LightningDataModule):
         dataset_split = self.dataset_dict[split]
         if shuffle:
             # LengthGroupedSampler sorts from longest to shortest; we want the reverse
-            lens = [-len(ids) for ids in dataset_split[self.sort_key]]
+            if isinstance(dataset_split, MixerDataset):
+                # The naive processing is slow and takes too much memory
+                lens = [-l for l in dataset_split.get_all_example_lens()]
+            else:
+                lens = [-len(ids) for ids in dataset_split[self.sort_key]]
             if self.config.gpus is None or self.config.gpus <= 1:
                 sampler = LengthGroupedSampler(batch_size, lengths=lens)
             else:

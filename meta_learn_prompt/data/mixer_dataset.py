@@ -35,18 +35,26 @@ class MixerDataset(Dataset):
                 self._total_size += len(dataset)
                 self._datasets.append(dataset)
 
-    def __getitem__(self, key: Union[int, str]) -> Any:  # type: ignore[override]
-        if isinstance(key, str):
-            return (self[idx][key] for idx in range(len(self)))  # type: ignore
-        else:
-            for dataset in self._datasets:
-                if key < len(dataset):
-                    return dataset[key]
-                key -= len(dataset)
-            raise IndexError("index out of bounds")
+    def __getitem__(self, key: int) -> Any:  # type: ignore[override]
+        for dataset in self._datasets:
+            if key < len(dataset):
+                return dataset[key]
+            key -= len(dataset)
+        raise IndexError("index out of bounds")
 
     def __len__(self) -> int:
         return self._total_size
+
+    def get_all_example_lens(self) -> list[int]:
+        lens = []
+        for dataset in Tqdm.tqdm(self._datasets, desc="Getting lengths for sampler"):
+            if isinstance(dataset, HFDataset):
+                lens.extend(dataset["sort_key_len"])
+            elif isinstance(dataset, _UndersampledDataset):
+                lens.extend(dataset.get_active_example_lens())
+            else:
+                assert False
+        return lens
 
     def resample(self):
         for dataset in self._datasets:
@@ -57,7 +65,7 @@ class MixerDataset(Dataset):
 class _UndersampledDataset(Dataset):
     def __init__(
         self,
-        dataset: list[HFDataset],
+        dataset: HFDataset,
         sampling_cap: int,
         seed: int = 3,
     ):
@@ -85,6 +93,9 @@ class _UndersampledDataset(Dataset):
 
     def __len__(self) -> int:
         return self._sampling_cap
+
+    def get_active_example_lens(self) -> list[int]:
+        return self._dataset.select(self._indices[: self._sampling_cap])["sort_key_len"]
 
     def resample(self):
         self._seed += 1
