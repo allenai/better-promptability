@@ -9,7 +9,7 @@ local train_full_model = true;
 
 {
     "steps": {
-        "trained_model": {
+        "output_model": {
             "type": "train_step",
             "config": config,
             "trainer": {
