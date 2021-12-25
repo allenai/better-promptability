@@ -187,7 +187,7 @@ class DataModule(LightningDataModule):
             # LengthGroupedSampler sorts from longest to shortest; we want the reverse
             if isinstance(dataset_split, MixerDataset):
                 # The naive processing is slow and takes too much memory
-                lens = [-l for l in dataset_split.get_all_example_lens()]
+                lens = [-l for l in dataset_split.get_all_example_lens()]  # noqa: E741
             else:
                 lens = [-len(ids) for ids in dataset_split[self.sort_key]]
             if self.config.gpus is None or self.config.gpus <= 1:
