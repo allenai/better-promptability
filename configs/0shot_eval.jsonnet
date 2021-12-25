@@ -26,6 +26,7 @@ local task_name = "hellaswag_Randomized_prompts_template_score_eval";
                 "t0_data_cache": "/net/nfs2.allennlp/akshitab/meta-learn-prompt/t0/processed_cache",
                 "transformer_model": model,
                 "num_prefix": 0,
+                "num_workers": 4,
             },
             "model": {
                 "transformer_model": model,

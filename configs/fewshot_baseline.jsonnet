@@ -40,6 +40,7 @@ local subsample_indices_file = "data/" + mixture_name + "_training_indices_16sho
                 "transformer_model": model,
                 "num_prefix": 20,
                 "subsample_indices_file": subsample_indices_file,
+                "num_workers": 4,
             },
             "model": {
                 "transformer_model": model,
