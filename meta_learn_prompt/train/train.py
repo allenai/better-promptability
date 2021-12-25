@@ -111,6 +111,7 @@ class TrainStep(Step):
         trainer: LightningTrainer = trainer.construct(
             work_dir=self.work_dir,
             gpus=config.gpus,
+            fp16=config.fp16,
             accelerator="gpu" if config.gpus else "cpu",
             auto_select_gpus=True,
             # Need to reload the dataloaders each epoch when using the T0MultiTaskDataModule.
