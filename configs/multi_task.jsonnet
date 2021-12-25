@@ -20,7 +20,7 @@ local batch_size = 32;
                 "gradient_clip_val": 1.0,
                 "accumulate_grad_batches": effective_batch_size / batch_size,
                 "num_sanity_val_steps": 0,
-                "log_every_n_steps": 3,
+                "log_every_n_steps": 50,
                 "logger": [
                     {"type": "pytorch_lightning::TensorBoardLogger"},
                     {
