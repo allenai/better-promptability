@@ -103,7 +103,10 @@ class TrainStep(Step):
 
         pl.seed_everything(config.seed)
 
-        datamodule = datamodule.construct(config=config)
+        if isinstance(datamodule, Lazy):
+            # TODO(pete,akshita): this is to accomodate TrainOneDatasetStep, but I'm not sure
+            # what's the most tango way to do this.
+            datamodule = datamodule.construct(config=config)
 
         datamodule.prepare_data()
         datamodule.setup()
