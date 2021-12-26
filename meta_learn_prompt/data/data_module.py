@@ -204,7 +204,7 @@ class DataModule(LightningDataModule):
             batch_size=batch_size,
             shuffle=False,
             sampler=sampler,
-            # num_workers=1,
+            num_workers=self.num_workers,
             collate_fn=lambda batch: collate_fn(batch, pad_token_map, self.tokenizer.padding_side),
             pin_memory=True,
         )
