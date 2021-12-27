@@ -36,11 +36,13 @@ class PrefixTransformer(Model):
         warmup_steps: int = 0,
         lr_scheduler_total_steps: Optional[int] = None,
         optstates_dir: Optional[str] = "/net/nfs2.allennlp/zhaofengw/optstates",
+        load_opt_states: bool = True,
         train_full_model: bool = False,
         **transformer_kwargs,
     ):
         self.transformer_name = transformer_model
         self.optstates_dir = optstates_dir
+        self.load_opt_states = load_opt_states
         self.train_full_model = train_full_model
 
         super().__init__(
@@ -147,7 +149,7 @@ class PrefixTransformer(Model):
     def configure_optimizers(self) -> Union[list[Optimizer], tuple[list[Optimizer], list[dict]]]:
         opt_conf = super().configure_optimizers()
 
-        if self._optimizer._params["type"] == "adafactor":  # type: ignore
+        if self._optimizer._params["type"] == "adafactor" and self.load_opt_states:  # type: ignore
             assert self.optstates_dir is not None
             optstates_path = os.path.join(self.optstates_dir, self.transformer_name.split("/")[-1])
             optstates = pickle.load(open(optstates_path, "rb"))
