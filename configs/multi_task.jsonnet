@@ -30,7 +30,11 @@ local batch_size = 32;
                     },
                 ],
                 "callbacks": [
-                    "pytorch_lightning::ModelCheckpoint",
+                    {
+                        "type": "pytorch_lightning::ModelCheckpoint",
+                        "save_last": true,
+                        "save_top_k": -1,
+                    },
                     "my_logger",
                     "t0_multitask",
                 ],
