@@ -41,16 +41,12 @@ class MetaLearner(Model):
 
         inner_optimizer = resolve_optimizer_conf(self.model.configure_optimizers())
         self.inner_optimizer_state = inner_optimizer.state_dict()
-        adaptation_lr = inner_optimizer.defaults["lr"]
 
-        if algorithm == "fomaml":
-            self.meta_model = FOMAML(model, adaptation_lr, self.inner_optimizer_state)
-        elif algorithm == "reptile":
+        if algorithm == "reptile":
             if self.adaptation_steps == 1:
                 logger.warning("Reptile with 1 adaptation step is equivalent to MTL.")
+            # TODO: I'm actually not sure how reptile should work with partial freezing
             model.train_full_model = True
-        else:  # TODO: per-layer LR, or even per-layer per-step https://www.bayeswatch.com/2018/11/30/HTYM/
-            raise NotImplementedError
 
     def setup(self, stage: str = None):
         pass
@@ -82,8 +78,12 @@ class MetaLearner(Model):
             tango_logger_level = tango_logger.level
             tango_logger.setLevel(logging.ERROR)
 
-            learner = self.meta_model.clone()
+            learner: PrefixTransformer = self.model.meta_learning_copy()
             learner.train()
+            inner_optimizer = resolve_optimizer_conf(
+                learner.configure_optimizers(load_opt_states=False)
+            )
+            inner_optimizer.load_state_dict(self.inner_optimizer_state)
 
             wpe_logger.setLevel(wpe_logger_level)
             tango_logger.setLevel(tango_logger_level)
@@ -93,11 +93,14 @@ class MetaLearner(Model):
                 loss = self.model.compute_loss(
                     output["logits"], support_batch["target_ids"], support_batch.get("target_mask")
                 )
-                learner.adapt(loss)
+                inner_optimizer.zero_grad()
+                loss.backward()
+                inner_optimizer.step()
             support_loss += loss.detach().cpu()
+            self.inner_optimizer_state = inner_optimizer.state_dict()
 
             learner.unfreeze()
-            learner.inner_optimizer.zero_grad()
+            inner_optimizer.zero_grad()
             query_output = learner(query_batch)
             loss = self.model.compute_loss(
                 query_output["logits"], query_batch["target_ids"], query_batch.get("target_mask")
@@ -128,6 +131,7 @@ class MetaLearner(Model):
             tango_logger.setLevel(logging.ERROR)
 
             learner: PrefixTransformer = self.model.meta_learning_copy()
+            learner.train()
             inner_optimizer = resolve_optimizer_conf(
                 learner.configure_optimizers(load_opt_states=False)
             )
