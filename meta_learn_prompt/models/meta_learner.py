@@ -41,11 +41,8 @@ class MetaLearner(Model):
         inner_optimizer = resolve_optimizer_conf(self.model.configure_optimizers())
         self.inner_optimizer_state = inner_optimizer.state_dict()
 
-        if algorithm == "reptile":
-            if self.adaptation_steps == 1:
-                logger.warning("Reptile with 1 adaptation step is equivalent to MTL.")
-            # TODO: I'm actually not sure how reptile should work with partial freezing
-            model.train_full_model = True
+        if algorithm == "reptile" and self.adaptation_steps == 1:
+            logger.warning("Reptile with 1 adaptation step is equivalent to MTL.")
 
     def setup(self, stage: str = None):
         pass
@@ -101,7 +98,9 @@ class MetaLearner(Model):
                 learner.unfreeze()
                 query_output = learner(query_batch)
                 loss = self.model.compute_loss(
-                    query_output["logits"], query_batch["target_ids"], query_batch.get("target_mask")
+                    query_output["logits"],
+                    query_batch["target_ids"],
+                    query_batch.get("target_mask"),
                 )
                 inner_optimizer.zero_grad()
                 loss.backward()

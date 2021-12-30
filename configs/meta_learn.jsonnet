@@ -59,8 +59,9 @@ local model = "google/t5-small-lm-adapt";
                         "scale_parameter": false,
                         "relative_step": false,
                     },
+                    "load_opt_states": false,
                 },
-                "adaptation_steps": 1,  # to mimic few-shot learning
+                "adaptation_steps": 7,  # though in few-shot learning we have only one batch/epoch, but we train for many epochs
                 "algorithm": "fomaml",
                 "meta_optimizer": {
                     "type": "adafactor",
