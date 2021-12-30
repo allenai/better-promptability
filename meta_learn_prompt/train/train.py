@@ -16,7 +16,7 @@ from tango.step import Step
 from ..data.config import Config
 from ..data.prompt_data_module import PromptDataModule
 from ..data.t0_multitask_data_module import T0MultiTaskDataModule
-from ..models.prefix_transformer import PrefixTransformer
+from ..models.model import Model
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +96,7 @@ class TrainStep(Step):
         self,
         config: Config,
         trainer: Lazy[LightningTrainer],
-        model: Lazy[PrefixTransformer],
+        model: Lazy[Model],
         datamodule: Lazy[PromptDataModule],
         # optimizer: Lazy[Optimizer],
         # lr_schedule: Lazy[LRScheduler],

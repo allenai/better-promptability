@@ -24,11 +24,12 @@ local optimizer = {
 };
 
 local model = if checkpoint == null then {
+    "type": "prefix_transformer",
     "transformer_model": model_name,
     "optimizer": optimizer,
     "optstates_dir": optstates_dir,
 } else {
-    "type": "from_checkpoint",
+    "type": "prefix_transformer_from_checkpoint",
     "transformer_model": model_name,
     "optimizer": optimizer,
     "checkpoint_path": checkpoint,

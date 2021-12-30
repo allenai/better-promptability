@@ -5,9 +5,6 @@ local config = {
     "fp16": false,
 };
 local model = "google/t5-small-lm-adapt";
-local train_full_model = true;
-local effective_batch_size = 4096;
-local batch_size = 32;
 
 {
     "steps": {
@@ -18,14 +15,14 @@ local batch_size = 32;
                 "type": "default",
                 "max_epochs": 100,
                 "gradient_clip_val": 1.0,
-                "accumulate_grad_batches": effective_batch_size / batch_size,
+                "accumulate_grad_batches": 1.0,
                 "num_sanity_val_steps": 0,
-                "log_every_n_steps": 50,
+                "log_every_n_steps": 6,
                 "logger": [
                     {"type": "pytorch_lightning::TensorBoardLogger"},
                     {
                         "type": "pytorch_lightning::WandbLogger",
-                        "project": "meta-learn-prompt-multi-task",
+                        "project": "meta-learn-prompt-meta-learn",
                         "entity": "allennlp",
                     },
                 ],
@@ -40,27 +37,39 @@ local batch_size = 32;
                 ],
                 "replace_sampler_ddp": false,
             },
-            "model": {
-                "type": "prefix_transformer",
+            "datamodule": {
+                "type": "t0_meta_learning",
+                "meta_batch_size": 8,
+                "mixture_name": "d4_train",
+                "data_dir": "data",
+                "t0_data_cache": "/net/nfs2.allennlp/akshitab/meta-learn-prompt/t0/processed_cache",
                 "transformer_model": model,
-                "optimizer": {
+                "batch_size": 32,
+                "support_batch_size": 16,
+                "num_prefix": 20,
+                "num_workers": 4,
+            },
+            "model": {
+                "type": "meta_learner",
+                "model": {
+                    "transformer_model": model,
+                    "optimizer": {
+                        "type": "adafactor",
+                        "lr": 0.001,
+                        "scale_parameter": false,
+                        "relative_step": false,
+                    },
+                },
+                "adaptation_steps": 1,  # to mimic few-shot learning
+                "algorithm": "fomaml",
+                "first_order": true,
+                "meta_optimizer": {
                     "type": "adafactor",
                     "lr": 0.001,
                     "scale_parameter": false,
                     "relative_step": false,
                 },
-                "train_full_model": train_full_model,
-            },
-            "datamodule": {
-                "type": "t0_multitask",
-                "mixture_name": "d4_train",
-                "data_dir": "data",
-                "t0_data_cache": "/net/nfs2.allennlp/akshitab/meta-learn-prompt/t0/processed_cache",
-                "transformer_model": model,
-                "batch_size": batch_size,
-                "num_prefix": 20,
-                "num_workers": 2,
-            },
-        }
+            }  // "model" (meta_learner)
+        }  // "output_model"
     }
 }
