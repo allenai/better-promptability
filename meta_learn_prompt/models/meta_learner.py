@@ -10,7 +10,6 @@ import torch
 from tango.common.params import logger as tango_logger
 from tango.integrations.torch.optim import Optimizer
 
-from .fomaml import FOMAML
 from .model import Model
 from .prefix_transformer import PrefixTransformer
 from ..modules.with_prefix_embedding import logger as wpe_logger
@@ -61,14 +60,13 @@ class MetaLearner(Model):
         raise NotImplementedError
 
     def forward(self, meta_batch: list[tuple[dict, dict]]) -> dict[str, torch.Tensor]:
-        if self.algorithm == "reptile":
-            return self.reptile_foward(meta_batch)
-
         for p in self.model.parameters():
             p.grad = torch.zeros_like(p.data)
 
+        # These are for logging only
         support_loss = 0
-        query_loss = 0
+        query_loss = torch.zeros([], device=p.device)  # a dummy query loss for reptile
+
         for support_batch, query_batch in meta_batch:
             # Disable <ERROR logging from model recreation which would otherwise pollute stdout
             # TODO: this is ugly, but I don't know how to globally change logging level. A better
@@ -79,7 +77,7 @@ class MetaLearner(Model):
             tango_logger.setLevel(logging.ERROR)
 
             learner: PrefixTransformer = self.model.meta_learning_copy()
-            learner.train()
+            learner.train()  # for meta-evaluation, which we don't have right now
             inner_optimizer = resolve_optimizer_conf(
                 learner.configure_optimizers(load_opt_states=False)
             )
@@ -96,69 +94,36 @@ class MetaLearner(Model):
                 inner_optimizer.zero_grad()
                 loss.backward()
                 inner_optimizer.step()
-            support_loss += loss.detach().cpu()
             self.inner_optimizer_state = inner_optimizer.state_dict()
+            support_loss += loss.detach().cpu()
 
-            learner.unfreeze()
-            inner_optimizer.zero_grad()
-            query_output = learner(query_batch)
-            loss = self.model.compute_loss(
-                query_output["logits"], query_batch["target_ids"], query_batch.get("target_mask")
-            )
-            loss.backward()
-            for p, l in zip(self.model.parameters(), learner.parameters()):
-                p.grad.data.add_(l.grad.data)
-            query_loss += loss.detach().cpu()
+            if self.algorithm == "fomaml":
+                learner.unfreeze()
+                query_output = learner(query_batch)
+                loss = self.model.compute_loss(
+                    query_output["logits"], query_batch["target_ids"], query_batch.get("target_mask")
+                )
+                inner_optimizer.zero_grad()
+                loss.backward()
+                for p, l in zip(self.model.parameters(), learner.parameters()):
+                    p.grad.data.add_(l.grad.data)
+                query_loss += loss.detach().cpu()
+            elif self.algorithm == "reptile":
+                for p, l in zip(self.model.parameters(), learner.parameters()):
+                    p.grad.data.add_(-1.0, l.data)
+            else:
+                assert False
+
+        for p in self.model.parameters():
+            if self.algorithm == "fomaml":
+                p.grad.data.div_(len(meta_batch))
+            elif self.algorithm == "reptile":
+                p.grad.data.div_(len(meta_batch)).add_(p.data)
 
         support_loss /= len(meta_batch)
         query_loss /= len(meta_batch)
 
         return {"support_loss": support_loss, "query_loss": query_loss}
-
-    def reptile_foward(self, meta_batch: list[tuple[dict, dict]]) -> dict[str, torch.Tensor]:
-        # TODO: dedup with above
-        for p in self.model.parameters():
-            p.grad = torch.zeros_like(p.data)
-
-        support_loss = 0
-        for support_batch, _ in meta_batch:  # reptile needs no query
-            # Disable <ERROR logging from model recreation which would otherwise pollute stdout
-            # TODO: this is ugly, but I don't know how to globally change logging level. A better
-            # solution may be something like warn_once.
-            wpe_logger_level = wpe_logger.level
-            wpe_logger.setLevel(logging.ERROR)
-            tango_logger_level = tango_logger.level
-            tango_logger.setLevel(logging.ERROR)
-
-            learner: PrefixTransformer = self.model.meta_learning_copy()
-            learner.train()
-            inner_optimizer = resolve_optimizer_conf(
-                learner.configure_optimizers(load_opt_states=False)
-            )
-            inner_optimizer.load_state_dict(self.inner_optimizer_state)
-
-            wpe_logger.setLevel(wpe_logger_level)
-            tango_logger.setLevel(tango_logger_level)
-
-            for _ in range(self.adaptation_steps):
-                inner_optimizer.zero_grad()
-                output = learner(support_batch)
-                loss = learner.compute_loss(
-                    output["logits"], support_batch["target_ids"], support_batch.get("target_mask")
-                )
-                loss.backward()
-                inner_optimizer.step()
-            support_loss += loss.detach().cpu()
-            self.inner_optimizer_state = inner_optimizer.state_dict()
-
-            for p, l in zip(self.model.parameters(), learner.parameters()):
-                p.grad.data.add_(-1.0, l.data)
-
-        for p in self.model.parameters():
-            p.grad.data.mul_(1.0 / len(meta_batch)).add_(p.data)
-
-        support_loss /= len(meta_batch) * self.adaptation_steps
-        return {"support_loss": support_loss}
 
     def backward(self, *args, **kwargs):
         # Gradients are manually populated
@@ -176,8 +141,7 @@ class MetaLearner(Model):
             self.log(
                 "lr", self.trainer.lr_schedulers[0]["scheduler"].get_last_lr()[-1], prog_bar=True
             )
-        # Lightning requires a "loss" key, so when we don't have it (e.g., reptile), we use a dummy
-        return {"loss": output.get("query_loss", torch.FloatTensor([0.0]))}
+        return {"loss": output["query_loss"]}
 
     def configure_optimizers(self) -> Union[list[Optimizer], tuple[list[Optimizer], list[dict]]]:
         opt_conf = super().configure_optimizers()
