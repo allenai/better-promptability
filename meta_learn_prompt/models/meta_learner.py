@@ -2,10 +2,9 @@ from __future__ import annotations
 import logging
 import os
 import pickle
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Union
 
 from allennlp.training.metrics import Metric
-import learn2learn as l2l
 from tango.common.lazy import Lazy
 import torch
 from tango.common.params import logger as tango_logger
@@ -27,14 +26,11 @@ class MetaLearner(Model):
         model: PrefixTransformer,
         adaptation_steps: int,
         algorithm: str,
-        first_order: bool,
         meta_optimizer: Lazy[Optimizer],
         load_opt_states: bool = True,
     ):
         # TODO: anneal meta LR?
-        assert algorithm in {"maml", "fomaml", "meta-sgd", "reptile"}
-        if algorithm in {"reptile", "fomaml"} and not first_order:
-            raise NotImplementedError("Only first-order fomaml and reptile are supported.")
+        assert algorithm in {"fomaml", "reptile"}
 
         super().__init__(model.config, model.dataset, optimizer=meta_optimizer, epochs=model.epochs)
 
@@ -47,14 +43,8 @@ class MetaLearner(Model):
         self.inner_optimizer_state = inner_optimizer.state_dict()
         adaptation_lr = inner_optimizer.defaults["lr"]
 
-        if algorithm == "maml":
-            self.meta_model = l2l.algorithms.MAML(model, adaptation_lr, first_order=first_order)
-        elif algorithm == "fomaml":
+        if algorithm == "fomaml":
             self.meta_model = FOMAML(model, adaptation_lr, self.inner_optimizer_state)
-        elif algorithm == "meta-sgd":
-            self.meta_model = l2l.algorithms.MetaSGD(
-                model, lr=adaptation_lr, first_order=first_order
-            )
         elif algorithm == "reptile":
             if self.adaptation_steps == 1:
                 logger.warning("Reptile with 1 adaptation step is equivalent to MTL.")

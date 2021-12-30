@@ -62,7 +62,6 @@ local model = "google/t5-small-lm-adapt";
                 },
                 "adaptation_steps": 1,  # to mimic few-shot learning
                 "algorithm": "fomaml",
-                "first_order": true,
                 "meta_optimizer": {
                     "type": "adafactor",
                     "lr": 0.001,
