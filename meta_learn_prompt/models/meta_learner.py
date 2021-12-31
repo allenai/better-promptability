@@ -5,6 +5,7 @@ import pickle
 from typing import Any, Dict, Union
 
 from allennlp.training.metrics import Metric
+from learn2learn.utils import clone_module
 from tango.common.lazy import Lazy
 import torch
 from tango.common.params import logger as tango_logger
@@ -73,8 +74,9 @@ class MetaLearner(Model):
             tango_logger_level = tango_logger.level
             tango_logger.setLevel(logging.ERROR)
 
-            learner: PrefixTransformer = self.model.meta_learning_copy()
-            learner.train()  # for meta-evaluation, which we don't have right now
+            learner = clone_module(self.model)
+            detach_module(learner, keep_requires_grad=True)
+            learner.train()  # for meta-evaluation, though we don't have it right now
             inner_optimizer = resolve_optimizer_conf(
                 learner.configure_optimizers(load_opt_states=False)
             )
@@ -165,3 +167,29 @@ class MetaLearner(Model):
         param_to_name = {p: n for n, p in self.named_parameters()}
         states = {param_to_name[p]: states for p, states in optimizer_states.items()}
         checkpoint["custom_optimizer_states"] = states
+
+
+def detach_module(module, keep_requires_grad=False):
+    """
+    Adapted from learn2learn.utils.detach_module to add the `keep_requires_grad` flag.
+    """
+    if not isinstance(module, torch.nn.Module):
+        return
+    # First, re-write all parameters
+    for param_key in module._parameters:
+        if module._parameters[param_key] is not None:
+            requires_grad = module._parameters[param_key].requires_grad
+            detached = module._parameters[param_key].detach_()
+            if keep_requires_grad and requires_grad:
+                module._parameters[param_key].requires_grad_()
+
+    # Second, handle the buffers if necessary
+    for buffer_key in module._buffers:
+        if module._buffers[buffer_key] is not None and module._buffers[buffer_key].requires_grad:
+            module._buffers[buffer_key] = module._buffers[buffer_key].detach_()
+            if keep_requires_grad:  # requires_grad checked above
+                module._buffers[buffer_key].requires_grad_()
+
+    # Then, recurse for each submodule
+    for module_key in module._modules:
+        detach_module(module._modules[module_key], keep_requires_grad=keep_requires_grad)
