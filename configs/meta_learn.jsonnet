@@ -47,7 +47,7 @@ local model = "google/t5-small-lm-adapt";
                 "batch_size": 32,
                 "support_batch_size": 16,
                 "num_prefix": 20,
-                "num_workers": 4,
+                "num_workers": 2,
             },
             "model": {
                 "type": "meta_learner",
