@@ -58,7 +58,7 @@ local batch_size = 32;
                 "transformer_model": model,
                 "batch_size": batch_size,
                 "num_prefix": 20,
-                "num_workers": 4,
+                "num_workers": 2,
             },
         }
     }
