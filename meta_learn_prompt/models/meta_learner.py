@@ -62,7 +62,7 @@ class MetaLearner(Model):
             p.grad = torch.zeros_like(p.data)
 
         # These are for logging only
-        support_loss = 0
+        support_loss = 0.
         query_loss = torch.zeros([], device=p.device)  # a dummy query loss for reptile
 
         for support_batch, query_batch in meta_batch:
@@ -172,6 +172,8 @@ class MetaLearner(Model):
 def detach_module(module, keep_requires_grad=False):
     """
     Adapted from learn2learn.utils.detach_module to add the `keep_requires_grad` flag.
+    This will no longer be necessary once https://github.com/learnables/learn2learn/pull/294 is
+    merged.
     """
     if not isinstance(module, torch.nn.Module):
         return
@@ -179,7 +181,7 @@ def detach_module(module, keep_requires_grad=False):
     for param_key in module._parameters:
         if module._parameters[param_key] is not None:
             requires_grad = module._parameters[param_key].requires_grad
-            detached = module._parameters[param_key].detach_()
+            detached = module._parameters[param_key].detach_()  # noqa: F841; for consistency w/ orig.
             if keep_requires_grad and requires_grad:
                 module._parameters[param_key].requires_grad_()
 
