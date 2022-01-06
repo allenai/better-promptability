@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from tango.common.aliases import PathOrStr
-from transformers import T5Tokenizer, PreTrainedTokenizerBase
+from transformers import AutoTokenizer, PreTrainedTokenizerBase
 
 from .data_utils import PAD_TYPE
 from .data_module import DataModule
@@ -25,6 +25,7 @@ class PromptDataModule(DataModule):
         super().__init__(config, **kwargs)
 
         # Following T0 paper
+        # TODO(rloganiv): Check: Why hardcode? What about decoder only?
         self.inputs_max_length = 1024
         self.targets_max_length = 256
 
@@ -37,7 +38,7 @@ class PromptDataModule(DataModule):
         ]
 
     def setup_tokenizer(self) -> PreTrainedTokenizerBase:
-        tokenizer = T5Tokenizer.from_pretrained(self.transformer_model)
+        tokenizer = AutoTokenizer.from_pretrained(self.transformer_model)
         tokenizer.add_tokens(self.task_tokens)
         task_token_ids = tokenizer(
             " ".join(self.task_tokens), return_tensors="pt", add_special_tokens=False
