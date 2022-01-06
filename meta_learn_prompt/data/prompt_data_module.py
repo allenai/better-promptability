@@ -56,9 +56,9 @@ class PromptDataModule(DataModule):
         included in the batch.
         """
         pad_token_map_ = {
-            "input_ids": 0,
+            "input_ids": self.tokenizer.pad_token,
             "input_mask": False,
-            "target_ids": 0,
+            "target_ids": self.tokenizer.pad_token,
             "target_mask": False,
         }
         return pad_token_map_
