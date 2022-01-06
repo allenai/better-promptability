@@ -44,6 +44,8 @@ class MixerDataLoader(DataLoader):
                 batches.append(next(dataloader_iter))
                 assert all(w >= 0 for w in self._weights)
                 if all(w == 0 for w in self._weights):
+                    if len(batches) > 0:
+                        yield self._batch_postprocessor(batches)
                     return
             assert len(batches) > 0
             yield self._batch_postprocessor(batches)
