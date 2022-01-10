@@ -25,7 +25,6 @@ class PromptDataModule(DataModule):
         super().__init__(config, **kwargs)
 
         # Following T0 paper
-        # TODO(rloganiv): Check: Why hardcode? What about decoder only?
         self.inputs_max_length = 1024
         self.targets_max_length = 256
 

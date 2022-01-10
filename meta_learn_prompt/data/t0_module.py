@@ -49,6 +49,7 @@ class T0Module(PromptDataModule):
         t0_data_cache: PathOrStr = "/net/nfs2.allennlp/petew/meta-learn-prompt/t0/cache",
         sequence_length: Optional[Mapping[str, int]] = None,
         subsample_indices_file: Optional[str] = None,
+        force_retokenize: bool = False,
         **kwargs,
     ):
         super().__init__(config, num_prefix, transformer_model, **kwargs)
@@ -61,6 +62,7 @@ class T0Module(PromptDataModule):
         self.subsample_indices = None
         if subsample_indices_file is not None:
             self.subsample_indices = pickle.load(open(subsample_indices_file, "rb"))[task_name]
+        self.force_retokenize = force_retokenize
 
     @property
     def hash_fields(self) -> list[Any]:
@@ -116,7 +118,13 @@ class T0Module(PromptDataModule):
         return dataset_dict
 
     def tokenize(self, example: dict[str, Any], split: str) -> dict[str, Any]:
-        inputs = example["inputs"][: self.inputs_max_length]
+        if self.force_retokenize:
+            inputs_pretokenized = example["inputs_pretokenized"].strip()
+            input_tokens = self.tokenizer(inputs_pretokenized,
+                                          add_special_tokens=False)
+            inputs = input_tokens[: self.inputs_max_length]
+        else:
+            inputs = example["inputs"][: self.inputs_max_length]
 
         # Make sure there are no other EOS in `inputs` and `targets`.
         # The EOS token is really the only special token we are concerned about with T5.
@@ -125,7 +133,12 @@ class T0Module(PromptDataModule):
 
         single_target: bool = False
         is_correct: Optional[List[bool]] = None
-        targets = example["targets"]
+        if self.force_retokenize:
+            targets_pretokenized = example["targets_pretokenized"].strip()
+            targets = self.tokenizer(targets_pretokenized,
+                                     add_special_tokens=False)
+        else:
+            targets = example["targets"]
 
         if self.mixture_name == "d4_train":
             single_target = True
@@ -211,19 +224,15 @@ class T0Module(PromptDataModule):
         Specifies the padding for each key. Only keys including in this map will be
         included in the batch.
         """
-        pad_token_map_ = {
-            "input_ids": 0,
-            "input_mask": False,
-            "target_ids": 0,
-            "target_mask": False,
-        }
-
+        pad_token_map_ = super().pad_token_map(split)
         if self.mixture_name in {"d4_dev", "green"} and split != self.train_split:
             pad_token_map_["is_correct"] = False
             pad_token_map_["is_correct_mask"] = False
         return pad_token_map_
 
 
+# TODO(rloganiv): Make this a private method of module so we can infer whether
+# or not LM is enc-dec vs seq-to-seq.
 def assemble_prompt(inputs, targets, eos_token_id, task_token_ids):
     input_ids = task_token_ids + inputs + [eos_token_id]
     target_ids = targets + [eos_token_id]

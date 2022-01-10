@@ -21,6 +21,7 @@ class T0Mixture:
         t0_data_cache: PathOrStr = "/net/nfs2.allennlp/akshitab/meta-learn-prompt/t0/processed_cache/",
         sequence_length: Optional[Mapping[str, int]] = None,
         subsample_indices_file: Optional[str] = None,
+        force_retokenize: bool = False,
         **data_module_kwargs,
     ):
         assert mixture_name in {"d4_train", "d4_dev", "green"}
@@ -36,6 +37,7 @@ class T0Mixture:
                 t0_data_cache=t0_data_cache,
                 sequence_length=sequence_length,
                 subsample_indices_file=subsample_indices_file,
+                force_retokenize=force_retokenize,
                 **data_module_kwargs,
             )
         assert len(self.data_modules) > 0

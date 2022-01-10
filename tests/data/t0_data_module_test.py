@@ -90,3 +90,19 @@ class T0ModuleTest(MetaLearnPromptTestCase):
 
         val_batch = list(t0.val_dataloader()[0])[0]
         assert val_batch["target_ids"].dim() == 3
+
+    def test_force_retokenize(self):
+        t0 = T0Module(
+            config=Config(),
+            data_dir=str(self.FIXTURES_ROOT / "data"),
+            num_prefix=1,
+            transformer_model="EleutherAI/gpt-j-6B",
+            mixture_name="d4_dev",
+            task_name="openbookqa_main_choices",
+            t0_data_cache=str(self.FIXTURES_ROOT / "data" / "cache"),
+            force_retokenize=True,
+        )
+        t0.setup()
+        data = t0.load()
+        assert "train" in data
+
