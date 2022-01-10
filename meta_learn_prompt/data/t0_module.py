@@ -121,7 +121,7 @@ class T0Module(PromptDataModule):
         if self.force_retokenize:
             inputs_pretokenized = example["inputs_pretokenized"].strip()
             input_tokens = self.tokenizer(inputs_pretokenized,
-                                          add_special_tokens=False)
+                                          add_special_tokens=False)["input_ids"]
             inputs = input_tokens[: self.inputs_max_length]
         else:
             inputs = example["inputs"][: self.inputs_max_length]
@@ -136,7 +136,7 @@ class T0Module(PromptDataModule):
         if self.force_retokenize:
             targets_pretokenized = example["targets_pretokenized"].strip()
             targets = self.tokenizer(targets_pretokenized,
-                                     add_special_tokens=False)
+                                     add_special_tokens=False)["input_ids"]
         else:
             targets = example["targets"]
 
