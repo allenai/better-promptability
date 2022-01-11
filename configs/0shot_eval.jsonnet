@@ -14,6 +14,7 @@ local num_prefix = 0;
 // Set to null if you don't want to load a checkpoint.
 // local checkpoint = "/net/nfs.cirrascale/allennlp/zhaofengw/meta-learn-prompt/output/mtl_small_nooptstate/runs/pumped-kodiak/output_model/work/last.ckpt";
 local checkpoint = null;
+
 local model = if checkpoint == null then {
     "transformer_model": model_name,
 } else {

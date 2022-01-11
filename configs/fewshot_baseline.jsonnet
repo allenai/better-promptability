@@ -4,12 +4,33 @@ local config = {
     "gpus": 1,
     "fp16": false,
 };
-local model = "google/t5-small-lm-adapt";
+local model_name = "google/t5-small-lm-adapt";
 local mixture_name = "green";
 local task_name = "hellaswag_Randomized_prompts_template_score_eval";
 // local mixture_name = "d4_dev";
 // local task_name = "race_high_Read_the_article_and_answer_the_question_no_option_";
 local subsample_indices_file = "data/" + mixture_name + "_training_indices_16shot_100seed.pkl";
+
+// Set to null if you don't want to load a checkpoint.
+// local checkpoint = "/net/nfs.cirrascale/allennlp/zhaofengw/meta-learn-prompt/output/mtl_small_nooptstate/runs/pumped-kodiak/output_model/work/last.ckpt";
+local checkpoint = null;
+
+local optimizer = {
+    "type": "adafactor",
+    "lr": 0.001,
+    "scale_parameter": false,
+    "relative_step": false,
+};
+
+local model = if checkpoint == null then {
+    "transformer_model": model_name,
+    "optimizer": optimizer,
+} else {
+    "type": "from_checkpoint",
+    "transformer_model": model_name,
+    "optimizer": optimizer,
+    "checkpoint_path": checkpoint,
+};
 
 {
     "steps": {
@@ -36,21 +57,13 @@ local subsample_indices_file = "data/" + mixture_name + "_training_indices_16sho
                 "mixture_name": mixture_name,
                 "task_name": task_name,
                 "data_dir": "data",
-                "t0_data_cache": "/net/nfs2.allennlp/akshitab/meta-learn-prompt/t0/processed_cache",
-                "transformer_model": model,
+                "t0_data_cache": "/net/nfs.cirrascale/allennlp/zhaofengw/t0/data_cache",
+                "transformer_model": model_name,
                 "num_prefix": 20,
                 "subsample_indices_file": subsample_indices_file,
                 "num_workers": 4,
             },
-            "model": {
-                "transformer_model": model,
-                "optimizer": {
-                    "type": "adafactor",
-                    "lr": 0.001,
-                    "scale_parameter": false,
-                    "relative_step": false,
-                },
-            }
+            "model": model,
         }
     }
 }
