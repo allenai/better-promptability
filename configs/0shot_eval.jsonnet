@@ -15,6 +15,7 @@ local checkpoint = "/net/nfs.cirrascale/allennlp/zhaofengw/meta-learn-prompt/out
 local model = if checkpoint == null then {
     "transformer_model": model_name,
 } else {
+    "type": "from_checkpoint",
     "transformer_model": model_name,
     "checkpoint_path": checkpoint,
 };
@@ -34,7 +35,7 @@ local model = if checkpoint == null then {
                 "data_dir": "data",
                 "t0_data_cache": "/net/nfs.cirrascale/allennlp/zhaofengw/t0/data_cache",
                 "transformer_model": model_name,
-                "num_prefix": 0,
+                "num_prefix": 20,
                 "num_workers": 4,
             },
             "model": model,
