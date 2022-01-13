@@ -103,6 +103,8 @@ class TrainStep(Step):
         # lr_schedule: Lazy[LRScheduler],
         tensorboard_logging: bool = True,
         wandb_logging: bool = True,
+        wandb_entity: str = "allennlp",
+        wandb_project: str = "meta-learn-prompt-multi-task",
     ) -> Tuple[str, List[Dict]]:
 
         pl.seed_everything(config.seed)
@@ -119,8 +121,8 @@ class TrainStep(Step):
             loggers.append(
                 WandbLogger(
                     save_dir=self.work_dir,
-                    project="meta-learn-prompt-multi-task",
-                    entity="allennlp",
+                    entity=wandb_entity,
+                    project=wandb_project,
                     name=self._get_wandb_run_name_from_step(),
                 )
             )
