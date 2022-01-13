@@ -263,16 +263,7 @@ class PrefixTransformer(Model):
         return opt_conf
 
 
-# @Step.register("get_model")
-# class GetModel(Step):
-#     DETERMINISTIC = True
-#     CACHEABLE = False
-
-#     def run(
-#         self,
-#         model: Lazy[PrefixTransformer],
-#         config: Config,
-#         dataset: FewShotDataModule,
-#     ) -> PrefixTransformer:
-
-#         return model.construct(config=config, dataset=dataset)
+LightningModule.register("prefix_transformer_from_checkpoint")(
+    PrefixTransformer.load_from_checkpoint
+)
+PrefixTransformer.register("from_checkpoint")(PrefixTransformer.load_from_checkpoint)
