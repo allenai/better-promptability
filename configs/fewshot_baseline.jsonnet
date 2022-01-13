@@ -22,9 +22,6 @@ local subsample_indices_file = "data/" + mixture_name + "_training_indices_16sho
                 "gradient_clip_val": 1.0,
                 "accumulate_grad_batches": 1.0,
                 "log_every_n_steps": 50,
-                "logger": [
-                    {"type": "pytorch_lightning::TensorBoardLogger"},
-                ],
                 "callbacks": [
                     "pytorch_lightning::ModelCheckpoint",
                     "my_logger",

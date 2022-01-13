@@ -21,14 +21,6 @@ local batch_size = 32;
                 "accumulate_grad_batches": effective_batch_size / batch_size,
                 "num_sanity_val_steps": 0,
                 "log_every_n_steps": 50,
-                "logger": [
-                    {"type": "pytorch_lightning::TensorBoardLogger"},
-                    {
-                        "type": "pytorch_lightning::WandbLogger",
-                        "project": "meta-learn-prompt-multi-task",
-                        "entity": "allennlp",
-                    },
-                ],
                 "callbacks": [
                     {
                         "type": "pytorch_lightning::ModelCheckpoint",

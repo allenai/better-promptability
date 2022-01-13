@@ -3,11 +3,13 @@ from typing import Dict, List, Tuple
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_only
+from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
 from tango.common.lazy import Lazy
 from tango.integrations.pytorch_lightning import (
     LightningCallback,
     LightningModule,
     LightningTrainer,
+    LightningLogger,
 )
 from tango.format import JsonFormat
 from tango.step import Step
@@ -99,6 +101,8 @@ class TrainStep(Step):
         datamodule: Lazy[PromptDataModule],
         # optimizer: Lazy[Optimizer],
         # lr_schedule: Lazy[LRScheduler],
+        tensorboard_logging: bool = True,
+        wandb_logging: bool = True,
     ) -> Tuple[str, List[Dict]]:
 
         pl.seed_everything(config.seed)
@@ -107,6 +111,19 @@ class TrainStep(Step):
 
         datamodule.prepare_data()
         datamodule.setup()
+
+        loggers: List[LightningLogger] = []
+        if tensorboard_logging:
+            loggers.append(TensorBoardLogger(save_dir=self.work_dir))
+        if wandb_logging:
+            loggers.append(
+                WandbLogger(
+                    save_dir=self.work_dir,
+                    project="meta-learn-prompt-multi-task",
+                    entity="allennlp",
+                    name=self._get_wandb_run_name_from_step(),
+                )
+            )
 
         trainer: LightningTrainer = trainer.construct(
             work_dir=self.work_dir,
@@ -118,6 +135,7 @@ class TrainStep(Step):
             reload_dataloaders_every_n_epochs=1
             if isinstance(datamodule, T0MultiTaskDataModule)
             else 0,
+            logger=loggers,
         )
 
         # Make sure we're using the `T0MultiTaskCallback` if using the `T0MultiTaskDataModule`
@@ -153,3 +171,7 @@ class TrainStep(Step):
         trainer.fit(model, datamodule=datamodule)  # train_dataloader, val_dataloader)
 
         return (checkpoint_callback.best_model_path, logging_callback.metrics_history)
+
+    def _get_wandb_run_name_from_step(self) -> str:
+        step_name, step_hash = self.unique_id.split("-", maxsplit=1)
+        return f"{step_name}-{step_hash[:6]}"
