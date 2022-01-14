@@ -50,7 +50,7 @@ local config = {
     fp16: false,
 };
 
-local epochs = 10;
+local epochs = 100;
 
 local model_name = "google/t5-small-lm-adapt";
 
