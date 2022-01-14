@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Mapping, Optional
 
-from tango.common import PathOrStr
+from tango.common import PathOrStr, Params
 
 from .config import Config
 from .t0_module import T0Module
@@ -26,7 +26,7 @@ class T0Mixture:
         assert mixture_name in {"d4_train", "d4_dev", "green"}
         self.mixture_name = mixture_name
         self.data_modules: dict[str, T0Module] = {}
-        for task_name in (line.strip() for line in open(f"data/{self.mixture_name}_tasks.txt")):
+        for task_name in Params.from_file("configs/t0_mixtures.jsonnet")[mixture_name]:
             self.data_modules[task_name] = T0Module(
                 config=config,
                 num_prefix=num_prefix,
