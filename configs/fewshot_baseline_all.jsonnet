@@ -25,12 +25,12 @@ local t0_task_info = import 't0_task_info.jsonnet';
 
 local mixture_name = "green";
 
-local datasets = std.set([
-    t0_task_info["tasks"][task_name]["dataset_name"] for task_name in t0_mixtures[mixture_name]
-]);
-local tasks = t0_mixtures[mixture_name];
-assert std.count(datasets, "anli") == 1;  // confidence check
-assert std.count(tasks, "anli_GPT_3_style_r1_score_eval") == 1; // confidence check
+// local datasets = std.set([
+//     t0_task_info["tasks"][task_name]["dataset_name"] for task_name in t0_mixtures[mixture_name]
+// ]);
+// local tasks = t0_mixtures[mixture_name];
+// assert std.count(datasets, "anli") == 1;  // confidence check
+// assert std.count(tasks, "anli_GPT_3_style_r1_score_eval") == 1; // confidence check
 
 // For debugging:
 // local datasets = ["anli", "hellaswag"];
@@ -52,7 +52,7 @@ local config = {
     fp16: false,
 };
 
-local epochs = 100;
+local epochs = 10;
 
 local model_name = "google/t5-small-lm-adapt";
 
