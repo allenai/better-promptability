@@ -8,10 +8,12 @@ class AggregateResults(Step):
     DETERMINISTIC = True
     CACHEABLE = True
     FORMAT: Format = JsonFormat()
-    VERSION = "001"
+    VERSION = "002"
 
-    def run(self, results: List[Dict[str, Any]]) -> Dict[str, Any]:
-        # TODO
+    def run(self, results: List[List[Dict[str, Any]]]) -> Dict[str, Any]:
+        accuracy_total = 0.0
+        for result in results:
+            accuracy_total += result[-1]["best_categorical_accuracy"]
         return {
-            "accuracy": 0.0,
+            "categorical_accuracy": accuracy_total / len(results),
         }
