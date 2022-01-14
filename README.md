@@ -23,6 +23,12 @@ tango run configs/check_install.yml
 
 ## Commands
 
+### Intermediate training
+
+Use `config/multi_task.jsonnet` and `config/meta_learn.jsonnet`.
+
+### Prompt Tuning or 0-shot Evaluation
+
 For few-shot learning without intermediate training, run `tango run -d output configs/fewshot_baseline.jsonnet`.
 Or to run things in a loop:
 ```bash
@@ -35,6 +41,4 @@ If you're not on AI2 NFS, you probably need to pass in the location of the data 
 
 The set up to run 0-shot evaluation without a soft prompt is very similar, with the config `configs/0shot_eval.jsonnet`.
 
-Multi-task learning: `config/multi_task.jsonnet`
-
-If you want to run `fewshot_baseline.jsonnet` or `0shot_eval.jsonnet` with an existing model checkpoint, you can override the model to the `from_checkoint` type with `--overrides "{\"steps.output_model.model.type\": \"from_checkpoint\", \"steps.output_model.model.checkpoint_path\": \"${CHECKPOINT_PATH}\"}"`.
+If you want to run these with an existing model checkpoint, you can override the model to the `from_checkoint` type with `--overrides "{\"steps.output_model.model.type\": \"from_checkpoint\", \"steps.output_model.model.checkpoint_path\": \"${CHECKPOINT_PATH}\"}"`.
