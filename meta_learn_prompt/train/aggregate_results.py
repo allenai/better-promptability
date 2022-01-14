@@ -1,11 +1,10 @@
 from collections import defaultdict
 from typing import Any, Dict, List, Tuple, Set, Optional
 
+import numpy as np
 from tango import Format, JsonFormat, Step
 from tango.common import Params
-import numpy as np
-
-np.std([1.0, 0.0])
+import torch
 
 
 @Step.register("aggregate_results")
@@ -23,7 +22,13 @@ class AggregateResults(Step):
         t0_task_info = Params.from_file("configs/t0_task_info.jsonnet")["tasks"].as_dict()
 
         def accuracy_for_task(task_name: str) -> float:
-            return results[task_name][1][-1]["best_categorical_accuracy"]
+            acc = results[task_name][1][-1]["best_categorical_accuracy"]
+            if isinstance(acc, (float, int)):
+                return float(acc)
+            elif isinstance(acc, torch.Tensor):
+                return acc.item()
+            else:
+                raise TypeError(acc)
 
         def stats_for_tasks(tasks: Set[str]) -> Dict[str, Optional[float]]:
             accuracies = [accuracy_for_task(task_name) for task_name in tasks]
