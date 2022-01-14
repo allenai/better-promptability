@@ -1,4 +1,5 @@
 import logging
+import os
 from typing import Dict, List, Tuple
 
 import pytorch_lightning as pl
@@ -150,6 +151,9 @@ class TrainStep(Step):
             if isinstance(callback, LoggingCallback):
                 logging_callback = callback
 
-        trainer.fit(model, datamodule=datamodule)  # train_dataloader, val_dataloader)
+        resume_from_checkpoint = None
+        if "last.ckpt" in os.listdir(self.work_dir):
+            resume_from_checkpoint = os.path.join(self.work_dir, "last.ckpt")
+        trainer.fit(model, datamodule=datamodule, ckpt_path=resume_from_checkpoint)
 
         return (checkpoint_callback.best_model_path, logging_callback.metrics_history)

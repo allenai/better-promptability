@@ -135,3 +135,9 @@ class _UndersampledDataset(Dataset):
 
             self._num_taken = self._sampling_cap
         random.setstate(state)
+
+    def fast_forward(self, num_epochs):
+        # Technically we can manipulate self._seed, self._indices, and self._num_taken directly,
+        # but this is easier and I think not much slower
+        for _ in range(num_epochs):
+            self.resample()

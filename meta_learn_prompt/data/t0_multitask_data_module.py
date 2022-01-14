@@ -5,7 +5,7 @@ from tango.common import Tqdm, DatasetDict, PathOrStr
 
 from .data_utils import PAD_TYPE
 from .config import Config
-from .mixer_dataset import MixerDataset
+from .mixer_dataset import MixerDataset, _UndersampledDataset
 from .prompt_data_module import PromptDataModule
 from .t0_mixture import T0Mixture
 
@@ -92,3 +92,14 @@ class T0MultiTaskDataModule(PromptDataModule):
                 ),
             }
         )
+
+    def on_load_checkpoint(self, checkpoint: dict[str, Any]):
+        epochs_elapsed = checkpoint["epoch"]  # verified that this is 1-based, so we're good
+        assert self.dataset_dict is not None  # loaded already
+        for mixer_dataset in self.dataset_dict.values():
+            assert isinstance(mixer_dataset, MixerDataset)
+            for dataset in mixer_dataset._datasets:
+                if isinstance(dataset, _UndersampledDataset):
+                    dataset.fast_forward(epochs_elapsed)
+
+        super().on_load_checkpoint(checkpoint)
