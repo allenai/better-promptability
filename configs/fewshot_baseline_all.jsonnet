@@ -38,6 +38,8 @@ local optimizer = {
     relative_step: false,
 };
 
+local validate = false;
+
 // ------------------------------------------------------------ //
 // --- Data cache - edit according to the machine you're on --- //
 // ------------------------------------------------------------ //
