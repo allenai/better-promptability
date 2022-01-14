@@ -17,7 +17,7 @@ from .config import Config
 def read_task_info() -> dict[str, tuple[str, Optional[str], str]]:
     task_name_to_info: dict[str, tuple[str, Optional[str], str]] = {}
     for task_name, info in (
-        Params.from_file("configs/t0_task_info.jsonnet").as_dict()["tasks"].items()
+        Params.from_file("configs/t0_task_info.jsonnet").as_dict(quiet=True)["tasks"].items()
     ):
         task_name_to_info[task_name] = (
             info["dataset_name"],
