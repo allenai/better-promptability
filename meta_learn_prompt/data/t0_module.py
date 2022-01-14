@@ -1,14 +1,11 @@
 from __future__ import annotations
-import csv
 from typing import Any, List, Mapping, Optional
-import numpy as np
-
-from tango.common.aliases import PathOrStr
-
 from pathlib import Path
 import pickle
 
 from allennlp.training.metrics import Metric
+import numpy as np
+from tango.common import Params, PathOrStr
 import datasets
 
 from .data_module import DatasetDictType
@@ -17,19 +14,16 @@ from .prompt_data_module import PromptDataModule
 from .config import Config
 
 
-# TODO: make this a singleton or something, if it's slow
 def read_task_info() -> dict[str, tuple[str, Optional[str], str]]:
     task_name_to_info: dict[str, tuple[str, Optional[str], str]] = {}
-    with open("data/t0_task_info.tsv", newline="") as task_info_file:
-        reader = csv.DictReader(task_info_file, delimiter="\t")
-        for row in reader:
-            if len(row["subset_name"]) == 0:
-                row["subset_name"] = None  # type: ignore
-            task_name_to_info[row["task_name"]] = (
-                row["dataset_name"],
-                row["subset_name"],
-                row["template_name"],
-            )
+    for task_name, info in (
+        Params.from_file("configs/t0_task_info.jsonnet").as_dict()["tasks"].items()
+    ):
+        task_name_to_info[task_name] = (
+            info["dataset_name"],
+            info["subset_name"],
+            info["template_name"],
+        )
     return task_name_to_info
 
 

@@ -1,33 +1,43 @@
-// This config is for running evaluations on a set of tasks and aggregating the results.
+// This config is for running evaluations on a mixture of tasks and aggregating the results
+// by dataset.
 //
 // Testing:
 // --------
 // 
-// To do a test run, set `model_name` to a small model like "google/t5-small-lm-adapt"
-// and `epochs` to a small number, like 5. Also limit the number of tasks listed in `tasks`.
+// To do a test run, first modify this config like so:
+//  1. Set `model_name` to a small model like "google/t5-small-lm-adapt",
+//  2. Set `epochs` to a small number like 5,
+//  3. Override `datasets` to only list a couple of datasets in the mixture.
+//  4. Override `tasks` to only list one or two tasks for each dataset.
 //
 // Then run:
 //
 // $ tango run configs/fewshot_baseline_all.jsonnet -d /tmp/test-run
-//
-// You'll be able to see the aggregated results with:
-//
-// $ cat /tmp/test-run/runs/*/all_results/data.json | jq
 
-// ------------- //
-// --- Tasks --- //
-// ------------- //
+local t0_mixtures = import 't0_mixtures.jsonnet';
+local t0_task_info = import 't0_task_info.jsonnet';
+
+// ------------------------------------ //
+// --- Mixture, datasets, and tasks --- //
+// ------------------------------------ //
 
 local mixture_name = "green";
 
-// These are all of the tasks you want to evaluate on. They should all be members
-// of the mixture specified above by "mixture_name".
-// You can find all valid tasks names for a given mixture in the file "data/{mixture_name}_tasks.txt".
-local tasks = [
-    "anli_GPT_3_style_r1_score_eval",
-    "anli_GPT_3_style_r2_score_eval",
-    "anli_GPT_3_style_r3_score_eval",
-];
+local datasets = std.set([
+    t0_task_info["tasks"][task_name]["dataset_name"] for task_name in t0_mixtures[mixture_name]
+]);
+local tasks = t0_mixtures[mixture_name];
+assert std.count(datasets, "anli") == 1;  // confidence check
+assert std.count(tasks, "anli_GPT_3_style_r1_score_eval") == 1; // confidence check
+
+// For debugging:
+// local datasets = ["anli", "hellaswag"];
+// local tasks = [
+//     "anli_GPT_3_style_r1_score_eval",
+//     "anli_GPT_3_style_r2_score_eval",
+//     "hellaswag_Predict_ending_with_hint_score_eval",
+//     "hellaswag_Randomized_prompts_template_score_eval",
+// ];
 
 // ----------------------- //
 // --- Hyperparameters --- //
@@ -78,6 +88,7 @@ local model = {
     optstates_dir: optstates_dir,
 };
 
+// Function that returns the train + eval step for a given task.
 local TrainStep(task_name) = {
     type: "train_step",
     config: config,
@@ -111,17 +122,30 @@ local TrainStep(task_name) = {
     model: model,
 };
 
+// Function that returns the name of the train+eval step for a task.
 local TrainStepName(task_name) = "result_" + task_name;
+
+// Function that checks if a task comes from the given dataset.
+local TaskInDataset(task_name, dataset_name) = t0_task_info["tasks"][task_name]["dataset_name"] == dataset_name;
+
+// Function that returns an array of tasks for a given dataset.
+local TasksForDataset(dataset_name) = std.filter(function(task) TaskInDataset(task, dataset_name), tasks);
+
+// Function that returns the aggregation step for a given dataset.
+local AggregationStep(dataset_name) = {
+    type: "aggregate_results",
+    results: [
+        {type: "ref", ref: TrainStepName(task_name)} for task_name in TasksForDataset(dataset_name)
+    ],
+};
+
+// Function that returns the name of the aggregation step for a dataset.
+local AggregationStepName(dataset_name) = "aggregated_results_" + dataset_name;
 
 {
     steps: {
         [TrainStepName(task_name)]: TrainStep(task_name) for task_name in tasks
     } + {
-        all_results: {
-           type: "aggregate_results",
-           results: [
-               {type: "ref", ref: TrainStepName(task_name)} for task_name in tasks
-           ],
-        },
+        [AggregationStepName(dataset_name)]: AggregationStep(dataset_name) for dataset_name in datasets
     }
 }
