@@ -38,6 +38,7 @@ local optimizer = {
     relative_step: false,
 };
 
+// Set to "true" to enable validation after every training epoch.
 local validate = false;
 
 // ------------------------------------------------------------ //
@@ -77,6 +78,7 @@ local TrainStep(task_name) = {
             "my_logger",
         ],
         replace_sampler_ddp: false,
+        validate: validate,
     },
     datamodule: {
         type: "t0",
