@@ -78,7 +78,6 @@ local TrainStep(task_name) = {
             "my_logger",
         ],
         replace_sampler_ddp: false,
-        validate: validate,
     },
     datamodule: {
         type: "t0",
@@ -92,6 +91,7 @@ local TrainStep(task_name) = {
         num_workers: 4,
     },
     model: model,
+    validate: validate,
 };
 
 local TrainStepName(task_name) = "result_" + task_name;
