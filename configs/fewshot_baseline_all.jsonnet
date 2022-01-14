@@ -1,4 +1,18 @@
 // This config is for running evaluations on a set of tasks and aggregating the results.
+//
+// Testing:
+// --------
+// 
+// To do a test run, set `model_name` to a small model like "google/t5-small-lm-adapt"
+// and `epochs` to a small number, like 5. Also limit the number of tasks listed in `tasks`.
+//
+// Then run:
+//
+// $ tango run configs/fewshot_baseline_all.jsonnet -d /tmp/test-run
+//
+// You'll be able to see the aggregated results with:
+//
+// $ cat /tmp/test-run/runs/*/all_results/data.json | jq
 
 // ------------- //
 // --- Tasks --- //
