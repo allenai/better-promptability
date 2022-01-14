@@ -127,60 +127,16 @@ local TrainStep(task_name) = {
 // Function that returns the name of the train+eval step for a task.
 local TrainStepName(task_name) = "result_" + task_name;
 
-// Function that checks if a task comes from the given dataset.
-local TaskInDataset(task_name, dataset_name) = t0_task_info["tasks"][task_name]["dataset_name"] == dataset_name;
-
-// Function that checks if a task comes from the given subset of a dataset.
-local TaskInSubset(task_name, dataset_name, subset_name) = TaskInDataset(task_name, dataset_name) && t0_task_info["tasks"][task_name]["subset_name"] == subset_name;
-
-// Function that returns an array of tasks for a given dataset.
-local TasksForDataset(dataset_name) = std.filter(function(task) TaskInDataset(task, dataset_name), tasks);
-
-// Function that returns an array of tasks for a given subset of a dataset.
-local TasksForSubset(dataset_name, subset_name) = std.filter(function(task) TaskInSubset(task, dataset_name, subset_name), tasks);
-
-// Function that returns the aggregation step for a given dataset.
-local AggregationByDatasetStep(dataset_name) = {
-    type: "aggregate_results",
-    results: [
-        {type: "ref", ref: TrainStepName(task_name)} for task_name in TasksForDataset(dataset_name)
-    ],
-};
-
-// Function that returns the aggregation step for a given subset of a dataset.
-local AggregationBySubsetStep(dataset_name, subset_name) = {
-    type: "aggregate_results",
-    results: [
-        {type: "ref", ref: TrainStepName(task_name)} for task_name in TasksForSubset(dataset_name, subset_name)
-    ],
-};
-
-// Function that returns the name of the aggregation step for a dataset.
-local AggregationByDatasetStepName(dataset_name) = "aggregated_results_" + dataset_name;
-
-// Function that returns the name of the aggregation step for a subset of a dataset.
-local AggregationBySubsetStepName(dataset_name, subset_name) = "aggregated_results_" + dataset_name + "_" + subset_name;
-
-// Function to get all of the subsets for a dataset.
-local SubsetsForDataset(dataset_name) = std.set([
-    t0_task_info["tasks"][task_name]["subset_name"]
-    for task_name in tasks
-    if t0_task_info["tasks"][task_name]["dataset_name"] == dataset_name && t0_task_info["tasks"][task_name]["subset_name"] != null
-]);
-
-local subsets = std.flatMap(
-    function(dataset_name) [{"dataset_name": dataset_name, "subset_name": subset_name} for subset_name in SubsetsForDataset(dataset_name)],
-    datasets
-);
-assert std.count(subsets, {"dataset_name": "anli", "subset_name": "r1"}) == 1;  // confidence check
-
 {
-    subsets: subsets,
     steps: {
         [TrainStepName(task_name)]: TrainStep(task_name) for task_name in tasks
     } + {
-        [AggregationByDatasetStepName(dataset_name)]: AggregationByDatasetStep(dataset_name) for dataset_name in datasets
-    } + {
-        [AggregationBySubsetStepName(x["dataset_name"], x["subset_name"])]: AggregationBySubsetStep(x["dataset_name"], x["subset_name"]) for x in subsets
+        "aggregated_results": {
+            type: "aggregate_results",
+            results: {
+                [task_name]: {type: "ref", ref: TrainStepName(task_name)}
+                for task_name in tasks
+            }
+        }
     }
 }
