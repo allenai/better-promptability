@@ -12,8 +12,8 @@ class AggregateResults(Step):
 
     def run(self, results: List[List[Dict[str, Any]]]) -> Dict[str, Any]:
         accuracy_total = 0.0
-        for result in results:
-            accuracy_total += result[-1]["best_categorical_accuracy"]
+        for _, epoch_metrics in results:
+            accuracy_total += epoch_metrics[-1]["best_categorical_accuracy"]
         return {
             "categorical_accuracy": accuracy_total / len(results),
         }
