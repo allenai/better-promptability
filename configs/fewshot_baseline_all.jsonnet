@@ -33,13 +33,13 @@ local mixture_name = "green";
 // assert std.count(tasks, "anli_GPT_3_style_r1_score_eval") == 1; // confidence check
 
 // For debugging:
-// local datasets = ["anli", "hellaswag"];
-// local tasks = [
-//     "anli_GPT_3_style_r1_score_eval",
-//     "anli_GPT_3_style_r2_score_eval",
-//     "hellaswag_Predict_ending_with_hint_score_eval",
-//     "hellaswag_Randomized_prompts_template_score_eval",
-// ];
+local datasets = ["anli", "hellaswag"];
+local tasks = [
+    "anli_GPT_3_style_r1_score_eval",
+    "anli_GPT_3_style_r2_score_eval",
+    "hellaswag_Predict_ending_with_hint_score_eval",
+    "hellaswag_Randomized_prompts_template_score_eval",
+];
 
 // ----------------------- //
 // --- Hyperparameters --- //
