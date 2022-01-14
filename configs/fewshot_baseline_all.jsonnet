@@ -95,7 +95,6 @@ local TrainStep(task_name) = {
         num_workers: 4,
     },
     model: model,
-    validate_every_epoch: validate_every_epoch,
 };
 
 local TrainStepName(task_name) = "result_" + task_name;
