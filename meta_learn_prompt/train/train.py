@@ -99,7 +99,6 @@ class TrainStep(Step):
         datamodule: Lazy[PromptDataModule],
         # optimizer: Lazy[Optimizer],
         # lr_schedule: Lazy[LRScheduler],
-        validate: bool = True,
     ) -> Tuple[str, List[Dict]]:
 
         pl.seed_everything(config.seed)
@@ -119,7 +118,6 @@ class TrainStep(Step):
             reload_dataloaders_every_n_epochs=1
             if isinstance(datamodule, T0MultiTaskDataModule)
             else 0,
-            limit_val_batches=1.0 if validate else 0,
         )
 
         # Make sure we're using the `T0MultiTaskCallback` if using the `T0MultiTaskDataModule`

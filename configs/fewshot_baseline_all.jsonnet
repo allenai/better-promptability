@@ -26,6 +26,8 @@ local config = {
     fp16: false,
 };
 
+local epochs = 10;
+
 local model_name = "google/t5-small-lm-adapt";
 
 local checkpoint = null;
@@ -38,8 +40,9 @@ local optimizer = {
     relative_step: false,
 };
 
-// Set to "true" to enable validation after every training epoch.
-local validate = false;
+// Set to "true" to enable validation after every training epoch, otherwise we only validate
+// after the final epoch.
+local validate_every_epoch = false;
 
 // ------------------------------------------------------------ //
 // --- Data cache - edit according to the machine you're on --- //
@@ -66,7 +69,7 @@ local TrainStep(task_name) = {
     config: config,
     trainer: {
         type: "default",
-        max_epochs: 100,
+        max_epochs: epochs,
         gradient_clip_val: 1.0,
         accumulate_grad_batches: 1.0,
         log_every_n_steps: 50,
@@ -78,6 +81,7 @@ local TrainStep(task_name) = {
             "my_logger",
         ],
         replace_sampler_ddp: false,
+        check_val_every_n_epoch: if validate_every_epoch then 1 else epochs,
     },
     datamodule: {
         type: "t0",
@@ -91,7 +95,7 @@ local TrainStep(task_name) = {
         num_workers: 4,
     },
     model: model,
-    validate: validate,
+    validate_every_epoch: validate_every_epoch,
 };
 
 local TrainStepName(task_name) = "result_" + task_name;
