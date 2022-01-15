@@ -87,7 +87,12 @@ class Model(LightningModule):
         #     eps=self.optimizer_kwargs["adam_epsilon"],
         # )
 
-        optimizer = self._optimizer.construct(params=optimizer_grouped_parameters)  # type: ignore
+        # optimizer = self._optimizer.construct(params=optimizer_grouped_parameters)  # type: ignore
+        from ..train.optim import Adafactor
+
+        optimizer = Adafactor(
+            optimizer_grouped_parameters, lr=0.001, scale_parameter=False, relative_step=False
+        )
 
         if self._scheduler is None:
             return [optimizer]

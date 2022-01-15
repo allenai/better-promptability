@@ -33,6 +33,7 @@ local model = if checkpoint == null then {
     "optimizer": optimizer,
     "checkpoint_path": checkpoint,
     "optstates_dir": optstates_dir,
+    "strict": false,
 };
 
 {
