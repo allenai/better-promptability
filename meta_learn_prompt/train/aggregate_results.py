@@ -19,7 +19,7 @@ class AggregateResults(Step):
         Aggregate the results of a bunch of `TrainStep`s. `results` is a mapping of `task_name`
         the output from the corresponding `TrainStep`.
         """
-        t0_task_info = Params.from_file("configs/t0_task_info.jsonnet")["tasks"].as_dict()
+        t0_task_info = Params.from_file("configs/t0_task_info.jsonnet")["tasks"].as_dict(quiet=True)
 
         def accuracy_for_task(task_name: str) -> float:
             acc = results[task_name][1][-1]["best_categorical_accuracy"]
