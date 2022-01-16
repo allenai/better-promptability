@@ -146,6 +146,16 @@ class PrefixTransformer(Model):
             states = {param_to_name[p]: states for p, states in optimizer_states.items()}
         checkpoint["custom_optimizer_states"] = states
 
+    def on_load_checkpoint(self, checkpoint: dict[str, Any]) -> None:
+        # Unwrap the meta-learning model
+        new_state_dict = {}
+        for k, v in checkpoint["state_dict"].items():
+            if k.startswith("model."):
+                new_state_dict[len("model."):] = v
+        checkpoint["state_dict"] = new_state_dict
+        # TODO: optimizer states
+        return super().on_load_checkpoint(checkpoint)
+
     def configure_optimizers(self) -> Union[list[Optimizer], tuple[list[Optimizer], list[dict]]]:
         opt_conf = super().configure_optimizers()
 
