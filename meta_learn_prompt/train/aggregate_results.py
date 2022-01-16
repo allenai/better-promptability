@@ -47,6 +47,13 @@ class AggregateResults(Step):
             dataset_to_tasks[dataset_name].add(task_name)
             dataset_to_subset_to_tasks[dataset_name][subset_name].add(task_name)
 
+        # For direct copying into a spreadsheet
+        flattened_results = []
+        for dataset_name, subset_to_tasks in dataset_to_subset_to_tasks.items():
+            for subset_name in subset_to_tasks:
+                stats = stats_for_tasks(subset_to_tasks[subset_name])
+                flattened_results.extend([stats["mean"], stats["std"]])
+
         return {
             "categorical_accuracy_all": stats_for_tasks(set(results.keys())),
             "categorical_accuracy_by_dataset": {
@@ -60,4 +67,5 @@ class AggregateResults(Step):
                 }
                 for dataset_name, subset_to_tasks in dataset_to_subset_to_tasks.items()
             },
+            "flattened": ",".join([str(n * 100) for n in flattened_results])
         }
