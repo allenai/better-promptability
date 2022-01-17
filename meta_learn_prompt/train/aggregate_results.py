@@ -67,5 +67,7 @@ class AggregateResults(Step):
                 }
                 for dataset_name, subset_to_tasks in dataset_to_subset_to_tasks.items()
             },
-            "flattened": ",".join([str(n * 100) if n is not None else 0 for n in flattened_results])
+            "flattened": ",".join(
+                [str(n * 100) if n is not None else "0" for n in flattened_results]
+            ),
         }
