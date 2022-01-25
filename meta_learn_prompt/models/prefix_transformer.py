@@ -154,7 +154,7 @@ class PrefixTransformer(Model):
             new_state_dict = {}
             for k, v in checkpoint["state_dict"].items():
                 assert k.startswith("model.")
-                new_state_dict[k[len("model."):]] = v
+                new_state_dict[k[len("model.") :]] = v
             checkpoint["state_dict"] = new_state_dict
         # TODO: optimizer states
         return super().on_load_checkpoint(checkpoint)
