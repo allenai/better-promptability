@@ -16,9 +16,10 @@ local num_prefix = 0;
 local checkpoint = null;
 
 local model = if checkpoint == null then {
+    "type": "prefix_transformer",
     "transformer_model": model_name,
 } else {
-    "type": "from_checkpoint",
+    "type": "prefix_transformer_from_checkpoint",
     "transformer_model": model_name,
     "checkpoint_path": checkpoint,
 };
