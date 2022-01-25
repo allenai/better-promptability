@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import Any, Mapping
+from urllib.error import HTTPError
 
 from tango.common.aliases import PathOrStr
 from transformers import T5Tokenizer, PreTrainedTokenizerBase
@@ -36,8 +37,15 @@ class PromptDataModule(DataModule):
             self.targets_max_length,
         ]
 
-    def setup_tokenizer(self) -> PreTrainedTokenizerBase:
-        tokenizer = T5Tokenizer.from_pretrained(self.transformer_model)
+    def setup_tokenizer(self, retry=5) -> PreTrainedTokenizerBase:
+        while True:
+            try:
+                tokenizer = T5Tokenizer.from_pretrained(self.transformer_model)
+                break
+            except HTTPError as e:
+                if retry == 0:
+                    raise e
+            retry -= 1
         tokenizer.add_tokens(self.task_tokens)
         task_token_ids = tokenizer(
             " ".join(self.task_tokens), return_tensors="pt", add_special_tokens=False
