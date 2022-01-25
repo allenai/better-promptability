@@ -185,7 +185,5 @@ class PrefixTransformer(Model):
         return new
 
 
-Model.register("prefix_transformer_from_checkpoint")(
-    PrefixTransformer.load_from_checkpoint
-)
+Model.register("prefix_transformer_from_checkpoint")(PrefixTransformer.load_from_checkpoint)
 PrefixTransformer.register("from_checkpoint")(PrefixTransformer.load_from_checkpoint)
