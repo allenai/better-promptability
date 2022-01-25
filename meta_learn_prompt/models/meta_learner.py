@@ -97,6 +97,8 @@ class MetaLearner(Model):
             support_loss += loss.detach().cpu()
 
             if self.algorithm == "fomaml":
+                # In the inner loop we only tune the prompt embeddings, and in the outer loop we
+                # unfreeze the model to tune it in its entirety.
                 learner.unfreeze()
                 query_output = learner(query_batch)
                 loss = self.model.compute_loss(
