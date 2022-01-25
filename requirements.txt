@@ -9,6 +9,7 @@ seqio==0.0.7
 py7zr==0.16.2
 t5==0.9.3
 pytorch-lightning==1.5.5
+torchmetrics==0.6.2
 transformers==4.12.5
 tqdm==4.62.2
 learn2learn==0.1.6
