@@ -5,7 +5,7 @@
 //
 // Testing:
 // --------
-// 
+//
 // To do a test run, first modify this config like so:
 //  1. Set `model_name` to a small model like "google/t5-small-lm-adapt",
 //  2. Set `epochs` to a small number like 5,
@@ -29,8 +29,6 @@ local datasets = std.set([
     t0_task_info["tasks"][task_name]["dataset_name"] for task_name in t0_mixtures[mixture_name]
 ]);
 local tasks = t0_mixtures[mixture_name];
-assert std.count(datasets, "anli") == 1;  // confidence check
-assert std.count(tasks, "anli_GPT_3_style_r1_score_eval") == 1; // confidence check
 
 // For debugging:
 // local datasets = ["anli", "hellaswag"];

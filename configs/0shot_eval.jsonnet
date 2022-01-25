@@ -22,6 +22,7 @@ local model = if checkpoint == null then {
     "type": "prefix_transformer_from_checkpoint",
     "transformer_model": model_name,
     "checkpoint_path": checkpoint,
+    "strict": false,
 };
 
 {
