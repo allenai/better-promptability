@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 @Model.register("prefix_transformer")
+@Model.register("prefix_transformer_from_checkpoint", constructor="load_from_checkpoint")
 class PrefixTransformer(Model):
     def __init__(
         self,
@@ -215,7 +216,3 @@ class PrefixTransformer(Model):
             optimizer=optimizer,
             **kwargs,
         )
-
-
-Model.register("prefix_transformer_from_checkpoint")(PrefixTransformer.load_from_checkpoint)
-PrefixTransformer.register("from_checkpoint")(PrefixTransformer.load_from_checkpoint)
