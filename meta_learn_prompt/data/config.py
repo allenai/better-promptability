@@ -22,18 +22,3 @@ class Config(Registrable):
 
 
 Config.register("default")(Config)
-
-
-@Step.register("create_config")
-class CreateConfig(Step):
-    DETERMINISTIC = True
-    CACHEABLE = False
-
-    def run(self, **kwargs) -> Config:
-        # Is this ridiculous? Yes.
-        return Config(**kwargs)
-
-
-class ConfigStep(Step):
-    def run(self, config: Config, *args, **kwargs):
-        return NotImplementedError
