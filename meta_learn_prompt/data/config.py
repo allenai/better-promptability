@@ -12,11 +12,13 @@ class Config(Registrable):
         gpus: int = 1,
         fp16: bool = False,
         output_dir: Optional[PathOrStr] = None,
+        auto_select_gpus: bool = True
     ):
         self.seed = seed
         self.fp16 = fp16
         self.gpus = gpus  # TODO: do stuff with visible devices.
         self.output_dir = output_dir
+        self.auto_select_gpus = auto_select_gpus
 
 
 Config.register("default")(Config)
