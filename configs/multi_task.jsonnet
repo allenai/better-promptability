@@ -25,8 +25,8 @@ local batch_size = 32;
                     {"type": "pytorch_lightning::TensorBoardLogger"},
                     {
                         "type": "pytorch_lightning::WandbLogger",
-                        "project": "meta-learn-prompt-multi-task",
-                        "entity": "allennlp",
+                        "project": "multi-task",
+                        "entity": "meta-learn-prompt",
                     },
                 ],
                 "callbacks": [

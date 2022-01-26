@@ -22,8 +22,8 @@ local model = "google/t5-small-lm-adapt";
                     {"type": "pytorch_lightning::TensorBoardLogger"},
                     {
                         "type": "pytorch_lightning::WandbLogger",
-                        "project": "meta-learn-prompt-meta-learn",
-                        "entity": "allennlp",
+                        "project": "meta-learning",
+                        "entity": "meta-learn-prompt",
                     },
                 ],
                 "callbacks": [
