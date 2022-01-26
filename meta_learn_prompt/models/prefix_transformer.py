@@ -2,7 +2,7 @@ from __future__ import annotations
 import logging
 import os
 import pickle
-from typing import Any, Optional, Union
+from typing import Any, Callable, IO, Optional, Union
 
 import torch
 from tango.common.lazy import Lazy
@@ -194,6 +194,27 @@ class PrefixTransformer(Model):
         new.to(self.device)
         new.load_state_dict(self.state_dict())
         return new
+
+    @classmethod
+    def load_from_checkpoint(
+        cls,
+        checkpoint_path: Union[str, IO],
+        map_location: Optional[Union[dict[str, str], str, torch.device, int, Callable]] = None,
+        hparams_file: Optional[str] = None,
+        strict: bool = True,
+        optimizer: Optional[Lazy[Optimizer]] = None,
+        **kwargs,
+    ):
+        # We need to tell tango the type of optimizer, or otherwise it will only give us a Params
+        # object
+        return super().load_from_checkpoint(
+            checkpoint_path,
+            map_location=map_location,
+            hparams_file=hparams_file,
+            strict=strict,
+            optimizer=optimizer,
+            **kwargs,
+        )
 
 
 Model.register("prefix_transformer_from_checkpoint")(PrefixTransformer.load_from_checkpoint)
