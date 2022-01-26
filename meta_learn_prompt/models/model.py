@@ -35,6 +35,8 @@ class Model(LightningModule):
         self.config = config
         self.dataset = dataset
         self._optimizer = optimizer
+        if self._optimizer is not None:
+            assert isinstance(self._optimizer, Lazy)
         self._scheduler = scheduler
 
         self.epochs = epochs
