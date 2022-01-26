@@ -34,6 +34,8 @@ local batch_size = 32;
                         "type": "pytorch_lightning::ModelCheckpoint",
                         "save_last": true,
                         "save_top_k": -1,
+                        "every_n_train_steps": 1000,
+                        "save_on_train_epoch_end": true,
                     },
                     "my_logger",
                     "t0_multitask",
