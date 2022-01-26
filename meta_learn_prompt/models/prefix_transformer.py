@@ -2,7 +2,7 @@ from __future__ import annotations
 import logging
 import os
 import pickle
-from typing import Any, Callable, IO, Optional, Union
+from typing import Any, Callable, IO, Optional, Union, Dict
 
 import torch
 from tango.common.lazy import Lazy
@@ -200,7 +200,7 @@ class PrefixTransformer(Model):
     def load_from_checkpoint(
         cls,
         checkpoint_path: Union[str, IO],
-        map_location: Optional[Union[dict[str, str], str, torch.device, int, Callable]] = None,
+        map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None,
         hparams_file: Optional[str] = None,
         strict: bool = True,
         optimizer: Optional[Lazy[Optimizer]] = None,
