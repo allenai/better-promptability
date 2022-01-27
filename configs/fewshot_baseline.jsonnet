@@ -12,9 +12,8 @@ local task_name = "hellaswag_Randomized_prompts_template_score_eval";
 local subsample_indices_file = "data/" + mixture_name + "_training_indices_16shot_100seed.pkl";
 local optstates_dir = "/net/nfs2.allennlp/zhaofengw/optstates";
 
-// Set to null if you don't want to load a checkpoint.
-local checkpoint = "/net/nfs2.allennlp/zhaofengw/meta-learn-prompt/unitout4/runs/sacred-alpaca/output_model/work/last.ckpt";
-// local checkpoint = null;
+// Set to "null" if you don't want to load a checkpoint.
+local checkpoint = std.extVar("CHECKPOINT_PATH");
 
 local optimizer = {
     "type": "adafactor",
@@ -23,7 +22,7 @@ local optimizer = {
     "relative_step": false,
 };
 
-local model = if checkpoint == null then {
+local model = if checkpoint == "null" then {
     "type": "prefix_transformer",
     "transformer_model": model_name,
     "optimizer": optimizer,

@@ -54,8 +54,7 @@ local epochs = 100;
 
 local model_name = "google/t5-small-lm-adapt";
 
-local checkpoint = null;
-// local checkpoint = "/net/nfs.cirrascale/allennlp/zhaofengw/meta-learn-prompt/output/mtl_small_nooptstate/runs/pumped-kodiak/output_model/work/last.ckpt";
+local checkpoint = std.extVar("CHECKPOINT_PATH");
 
 local optimizer = {
     type: "adafactor",
@@ -73,16 +72,16 @@ local validate_every_epoch = false;
 // ------------------------------------------------------------ //
 
 // Cirrascale machines:
-local t0_data_cache = "/net/nfs.cirrascale/allennlp/zhaofengw/t0/data_cache";
-local optstates_dir = "/net/nfs.cirrascale/allennlp/zhaofengw/optstates";
+local t0_data_cache = "/net/nfs2.allennlp/akshitab/meta-learn-prompt/t0/processed_cache";
+local optstates_dir = "/net/nfs2.allennlp/zhaofengw/optstates";
 
 // ----------------------------------------------------------- //
 // --- ! You probably don't need to edit below this line ! --- //
 // ----------------------------------------------------------- //
 
 local model = {
-    [if checkpoint == null then null else "type"]: "from_checkpoint",
-    [if checkpoint == null then null else "checkpoint_path"]: checkpoint,
+    "type": if checkpoint == "null" then "prefix_transformer" else "prefix_transformer_from_checkpoint",
+    [if checkpoint == "null" then null else "checkpoint_path"]: checkpoint,
     transformer_model: model_name,
     optimizer: optimizer,
     optstates_dir: optstates_dir,

@@ -29,16 +29,16 @@ Use `config/multi_task.jsonnet` and `config/meta_learn.jsonnet`.
 
 ### Prompt Tuning or 0-shot Evaluation
 
-For few-shot learning without intermediate training, run `tango run -d output configs/fewshot_baseline.jsonnet`.
+For few-shot learning without intermediate training, run `CHECKPOINT_PATH=null tango run -d output configs/fewshot_baseline.jsonnet`.
 Or to run things in a loop:
 ```bash
 for name in $(cat data/d4_dev_tasks.txt); do
     echo $name
-    tango run -d output/${name} configs/fewshot_baseline.jsonnet --overrides "{\"steps.output_model.datamodule.task_name\": \"${name}\"}"
+    CHECKPOINT_PATH=null tango run -d output/${name} configs/fewshot_baseline.jsonnet --overrides "{\"steps.output_model.datamodule.task_name\": \"${name}\"}"
 done
 ```
 If you're not on AI2 NFS, you probably need to pass in the location of the data cache and the pretrained optimizer states with `--overrides "{\"steps.output_model.datamodule.t0_data_cache\": \"${DATA_CACHE_PATH}\", \"steps.output_model.model.optstates_dir\": \"${OPT_STATES_PATH}\"}"`
 
 The set up to run 0-shot evaluation without a soft prompt is very similar, with the config `configs/0shot_eval.jsonnet`.
 
-If you want to run these with an existing model checkpoint, you can override the model to the `from_checkoint` type with `--overrides "{\"steps.output_model.model.type\": \"from_checkpoint\", \"steps.output_model.model.checkpoint_path\": \"${CHECKPOINT_PATH}\"}"`.
+Change `CHECKPOINT_PATH` if you want to run these with an existing model checkpoint.
