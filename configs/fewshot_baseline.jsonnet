@@ -13,7 +13,7 @@ local subsample_indices_file = "data/" + mixture_name + "_training_indices_16sho
 local optstates_dir = "/net/nfs2.allennlp/zhaofengw/optstates";
 
 // Set to "null" if you don't want to load a checkpoint.
-local checkpoint = std.extVar("CHECKPOINT_PATH");
+local checkpoint = std.extVar("CKPT");
 
 local optimizer = {
     "type": "adafactor",

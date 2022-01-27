@@ -54,7 +54,7 @@ local epochs = 100;
 
 local model_name = "google/t5-small-lm-adapt";
 
-local checkpoint = std.extVar("CHECKPOINT_PATH");
+local checkpoint = std.extVar("CKPT");
 
 local optimizer = {
     type: "adafactor",
