@@ -2,7 +2,6 @@ from typing import Optional
 
 from tango.common.aliases import PathOrStr
 from tango.common.registrable import Registrable
-from tango.step import Step
 
 
 class Config(Registrable):
@@ -12,7 +11,7 @@ class Config(Registrable):
         gpus: int = 1,
         fp16: bool = False,
         output_dir: Optional[PathOrStr] = None,
-        auto_select_gpus: bool = True
+        auto_select_gpus: bool = True,
     ):
         self.seed = seed
         self.fp16 = fp16
