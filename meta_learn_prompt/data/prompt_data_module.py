@@ -37,7 +37,7 @@ class PromptDataModule(DataModule):
             self.targets_max_length,
         ]
 
-    def setup_tokenizer(self, retry=5) -> PreTrainedTokenizerBase:
+    def setup_tokenizer(self, retry=10) -> PreTrainedTokenizerBase:
         while True:
             try:
                 tokenizer = T5Tokenizer.from_pretrained(self.transformer_model)
