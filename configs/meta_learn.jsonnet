@@ -6,6 +6,8 @@ local config = {
 };
 local model = "google/t5-small-lm-adapt";
 
+local meta_batch_size = 128;
+
 {
     "steps": {
         "output_model": {
@@ -27,10 +29,20 @@ local model = "google/t5-small-lm-adapt";
                     },
                 ],
                 "callbacks": [
+                    # We need separate ModelCheckpoints for per-step and per-epoch checkpointing.
+                    # See https://github.com/PyTorchLightning/pytorch-lightning/issues/11645
                     {
                         "type": "pytorch_lightning::ModelCheckpoint",
                         "save_last": true,
                         "save_top_k": -1,
+                        "every_n_train_steps": 64000 / meta_batch_size,
+                    },
+                    {
+                        "type": "pytorch_lightning::ModelCheckpoint",
+                        "save_last": true,
+                        "save_top_k": -1,
+                        "filename": "{epoch}-{step}-endofepoch",
+                        "save_on_train_epoch_end": true,
                     },
                     "my_logger",
                     "t0_multitask",
@@ -39,7 +51,7 @@ local model = "google/t5-small-lm-adapt";
             },
             "datamodule": {
                 "type": "t0_meta_learning",
-                "meta_batch_size": 8,
+                "meta_batch_size": meta_batch_size,
                 "mixture_name": "d4_train",
                 "data_dir": "data",
                 "t0_data_cache": "/net/nfs2.allennlp/akshitab/meta-learn-prompt/t0/processed_cache",

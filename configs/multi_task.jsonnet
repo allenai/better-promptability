@@ -30,11 +30,19 @@ local batch_size = 32;
                     },
                 ],
                 "callbacks": [
+                    # We need separate ModelCheckpoints for per-step and per-epoch checkpointing.
+                    # See https://github.com/PyTorchLightning/pytorch-lightning/issues/11645
                     {
                         "type": "pytorch_lightning::ModelCheckpoint",
                         "save_last": true,
                         "save_top_k": -1,
-                        "every_n_train_steps": 1000,
+                        "every_n_train_steps": 500,
+                    },
+                    {
+                        "type": "pytorch_lightning::ModelCheckpoint",
+                        "save_last": true,
+                        "save_top_k": -1,
+                        "filename": "{epoch}-{step}-endofepoch",
                         "save_on_train_epoch_end": true,
                     },
                     "my_logger",
