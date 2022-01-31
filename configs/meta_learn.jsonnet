@@ -81,6 +81,7 @@ local meta_batch_size = 128;
                     "scale_parameter": false,
                     "relative_step": false,
                 },
+                "load_opt_states": false,
             }  // "model" (meta_learner)
         }  // "output_model"
     }
