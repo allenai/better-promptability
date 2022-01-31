@@ -23,7 +23,7 @@ class T0Mixture:
         subsample_indices_file: Optional[str] = None,
         **data_module_kwargs,
     ):
-        assert mixture_name in {"d4_train", "d4_dev", "green"}
+        assert mixture_name in {"d4_train", "d4_dev", "green", "debug_train", "debug_dev"}
         self.mixture_name = mixture_name
         self.data_modules: dict[str, T0Module] = {}
         for task_name in Params.from_file("configs/t0_mixtures.jsonnet")[mixture_name]:
