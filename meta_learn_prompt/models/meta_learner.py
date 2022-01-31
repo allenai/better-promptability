@@ -50,9 +50,6 @@ class MetaLearner(Model):
             initial_lr = inner_optimizer.defaults["lr"]
             learning_rates = {}
             for name, parameter in self.model.named_parameters():
-                # NOTE(rloganiv): Setting learning rates to 1.0 under
-                # assumption of further multiplication by static learning rates
-                # provided to optimizer.
                 if parameter.requires_grad:
                     learning_rate = torch.nn.Parameter(
                         data=torch.tensor(
