@@ -28,9 +28,12 @@ class MetaLearner(Model):
         algorithm: str,
         meta_optimizer: Lazy[Optimizer],
         load_opt_states: bool = True,
+        meta_sgd: bool = False,
     ):
         # TODO: anneal meta LR?
         assert algorithm in {"fomaml", "reptile"}
+        # Meta-SGD not well defined for REPTILE.
+        assert not algorithm == "fomaml" and meta_sgd
 
         super().__init__(model.config, model.dataset, optimizer=meta_optimizer, epochs=model.epochs)
 
@@ -38,9 +41,31 @@ class MetaLearner(Model):
         self.algorithm = algorithm
         self.adaptation_steps = adaptation_steps
         self.load_opt_states = load_opt_states
+        self.meta_sgd = meta_sgd
 
         inner_optimizer = resolve_optimizer_conf(self.model.configure_optimizers())
         self.inner_optimizer_state = inner_optimizer.state_dict()
+
+        if meta_sgd:
+            initial_lr = inner_optimizer.defaults['lr']
+            learning_rates = {}
+            for name, parameter in self.model.named_parameters():
+                # NOTE(rloganiv): Setting learning rates to 1.0 under
+                # assumption of further multiplication by static learning rates
+                # provided to optimizer.
+                if parameter.requires_grad:
+                    learning_rate = torch.nn.Parameter(
+                        data=torch.tensor(
+                            initial_lr,
+                            device=parameter.device,
+                            dtype=parameter.dtype,
+                        ),
+                        requires_grad=True,
+                    )
+                    learning_rates[name] = learning_rate
+            self.learning_rates = torch.nn.ParameterDict(learning_rates)
+        else:
+            self.learning_rates = None
 
         if algorithm == "reptile" and self.adaptation_steps == 1:
             logger.warning("Reptile with 1 adaptation step is equivalent to MTL.")
@@ -82,9 +107,21 @@ class MetaLearner(Model):
             )
             inner_optimizer.load_state_dict(self.inner_optimizer_state)
 
+            if self.meta_sgd:
+                inner_optimizer.defaults['lr'] = 1.0
+                for param_group in inner_optimizer.param_groups:
+                    if 'lr' in param_group:
+                        param_group['lr'] = 1.0
+                    
             wpe_logger.setLevel(wpe_logger_level)
             tango_logger.setLevel(tango_logger_level)
 
+            # NOTE(rloganiv): In Meta-SGD the first order approximation of the
+            # gradient w.r.t. the learning rates requires storing the grad
+            # w.r.t. the inner loop loss.
+            gradient_cache: Dict[str, torch.Tensor] = {}
+
+            # Inner loop
             for _ in range(self.adaptation_steps):
                 output = learner(support_batch)
                 loss = self.model.compute_loss(
@@ -92,10 +129,17 @@ class MetaLearner(Model):
                 )
                 inner_optimizer.zero_grad()
                 loss.backward()
+                if self.meta_sgd:
+                    for name, parameter in self.model.named_parameters():
+                        if name in self.learning_rates:
+                            # Store grad before rescaling.
+                            gradient_cache[name] = parameter.grad.detach().clone()
+                            parameter.grad *= self.learning_rates[name]
                 inner_optimizer.step()
             self.inner_optimizer_state = inner_optimizer.state_dict()
             support_loss += loss.detach().cpu()
 
+            # Outer loop
             if self.algorithm == "fomaml":
                 # In the inner loop we only tune the prompt embeddings, and in the outer loop we
                 # unfreeze the model to tune it in its entirety.
@@ -108,9 +152,16 @@ class MetaLearner(Model):
                 )
                 inner_optimizer.zero_grad()
                 loss.backward()
-                for p, l in zip(self.model.parameters(), learner.parameters()):
+                for (n, p), l in zip(self.model.named_parameters(), learner.parameters()):
+                    # FOMAML
                     p.grad.data.add_(l.grad.data)
+                    # Meta-SGD
+                    if self.meta_sgd:
+                        if n in self.learning_rates:
+                            grad = (p * gradient_cache[n]).sum()
+                            self.learning_rates[n].grad.copy_(grad)
                 query_loss += loss.detach().cpu()
+
             elif self.algorithm == "reptile":
                 for p, l in zip(self.model.parameters(), learner.parameters()):
                     p.grad.data.add_(-1.0, l.data)
