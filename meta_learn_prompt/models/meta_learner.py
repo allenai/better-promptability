@@ -47,7 +47,7 @@ class MetaLearner(Model):
         self.inner_optimizer_state = inner_optimizer.state_dict()
 
         if meta_sgd:
-            initial_lr = inner_optimizer.defaults['lr']
+            initial_lr = inner_optimizer.defaults["lr"]
             learning_rates = {}
             for name, parameter in self.model.named_parameters():
                 # NOTE(rloganiv): Setting learning rates to 1.0 under
@@ -108,10 +108,10 @@ class MetaLearner(Model):
             inner_optimizer.load_state_dict(self.inner_optimizer_state)
 
             if self.meta_sgd:
-                inner_optimizer.defaults['lr'] = 1.0
+                inner_optimizer.defaults["lr"] = 1.0
                 for param_group in inner_optimizer.param_groups:
-                    if 'lr' in param_group:
-                        param_group['lr'] = 1.0
+                    if "lr" in param_group:
+                        param_group["lr"] = 1.0
 
             wpe_logger.setLevel(wpe_logger_level)
             tango_logger.setLevel(tango_logger_level)
