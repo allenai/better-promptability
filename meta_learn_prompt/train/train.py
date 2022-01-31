@@ -3,7 +3,6 @@ import os
 from typing import Dict, List, Tuple
 
 import pytorch_lightning as pl
-from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import rank_zero_only
 from tango.common.lazy import Lazy
 from tango.integrations.pytorch_lightning import (
