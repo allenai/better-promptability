@@ -3,6 +3,7 @@ import os
 from typing import Dict, List, Tuple
 
 import pytorch_lightning as pl
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import rank_zero_only
 from tango.common.lazy import Lazy
 from tango.integrations.pytorch_lightning import (
@@ -155,5 +156,8 @@ class TrainStep(Step):
         if "last.ckpt" in os.listdir(self.work_dir):
             resume_from_checkpoint = os.path.join(self.work_dir, "last.ckpt")
         trainer.fit(model, datamodule=datamodule, ckpt_path=resume_from_checkpoint)
+
+        if not trainer.state.finished:
+            raise ValueError(f"Trainer did not succeed! Final trainer state was {trainer.state}.")
 
         return (checkpoint_callback.best_model_path, logging_callback.metrics_history)
