@@ -156,4 +156,7 @@ class TrainStep(Step):
             resume_from_checkpoint = os.path.join(self.work_dir, "last.ckpt")
         trainer.fit(model, datamodule=datamodule, ckpt_path=resume_from_checkpoint)
 
+        if not trainer.state.finished:
+            raise ValueError(f"Trainer did not succeed! Final trainer state was {trainer.state}.")
+
         return (checkpoint_callback.best_model_path, logging_callback.metrics_history)
