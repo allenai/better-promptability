@@ -85,6 +85,7 @@ local model = {
     transformer_model: model_name,
     optimizer: optimizer,
     optstates_dir: optstates_dir,
+    load_opt_states: false,
 };
 
 // Function that returns the train + eval step for a given task.

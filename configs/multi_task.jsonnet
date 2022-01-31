@@ -60,6 +60,7 @@ local batch_size = 32;
                     "relative_step": false,
                 },
                 "train_full_model": train_full_model,
+                "load_opt_states": false,
             },
             "datamodule": {
                 "type": "t0_multitask",
