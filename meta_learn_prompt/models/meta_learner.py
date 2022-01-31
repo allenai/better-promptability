@@ -33,7 +33,7 @@ class MetaLearner(Model):
         # TODO: anneal meta LR?
         assert algorithm in {"fomaml", "reptile"}
         # Meta-SGD not well defined for REPTILE.
-        assert not algorithm == "fomaml" and meta_sgd
+        assert not algorithm == "reptile" and meta_sgd
 
         super().__init__(model.config, model.dataset, optimizer=meta_optimizer, epochs=model.epochs)
 
