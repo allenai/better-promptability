@@ -71,7 +71,7 @@ class T0Module(PromptDataModule):
     @property
     def dev_splits(self) -> list[str]:
         # d4_dev and green datasets should have dev splits, d4_train may not.
-        if self.mixture_name in {"d4_dev", "green"} or "dev" in self.dataset_dict:
+        if self.mixture_name in {"d4_dev", "debug_dev", "green"} or "dev" in self.dataset_dict:
             return ["dev"]
         return []
 
@@ -121,9 +121,9 @@ class T0Module(PromptDataModule):
         is_correct: Optional[List[bool]] = None
         targets = example["targets"]
 
-        if self.mixture_name == "d4_train":
+        if self.mixture_name in {"d4_train", "debug_train"}:
             single_target = True
-        elif self.mixture_name == "d4_dev" and split == self.train_split:
+        elif self.mixture_name in {"d4_dev", "debug_dev"} and split == self.train_split:
             single_target = True
 
         # We want to evaluate d4_dev datasets same way as the green ones.
@@ -131,7 +131,7 @@ class T0Module(PromptDataModule):
         # (eg. "web_questions_get_the_answer" simply wants a knowledge-based answer).
         # We ignore these datasets.
 
-        elif self.mixture_name == "d4_dev" and split != self.train_split:
+        elif self.mixture_name in {"d4_dev", "debug_dev"} and split != self.train_split:
 
             single_target = False
             # The format in d4_dev is the same as train (there is no is_correct).
@@ -212,7 +212,7 @@ class T0Module(PromptDataModule):
             "target_mask": False,
         }
 
-        if self.mixture_name in {"d4_dev", "green"} and split != self.train_split:
+        if self.mixture_name in {"d4_dev", "debug_dev", "green"} and split != self.train_split:
             pad_token_map_["is_correct"] = False
             pad_token_map_["is_correct_mask"] = False
         return pad_token_map_

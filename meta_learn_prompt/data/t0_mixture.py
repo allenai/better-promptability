@@ -14,7 +14,7 @@ class T0Mixture:
 
     def __init__(
         self,
-        mixture_name: str,  # should be "d4_train", "d4_dev", or "green"
+        mixture_name: str,  # should be "d4_train", "debug_train", "d4_dev", "debug_dev", or "green"
         config: Config,
         num_prefix: int,
         transformer_model: PathOrStr,
