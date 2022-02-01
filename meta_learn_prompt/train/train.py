@@ -3,6 +3,8 @@ import os
 from typing import Dict, List, Tuple
 
 import pytorch_lightning as pl
+from pytorch_lightning.accelerators import GPUAccelerator
+from pytorch_lightning.plugins import DeepSpeedPrecisionPlugin, DeepSpeedPlugin
 from pytorch_lightning.utilities import rank_zero_only
 from tango.common.lazy import Lazy
 from tango.integrations.pytorch_lightning import (
@@ -109,11 +111,21 @@ class TrainStep(Step):
         datamodule.prepare_data()
         datamodule.setup()
 
+        if config.gpus == 1:
+            accelerator = "gpu"
+        elif config.gpus >= 1:
+            accelerator = GPUAccelerator(
+                precision_plugin=DeepSpeedPrecisionPlugin(32),
+                training_type_plugin=DeepSpeedPlugin()
+            )
+        else:
+            accelerator = "cpu"
+
         trainer: LightningTrainer = trainer.construct(
             work_dir=self.work_dir,
             gpus=config.gpus,
             precision=16 if config.fp16 else 32,
-            accelerator="gpu" if config.gpus else "cpu",
+            accelerator=accelerator,
             auto_select_gpus=config.auto_select_gpus,
             # Need to reload the dataloaders each epoch when using the T0MultiTaskDataModule.
             reload_dataloaders_every_n_epochs=1
