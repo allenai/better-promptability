@@ -23,11 +23,11 @@ local batch_size = 32;
                 "log_every_n_steps": 50,
                 "logger": [
                     {"type": "pytorch_lightning::TensorBoardLogger"},
-                    {
-                        "type": "pytorch_lightning::WandbLogger",
-                        "project": "multi-task",
-                        "entity": "meta-learn-prompt",
-                    },
+#                    {
+#                        "type": "pytorch_lightning::WandbLogger",
+#                        "project": "multi-task",
+#                        "entity": "meta-learn-prompt",
+#                    },
                 ],
                 "callbacks": [
                     # We need separate ModelCheckpoints for per-step and per-epoch checkpointing.
