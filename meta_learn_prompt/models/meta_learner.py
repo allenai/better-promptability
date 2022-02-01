@@ -80,7 +80,8 @@ class MetaLearner(Model):
         raise NotImplementedError
 
     def forward(self, meta_batch: list[tuple[dict, dict]]) -> dict[str, torch.Tensor]:
-        self.zero_grad()
+        for p in self.parameters():
+            p.grad = torch.zeros_like(p.data)
 
         # These are for logging only
         support_loss = 0.0
