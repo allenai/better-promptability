@@ -1,10 +1,10 @@
 local config = {
     "type": "default",
     "seed": 100,
-    "gpus": 1,
+    "gpus": 2,
     "fp16": false,
 };
-local model = "google/t5-small-lm-adapt";
+local model = "google/t5-large-lm-adapt";
 local train_full_model = true;
 local effective_batch_size = 4096;
 local batch_size = 32;
@@ -63,13 +63,13 @@ local batch_size = 32;
             },
             "datamodule": {
                 "type": "t0_multitask",
-                "mixture_name": "d4_train",
+                "mixture_name": "debug_train",
                 "data_dir": "data",
                 "t0_data_cache": "/net/nfs2.allennlp/akshitab/meta-learn-prompt/t0/processed_cache",
                 "transformer_model": model,
                 "batch_size": batch_size,
                 "num_prefix": 20,
-                "num_workers": 2,
+                "num_workers": 8,
             },
         }
     }

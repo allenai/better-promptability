@@ -112,20 +112,17 @@ class TrainStep(Step):
         datamodule.setup()
 
         if config.gpus == 1:
-            accelerator = "gpu"
+            strategy = None
         elif config.gpus >= 1:
-            accelerator = GPUAccelerator(
-                precision_plugin=DeepSpeedPrecisionPlugin(32),
-                training_type_plugin=DeepSpeedPlugin()
-            )
+            strategy = "deepspeed_stage_1"
         else:
-            accelerator = "cpu"
+            strategy = None
 
         trainer: LightningTrainer = trainer.construct(
             work_dir=self.work_dir,
             gpus=config.gpus,
             precision=16 if config.fp16 else 32,
-            accelerator=accelerator,
+            strategy=strategy,
             auto_select_gpus=config.auto_select_gpus,
             # Need to reload the dataloaders each epoch when using the T0MultiTaskDataModule.
             reload_dataloaders_every_n_epochs=1
