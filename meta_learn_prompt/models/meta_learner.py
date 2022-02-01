@@ -80,8 +80,7 @@ class MetaLearner(Model):
         raise NotImplementedError
 
     def forward(self, meta_batch: list[tuple[dict, dict]]) -> dict[str, torch.Tensor]:
-        for p in self.model.parameters():
-            p.grad = torch.zeros_like(p.data)
+        self.zero_grad()
 
         # These are for logging only
         support_loss = 0.0
@@ -119,7 +118,7 @@ class MetaLearner(Model):
             gradient_cache: Dict[str, torch.Tensor] = {}
 
             # Inner loop
-            for _ in range(self.adaptation_steps):
+            for i in range(self.adaptation_steps):
                 output = learner(support_batch)
                 loss = self.model.compute_loss(
                     output["logits"], support_batch["target_ids"], support_batch.get("target_mask")
@@ -129,8 +128,9 @@ class MetaLearner(Model):
                 if self.meta_sgd:
                     for name, parameter in self.model.named_parameters():
                         if name in self.learning_rates:
-                            # Store grad before rescaling.
-                            gradient_cache[name] = parameter.grad.detach().clone()
+                            if i == self.adaptation_steps - 1:
+                                # Store grad before rescaling.
+                                gradient_cache[name] = parameter.grad.detach().clone()
                             parameter.grad *= self.learning_rates[name]
                 inner_optimizer.step()
             self.inner_optimizer_state = inner_optimizer.state_dict()
@@ -156,7 +156,7 @@ class MetaLearner(Model):
                     if self.meta_sgd:
                         if n in self.learning_rates:
                             grad = (p * gradient_cache[n]).sum()
-                            self.learning_rates[n].grad.copy_(grad)
+                            self.learning_rates[n].grad.add_(grad)
                 query_loss += loss.detach().cpu()
 
             elif self.algorithm == "reptile":
