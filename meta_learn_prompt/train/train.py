@@ -8,6 +8,7 @@ import dill
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_only
 from tango.common.lazy import Lazy
+from tango.common.logging import initialize_logging
 from tango.integrations.pytorch_lightning import (
     LightningCallback,
     LightningModule,
@@ -207,6 +208,8 @@ class TrainStep(Step):
 
 
 def main():
+    initialize_logging()
+
     _, kwargs_file, results_file = sys.argv
     with open(kwargs_file, "rb") as f:
         training_kwargs = dill.load(f)
