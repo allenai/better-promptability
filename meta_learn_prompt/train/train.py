@@ -94,7 +94,6 @@ class T0MultiTaskCallback(LightningCallback):
 # to be able to do this when train.py is called as a standalone script.
 def _train_step(
     work_dir: Path,
-    extra_modules: Iterable[str],
     config: Config,
     trainer: Lazy[LightningTrainer],
     strategy: Optional[str],
@@ -104,9 +103,6 @@ def _train_step(
     # lr_schedule: Lazy[LRScheduler],
 ) -> Tuple[str, List[Dict]]:
     pl.seed_everything(config.seed)
-
-    for module in extra_modules:
-        import_extra_module(module)
 
     datamodule = datamodule.construct(config=config)
 
@@ -212,7 +208,7 @@ class TrainStep(Step):
                 results = dill.load(f)
             return results
         else:
-            return _train_step(self.work_dir, [], config, trainer, strategy, model, datamodule)
+            return _train_step(self.work_dir, config, trainer, strategy, model, datamodule)
 
 
 def main():
@@ -221,9 +217,10 @@ def main():
     _, kwargs_file, results_file = sys.argv
     with open(kwargs_file, "rb") as f:
         training_kwargs = dill.load(f)
+    for module in training_kwargs["extra_modules"]:
+        import_extra_module(module)
     results = _train_step(
         training_kwargs["work_dir"],
-        training_kwargs["extra_modules"],
         training_kwargs["config"],
         training_kwargs["trainer"],
         training_kwargs["strategy"],
