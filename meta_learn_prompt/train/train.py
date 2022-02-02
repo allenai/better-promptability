@@ -2,14 +2,13 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional, Iterable
+from typing import Dict, List, Tuple, Optional
 
 import dill
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_only
 from tango.common.lazy import Lazy
-from tango.common.logging import initialize_logging
-from tango.common.util import get_extra_imported_modules, import_extra_module
+from tango.common.util import get_extra_imported_modules
 from tango.integrations.pytorch_lightning import (
     LightningCallback,
     LightningModule,
@@ -203,33 +202,17 @@ class TrainStep(Step):
 
             import subprocess
 
-            subprocess.check_call([sys.executable, "-m", __name__, str(kwargs_file), str(results_file)])
+            subprocess.check_call(
+                [
+                    sys.executable,
+                    "-m",
+                    "meta_learn_prompt.train.train_main",
+                    str(kwargs_file),
+                    str(results_file),
+                ]
+            )
             with open(results_file, "rb") as f:
                 results = dill.load(f)
             return results
         else:
             return _train_step(self.work_dir, config, trainer, strategy, model, datamodule)
-
-
-def main():
-    initialize_logging()
-
-    _, kwargs_file, results_file = sys.argv
-    with open(kwargs_file, "rb") as f:
-        training_kwargs = dill.load(f)
-    for module in training_kwargs["extra_modules"]:
-        import_extra_module(module)
-    results = _train_step(
-        training_kwargs["work_dir"],
-        training_kwargs["config"],
-        training_kwargs["trainer"],
-        training_kwargs["strategy"],
-        training_kwargs["model"],
-        training_kwargs["datamodule"],
-    )
-    with open(results_file, "wb") as f:
-        dill.dump(results, f)
-
-
-if __name__ == "__main__":
-    main()
