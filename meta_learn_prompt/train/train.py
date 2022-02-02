@@ -2,13 +2,14 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Iterable
 
 import dill
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_only
 from tango.common.lazy import Lazy
 from tango.common.logging import initialize_logging
+from tango.common.util import get_extra_imported_modules, import_extra_module
 from tango.integrations.pytorch_lightning import (
     LightningCallback,
     LightningModule,
@@ -93,6 +94,7 @@ class T0MultiTaskCallback(LightningCallback):
 # to be able to do this when train.py is called as a standalone script.
 def _train_step(
     work_dir: Path,
+    extra_modules: Iterable[str],
     config: Config,
     trainer: Lazy[LightningTrainer],
     strategy: Optional[str],
@@ -102,6 +104,9 @@ def _train_step(
     # lr_schedule: Lazy[LRScheduler],
 ) -> Tuple[str, List[Dict]]:
     pl.seed_everything(config.seed)
+
+    for module in extra_modules:
+        import_extra_module(module)
 
     datamodule = datamodule.construct(config=config)
 
@@ -189,6 +194,7 @@ class TrainStep(Step):
                 dill.dump(
                     {
                         "work_dir": self.work_dir,
+                        "extra_modules": get_extra_imported_modules(),
                         "config": config,
                         "trainer": trainer,
                         "strategy": strategy,
@@ -206,7 +212,7 @@ class TrainStep(Step):
                 results = dill.load(f)
             return results
         else:
-            return _train_step(self.work_dir, config, trainer, strategy, model, datamodule)
+            return _train_step(self.work_dir, [], config, trainer, strategy, model, datamodule)
 
 
 def main():
@@ -217,6 +223,7 @@ def main():
         training_kwargs = dill.load(f)
     results = _train_step(
         training_kwargs["work_dir"],
+        training_kwargs["extra_modules"],
         training_kwargs["config"],
         training_kwargs["trainer"],
         training_kwargs["strategy"],
