@@ -191,6 +191,7 @@ class TrainStep(Step):
                         "work_dir": self.work_dir,
                         "config": Config,
                         "trainer": trainer,
+                        "strategy": strategy,
                         "model": model,
                         "datamodule": datamodule,
                     },
