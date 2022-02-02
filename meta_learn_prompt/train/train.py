@@ -161,6 +161,7 @@ def _train_step(
 
 @Step.register("train_step")
 class TrainStep(Step):
+    VERSION = "004"
 
     DETERMINISTIC: bool = True
     CACHEABLE = True
