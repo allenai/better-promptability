@@ -189,7 +189,7 @@ class TrainStep(Step):
                 dill.dump(
                     {
                         "work_dir": self.work_dir,
-                        "config": Config,
+                        "config": config,
                         "trainer": trainer,
                         "strategy": strategy,
                         "model": model,
