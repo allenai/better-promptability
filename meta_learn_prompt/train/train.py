@@ -177,12 +177,12 @@ class TrainStep(Step):
     ) -> Tuple[str, List[Dict]]:
         if config.gpus == 1:
             strategy = None
-        elif config.gpus >= 1:
+        elif config.gpus > 1:
             strategy = "ddp_sharded"
         else:
             strategy = None
 
-        if strategy in {"ddp_shared", "ddp_shared_spawn", "deepspeed"}:
+        if strategy in {"ddp_sharded", "ddp_sharded_spawn", "deepspeed"}:
             kwargs_file = self.work_dir / "train_kwargs.dill"
             with kwargs_file.open("wb") as f:
                 dill.dump(
