@@ -45,6 +45,9 @@ class MetaLearner(Model):
         if algorithm == "reptile" and self.adaptation_steps == 1:
             logger.warning("Reptile with 1 adaptation step is equivalent to MTL.")
 
+        self.model.metrics = self.model.setup_metrics()
+        self.metrics = self.model.metrics
+
     def setup(self, stage: str = None):
         pass
 
@@ -145,6 +148,11 @@ class MetaLearner(Model):
                 "lr", self.trainer.lr_schedulers[0]["scheduler"].get_last_lr()[-1], prog_bar=True
             )
         return {"loss": output["query_loss"]}
+
+    def eval_step(
+        self, batch: dict[str, torch.Tensor], batch_idx: int, dataloader_idx=0, compute_loss=True
+    ) -> dict[str, Any]:
+        return self.model.eval_step(batch, batch_idx, dataloader_idx, compute_loss)
 
     def configure_optimizers(self) -> Union[list[Optimizer], tuple[list[Optimizer], list[dict]]]:
         opt_conf = super().configure_optimizers()

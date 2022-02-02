@@ -8,6 +8,7 @@ local model = "google/t5-small-lm-adapt";
 local train_full_model = true;
 local effective_batch_size = 4096;
 local batch_size = 32;
+local ckpt_interval = 500;
 
 {
     "steps": {
@@ -21,6 +22,7 @@ local batch_size = 32;
                 "accumulate_grad_batches": effective_batch_size / batch_size,
                 "num_sanity_val_steps": 0,
                 "log_every_n_steps": 50,
+                "val_check_interval": ckpt_interval * effective_batch_size / batch_size,
                 "logger": [
                     {"type": "pytorch_lightning::TensorBoardLogger"},
                     {
@@ -36,13 +38,14 @@ local batch_size = 32;
                         "type": "pytorch_lightning::ModelCheckpoint",
                         "save_last": true,
                         "save_top_k": -1,
-                        "every_n_train_steps": 500,
+                        "filename": "{epoch}-{step}-{categorical_accuracy:.4f}",
+                        "every_n_train_steps": ckpt_interval,
                     },
                     {
                         "type": "pytorch_lightning::ModelCheckpoint",
                         "save_last": true,
                         "save_top_k": -1,
-                        "filename": "{epoch}-{step}-endofepoch",
+                        "filename": "{epoch}-{step}-endofepoch-{categorical_accuracy:.4f}",
                         "save_on_train_epoch_end": true,
                     },
                     "my_logger",

@@ -52,6 +52,9 @@ class T0MetaLearningDataModule(T0MultiTaskDataModule):
         )
 
     def dataloader(self, split: str, batch_size: int, shuffle=False) -> DataLoader:
+        if split != "train":
+            return super().dataloader(split, batch_size, shuffle=shuffle)
+
         dataset_split = self.dataset_dict[split]
         pad_token_map = self.pad_token_map(split)
         assert all(pad is not None for pad in pad_token_map.values())
