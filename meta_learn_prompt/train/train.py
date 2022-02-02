@@ -6,8 +6,6 @@ from typing import Dict, List, Tuple, Optional
 
 import dill
 import pytorch_lightning as pl
-from pytorch_lightning.accelerators import GPUAccelerator
-from pytorch_lightning.plugins import DeepSpeedPrecisionPlugin, DeepSpeedPlugin
 from pytorch_lightning.utilities import rank_zero_only
 from tango.common.lazy import Lazy
 from tango.integrations.pytorch_lightning import (
@@ -116,9 +114,7 @@ def _train_step(
         strategy=strategy,
         auto_select_gpus=config.auto_select_gpus,
         # Need to reload the dataloaders each epoch when using the T0MultiTaskDataModule.
-        reload_dataloaders_every_n_epochs=1
-        if isinstance(datamodule, T0MultiTaskDataModule)
-        else 0,
+        reload_dataloaders_every_n_epochs=1 if isinstance(datamodule, T0MultiTaskDataModule) else 0,
     )
 
     # Make sure we're using the `T0MultiTaskCallback` if using the `T0MultiTaskDataModule`
