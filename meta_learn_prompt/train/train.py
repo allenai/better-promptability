@@ -203,7 +203,7 @@ class TrainStep(Step):
 
             import subprocess
 
-            subprocess.check_call([sys.executable, __file__, str(kwargs_file), str(results_file)])
+            subprocess.check_call([sys.executable, "-m", __name__, str(kwargs_file), str(results_file)])
             with open(results_file, "rb") as f:
                 results = dill.load(f)
             return results
