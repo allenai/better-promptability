@@ -17,10 +17,10 @@ from tango.integrations.pytorch_lightning import (
 from tango.format import JsonFormat
 from tango.step import Step
 
-from ..data.config import Config
-from ..data.prompt_data_module import PromptDataModule
-from ..data.t0_multitask_data_module import T0MultiTaskDataModule
-from ..models.model import Model
+from meta_learn_prompt.data.config import Config
+from meta_learn_prompt.data.prompt_data_module import PromptDataModule
+from meta_learn_prompt.data.t0_multitask_data_module import T0MultiTaskDataModule
+from meta_learn_prompt.models.model import Model
 
 logger = logging.getLogger(__name__)
 
