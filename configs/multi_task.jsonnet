@@ -7,7 +7,7 @@ local config = {
 local model = "google/t5-large-lm-adapt";
 local train_full_model = true;
 local effective_batch_size = 4096;
-local batch_size = 1;
+local batch_size = 8;
 
 {
     "steps": {
