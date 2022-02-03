@@ -54,10 +54,8 @@ local batch_size = 1;
                 "type": "prefix_transformer",
                 "transformer_model": model,
                 "optimizer": {
-                    "type": "adafactor",
-                    "lr": 0.001,
-                    "scale_parameter": false,
-                    "relative_step": false,
+                    "type": "transformers_adamw",
+                    "lr": 0.0001,
                 },
                 "train_full_model": train_full_model,
             },
