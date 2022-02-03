@@ -1,7 +1,7 @@
 local config = {
     "type": "default",
     "seed": 100,
-    "gpus": 2,
+    "gpus": 4,
     "fp16": false,
 };
 local model = "google/t5-large-lm-adapt";
