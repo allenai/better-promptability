@@ -129,7 +129,7 @@ class Model(LightningModule):
         self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int
     ):
         """See https://pytorch.org/docs/stable/generated/torch.optim.Optimizer.zero_grad.html"""
-        optimizer.zero_grad(set_to_none=True)
+        optimizer.zero_grad()
 
     def compute_loss(
         self,
