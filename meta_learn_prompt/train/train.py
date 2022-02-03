@@ -179,7 +179,7 @@ class TrainStep(Step):
         if config.gpus == 1:
             strategy = None
         elif config.gpus > 1:
-            strategy = "deepspeed_stage_1"
+            strategy = "deepspeed_stage_2"
         else:
             strategy = None
 
