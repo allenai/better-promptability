@@ -179,11 +179,11 @@ class TrainStep(Step):
         if config.gpus == 1:
             strategy = None
         elif config.gpus > 1:
-            strategy = "ddp_sharded"
+            strategy = "deepspeed_stage_1"
         else:
             strategy = None
 
-        if strategy in {"ddp_sharded", "ddp_sharded_spawn", "deepspeed"}:
+        if strategy is not None:
             kwargs_file = self.work_dir / "train_kwargs.dill"
             with kwargs_file.open("wb") as f:
                 dill.dump(
