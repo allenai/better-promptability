@@ -1,13 +1,13 @@
 local config = {
     "type": "default",
     "seed": 100,
-    "gpus": 4,
+    "gpus": 8,
     "fp16": false,
 };
-local model = "google/t5-large-lm-adapt";
+local model = "google/t5-xl-lm-adapt";
 local train_full_model = true;
 local effective_batch_size = 4096;
-local batch_size = 8;
+local batch_size = 4;
 
 {
     "steps": {
