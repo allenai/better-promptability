@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 
+import deepspeed
 import dill
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_only
@@ -15,6 +16,7 @@ from tango.integrations.pytorch_lightning import (
     LightningTrainer,
 )
 from tango.format import JsonFormat
+from tango.integrations.torch import Optimizer
 from tango.step import Step
 
 from meta_learn_prompt.data.config import Config
@@ -131,12 +133,13 @@ def _train_step(
     epochs = trainer.max_epochs
 
     logger.info("Constructing model ...")
-    model = model.construct(
-        config=config,
-        dataset=datamodule,
-        epochs=epochs,
-        accumulate_grad_batches=trainer.accumulate_grad_batches,
-    )
+    with deepspeed.zero.Init():
+        model = model.construct(
+            config=config,
+            dataset=datamodule,
+            epochs=epochs,
+            accumulate_grad_batches=trainer.accumulate_grad_batches,
+        )
     logger.info("Done constructing model ...")
 
     assert model.epochs == epochs
@@ -162,9 +165,6 @@ def _train_step(
 
     return checkpoint_callback.best_model_path, logging_callback.metrics_history
 
-
-from tango.integrations.torch import Optimizer, LRScheduler
-import deepspeed
 
 Optimizer.register("deepspeed::cpu_adam")(deepspeed.ops.adam.DeepSpeedCPUAdam)  # does not work because DeepSpeedCPUAdam uses `model_params` instead of `params` for the parameter name
 Optimizer.register("deepspeed::fused_adam")(deepspeed.ops.adam.FusedAdam)
