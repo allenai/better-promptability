@@ -54,7 +54,7 @@ local batch_size = 4;
                 "type": "prefix_transformer",
                 "transformer_model": model,
                 "optimizer": {
-                    "type": "transformers_adamw",
+                    "type": "deepspeed::fused_adam",
                     "lr": 0.0001,
                 },
                 "train_full_model": train_full_model,
