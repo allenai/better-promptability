@@ -108,6 +108,7 @@ def _train_step(
     datamodule.prepare_data()
     datamodule.setup()
 
+    logger.info("Constructing trainer ...")
     trainer: LightningTrainer = trainer.construct(
         work_dir=work_dir,
         gpus=config.gpus,
@@ -117,6 +118,7 @@ def _train_step(
         # Need to reload the dataloaders each epoch when using the T0MultiTaskDataModule.
         reload_dataloaders_every_n_epochs=1 if isinstance(datamodule, T0MultiTaskDataModule) else 0,
     )
+    logger.info("Done constructing trainer ...")
 
     # Make sure we're using the `T0MultiTaskCallback` if using the `T0MultiTaskDataModule`
     if isinstance(datamodule, T0MultiTaskDataModule):
@@ -128,12 +130,14 @@ def _train_step(
 
     epochs = trainer.max_epochs
 
+    logger.info("Constructing model ...")
     model = model.construct(
         config=config,
         dataset=datamodule,
         epochs=epochs,
         accumulate_grad_batches=trainer.accumulate_grad_batches,
     )
+    logger.info("Done constructing model ...")
 
     assert model.epochs == epochs
 
