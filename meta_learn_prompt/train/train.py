@@ -163,6 +163,13 @@ def _train_step(
     return checkpoint_callback.best_model_path, logging_callback.metrics_history
 
 
+from tango.integrations.torch import Optimizer, LRScheduler
+import deepspeed
+
+Optimizer.register("deepspeed::cpu_adam")(deepspeed.ops.adam.DeepSpeedCPUAdam)  # does not work because DeepSpeedCPUAdam uses `model_params` instead of `params` for the parameter name
+Optimizer.register("deepspeed::fused_adam")(deepspeed.ops.adam.FusedAdam)
+
+
 @Step.register("train_step")
 class TrainStep(Step):
     VERSION = "004"
