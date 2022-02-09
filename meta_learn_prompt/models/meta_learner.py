@@ -103,8 +103,12 @@ class MetaLearner(Model):
             wpe_logger.setLevel(wpe_logger_level)
             tango_logger.setLevel(tango_logger_level)
 
-            support_split_size = support_batch["input_ids"].shape[0] // self.meta_accumulate_grad_batches
-            query_split_size = query_batch["input_ids"].shape[0] // self.meta_accumulate_grad_batches
+            support_split_size = (
+                support_batch["input_ids"].shape[0] // self.meta_accumulate_grad_batches
+            )
+            query_split_size = (
+                query_batch["input_ids"].shape[0] // self.meta_accumulate_grad_batches
+            )
             for _ in range(self.adaptation_steps):
                 inner_optimizer.zero_grad()
                 for support_batch_split in split_batch(support_batch, support_split_size):
