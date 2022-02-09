@@ -103,11 +103,11 @@ class MetaLearner(Model):
             wpe_logger.setLevel(wpe_logger_level)
             tango_logger.setLevel(tango_logger_level)
 
-            assert support_batch["input_ids"].shape[0] == query_batch["input_ids"].shape[0]
-            split_size = support_batch["input_ids"].shape[0] // self.meta_accumulate_grad_batches
+            support_split_size = support_batch["input_ids"].shape[0] // self.meta_accumulate_grad_batches
+            query_split_size = query_batch["input_ids"].shape[0] // self.meta_accumulate_grad_batches
             for _ in range(self.adaptation_steps):
                 inner_optimizer.zero_grad()
-                for support_batch_split in split_batch(support_batch, split_size):
+                for support_batch_split in split_batch(support_batch, support_split_size):
                     output = learner(support_batch_split)
                     loss = self.model.compute_loss(
                         output["logits"],
@@ -124,7 +124,7 @@ class MetaLearner(Model):
                 # unfreeze the model to tune it in its entirety.
                 learner.unfreeze()
                 inner_optimizer.zero_grad()
-                for query_batch_split in split_batch(query_batch, split_size):
+                for query_batch_split in split_batch(query_batch, query_split_size):
                     query_output = learner(query_batch_split)
                     loss = self.model.compute_loss(
                         query_output["logits"],
