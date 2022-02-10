@@ -7,6 +7,7 @@ from typing import Dict, List, Tuple, Optional
 import deepspeed
 import dill
 import pytorch_lightning as pl
+import transformers
 from pytorch_lightning.utilities import rank_zero_only
 from tango.common.lazy import Lazy
 from tango.common.util import get_extra_imported_modules
@@ -28,10 +29,10 @@ from meta_learn_prompt.models.model import Model
 def deepspeed_cpu_adam_fixed(params, *args, **kwargs):
     return deepspeed.ops.adam.DeepSpeedCPUAdam(model_params=params, *args, **kwargs)
 
+
 Optimizer.register("deepspeed::cpu_adam")(deepspeed_cpu_adam_fixed)
 Optimizer.register("deepspeed::fused_adam")(deepspeed.ops.adam.FusedAdam)
 Optimizer.register("deepspeed::fused_lamb")(deepspeed.ops.lamb.FusedLamb)
-import transformers
 Optimizer.register("transformers::adamw")(transformers.optimization.AdamW)
 Optimizer.register("transformers::adafactor")(transformers.optimization.Adafactor)
 
@@ -197,11 +198,11 @@ class TrainStep(Step):
         if config.gpus == 1:
             strategy = None
         elif config.gpus > 1:
-            #strategy = "deepspeed_stage_3_offload"
-            #strategy = "deepspeed_stage_3"
-            #strategy = "deepspeed_stage_2"
+            # strategy = "deepspeed_stage_3_offload"
+            # strategy = "deepspeed_stage_3"
+            # strategy = "deepspeed_stage_2"
             strategy = "ddp_sharded"
-            #strategy = "ddp"
+            # strategy = "ddp"
         else:
             strategy = None
 
