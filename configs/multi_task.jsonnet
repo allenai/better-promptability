@@ -67,7 +67,7 @@ local batch_size = 2;
             },
             "datamodule": {
                 "type": "t0_multitask",
-                "mixture_name": "debug_train",
+                "mixture_name": "d4_train",
                 "data_dir": "data",
                 "t0_data_cache": "/net/nfs.cirrascale/allennlp/zhaofengw/t0/data_cache/",
                 "transformer_model": model,
