@@ -24,6 +24,18 @@ from meta_learn_prompt.data.prompt_data_module import PromptDataModule
 from meta_learn_prompt.data.t0_multitask_data_module import T0MultiTaskDataModule
 from meta_learn_prompt.models.model import Model
 
+
+def deepspeed_cpu_adam_fixed(params, *args, **kwargs):
+    return deepspeed.ops.adam.DeepSpeedCPUAdam(model_params=params, *args, **kwargs)
+
+Optimizer.register("deepspeed::cpu_adam")(deepspeed_cpu_adam_fixed)
+Optimizer.register("deepspeed::fused_adam")(deepspeed.ops.adam.FusedAdam)
+Optimizer.register("deepspeed::fused_lamb")(deepspeed.ops.lamb.FusedLamb)
+import transformers
+Optimizer.register("transformers::adamw")(transformers.optimization.AdamW)
+Optimizer.register("transformers::adafactor")(transformers.optimization.Adafactor)
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -163,17 +175,6 @@ def _train_step(
         raise ValueError(f"Trainer did not succeed! Final trainer state was {trainer.state}.")
 
     return checkpoint_callback.best_model_path, logging_callback.metrics_history
-
-
-def deepspeed_cpu_adam_fixed(params, *args, **kwargs):
-    return deepspeed.ops.adam.DeepSpeedCPUAdam(model_params=params, *args, **kwargs)
-
-Optimizer.register("deepspeed::cpu_adam")(deepspeed_cpu_adam_fixed)
-Optimizer.register("deepspeed::fused_adam")(deepspeed.ops.adam.FusedAdam)
-Optimizer.register("deepspeed::fused_lamb")(deepspeed.ops.lamb.FusedLamb)
-import transformers
-Optimizer.register("transformers::adamw")(transformers.optimization.AdamW)
-Optimizer.register("transformers::adafactor")(transformers.optimization.Adafactor)
 
 
 @Step.register("train_step")
