@@ -38,12 +38,14 @@ class PrefixTransformer(Model):
         optstates_dir: Optional[str] = "/net/nfs2.allennlp/zhaofengw/optstates",
         load_opt_states: bool = True,
         train_full_model: bool = False,
+        deep: bool = False,
         **transformer_kwargs,
     ):
         self.transformer_name = transformer_model
         self.optstates_dir = optstates_dir
         self.load_opt_states = load_opt_states
         self.train_full_model = train_full_model
+        self.deep = deep
 
         super().__init__(
             config,
@@ -62,16 +64,29 @@ class PrefixTransformer(Model):
         self.transformer = Transformer(transformer_model, "seq2seq-lm", **transformer_kwargs)
         transformer_model: T5ForConditionalGeneration = self.transformer.model
         assert isinstance(transformer_model, T5ForConditionalGeneration)
+        self.transformer_config = transformer_model.config
 
         if not self.train_full_model:
             for param in self.transformer.parameters():
                 param.requires_grad = False
 
-        transformer_model.set_input_embeddings(
-            WithPrefixEmbedding(
-                transformer_model.shared, self.dataset.tokenizer.vocab_size, self.dataset.num_prefix
+        if not self.deep:
+            transformer_model.set_input_embeddings(
+                WithPrefixEmbedding(
+                    transformer_model.shared,
+                    self.dataset.tokenizer.vocab_size,
+                    self.dataset.num_prefix,
+                )
             )
-        )
+        else:
+            self.dataset.task_tokens = []
+            self.dataset.task_token_ids = []
+            self.prefix_tokens = torch.arange(self.dataset.num_prefix)
+            self.deep_prefix_embedding = torch.nn.Embedding(
+                self.dataset.num_prefix,
+                self.transformer_config.num_layers * 2 * self.transformer_config.d_model,
+            )
+            self.deep_prefix_dropout = torch.nn.Dropout(self.transformer_config.dropout_rate)
 
     def unfreeze(self) -> dict[torch.nn.Parameter, bool]:
         orig_requires_grad = {}
@@ -98,6 +113,30 @@ class PrefixTransformer(Model):
             orig_decoder_shape = target_ids.shape
             target_ids = target_ids.reshape(-1, orig_decoder_shape[-1])
             target_mask = target_mask.reshape(-1, orig_decoder_shape[-1])
+
+        encoder_outputs = None
+        if self.deep:
+            # We could use past_key_values, but it's given to the decoder, but not the encoder.
+            # So we need to copmute encoder_output in advance.
+            bsz = input_ids.shape[0]
+            prefix_tokens = self.prefix_tokens.unsqueeze(0).expand(bsz, -1).to(input_ids.device)
+            past_key_values = self.deep_prefix_embedding(prefix_tokens)
+            past_key_values = past_key_values.reshape(
+                bsz,
+                self.dataset.num_prefix,
+                self.transformer_config.num_layers * 2,
+                self.transformer_config.num_heads,
+                self.transformer_config.d_kv,
+            )
+            past_key_values = self.deep_prefix_dropout(past_key_values)
+            past_key_values = past_key_values.permute([2, 0, 3, 1, 4]).split(2)
+            # TODO: attention mask
+            encoder_outputs = self.encoder(
+                input_ids=input_ids,
+                attention_mask=input_mask,
+                past_key_values=past_key_values,
+                return_dict=self.transformer_config.use_return_dict,
+            )
 
         logits = self.transformer(
             input_ids=input_ids,
