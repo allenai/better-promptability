@@ -206,36 +206,33 @@ class TrainStep(Step):
         else:
             strategy = None
 
-        if strategy is not None:
-            kwargs_file = self.work_dir / "train_kwargs.dill"
-            with kwargs_file.open("wb") as f:
-                dill.dump(
-                    {
-                        "work_dir": self.work_dir,
-                        "extra_modules": get_extra_imported_modules(),
-                        "config": config,
-                        "trainer": trainer,
-                        "strategy": strategy,
-                        "model": model,
-                        "datamodule": datamodule,
-                    },
-                    f,
-                )
-            results_file = self.work_dir / "train_results.dill"
-
-            import subprocess
-
-            subprocess.check_call(
-                [
-                    sys.executable,
-                    "-m",
-                    "meta_learn_prompt.train.train_main",
-                    str(kwargs_file),
-                    str(results_file),
-                ]
+        kwargs_file = self.work_dir / "train_kwargs.dill"
+        with kwargs_file.open("wb") as f:
+            dill.dump(
+                {
+                    "work_dir": self.work_dir,
+                    "extra_modules": get_extra_imported_modules(),
+                    "config": config,
+                    "trainer": trainer,
+                    "strategy": strategy,
+                    "model": model,
+                    "datamodule": datamodule,
+                },
+                f,
             )
-            with open(results_file, "rb") as f:
-                results = dill.load(f)
-            return results
-        else:
-            return _train_step(self.work_dir, config, trainer, strategy, model, datamodule)
+        results_file = self.work_dir / "train_results.dill"
+
+        import subprocess
+
+        subprocess.check_call(
+            [
+                sys.executable,
+                "-m",
+                "meta_learn_prompt.train.train_main",
+                str(kwargs_file),
+                str(results_file),
+            ]
+        )
+        with open(results_file, "rb") as f:
+            results = dill.load(f)
+        return results
