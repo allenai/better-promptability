@@ -11,6 +11,7 @@ from transformers import T5ForConditionalGeneration
 
 from ..data.config import Config
 from ..data.prompt_data_module import PromptDataModule
+from ..data.t0_multitask_data_module import T0MultiTaskDataModule
 from ..modules.transformer import Transformer
 from ..modules.with_prefix_embedding import WithPrefixEmbedding
 from ..train.optim import load_adafactor_state, resolve_optimizer_conf
@@ -127,9 +128,16 @@ class PrefixTransformer(Model):
         dataloader_idx=0,
         compute_loss=True,
     ) -> dict[str, Any]:
-        return super().eval_step(
-            batch, batch_idx, dataloader_idx=dataloader_idx, compute_loss=False
-        )
+        if isinstance(self.dataset, T0MultiTaskDataModule):
+            preds = self(batch)["logits"]
+            split = self.dataset.dev_splits[dataloader_idx]
+            for metric in self.metrics[split].values():
+                metric(*metric.detach_tensors(preds, batch["target_ids"], batch["target_mask"]))
+            return {}
+        else:
+            return super().eval_step(
+                batch, batch_idx, dataloader_idx=dataloader_idx, compute_loss=False
+            )
 
     def on_save_checkpoint(self, checkpoint: dict[str, Any]):
         """

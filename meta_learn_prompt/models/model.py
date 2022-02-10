@@ -120,11 +120,12 @@ class Model(LightningModule):
 
         if num_devices > 1:
             from deepspeed.runtime.lr_schedules import WarmupDecayLR
+
             scheduler = WarmupDecayLR(
                 optimizer,
                 warmup_num_steps=self.optimizer_kwargs["warmup_steps"],
-                warmup_type='linear',
-                total_num_steps=total_steps
+                warmup_type="linear",
+                total_num_steps=total_steps,
             )
         else:
             scheduler = get_linear_schedule_with_warmup(

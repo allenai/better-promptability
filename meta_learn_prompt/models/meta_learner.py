@@ -19,6 +19,19 @@ from ..train.optim import load_adafactor_state, resolve_optimizer_conf
 logger = logging.getLogger(__name__)
 
 
+def split_batch(batch, split_size):
+    bsz = batch["input_ids"].shape[0]
+    assert all(v.shape[0] == bsz for v in batch.values())
+    splits = None
+    for k, v in batch.items():
+        v_splits = v.split(split_size)
+        if splits is None:
+            splits = [{} for _ in v_splits]
+        for i, v_split in enumerate(v_splits):
+            splits[i][k] = v_split
+    return splits
+
+
 @Model.register("meta_learner")
 class MetaLearner(Model):
     def __init__(
@@ -28,6 +41,7 @@ class MetaLearner(Model):
         algorithm: str,
         meta_optimizer: Lazy[Optimizer],
         load_opt_states: bool = True,
+        meta_accumulate_grad_batches: int = 1,
     ):
         # TODO: anneal meta LR?
         assert algorithm in {"fomaml", "reptile"}
@@ -38,12 +52,16 @@ class MetaLearner(Model):
         self.algorithm = algorithm
         self.adaptation_steps = adaptation_steps
         self.load_opt_states = load_opt_states
+        self.meta_accumulate_grad_batches = meta_accumulate_grad_batches
 
         inner_optimizer = resolve_optimizer_conf(self.model.configure_optimizers())
         self.inner_optimizer_state = inner_optimizer.state_dict()
 
         if algorithm == "reptile" and self.adaptation_steps == 1:
             logger.warning("Reptile with 1 adaptation step is equivalent to MTL.")
+
+        self.model.metrics = self.model.setup_metrics()
+        self.metrics = self.model.metrics
 
     def setup(self, stage: str = None):
         pass
@@ -63,7 +81,7 @@ class MetaLearner(Model):
 
         # These are for logging only
         support_loss = 0.0
-        query_loss = torch.zeros([], device=p.device)  # a dummy query loss for reptile
+        query_loss = torch.zeros([])  # a dummy query loss for reptile
 
         for support_batch, query_batch in meta_batch:
             # Disable <ERROR logging from model recreation which would otherwise pollute stdout
@@ -85,13 +103,22 @@ class MetaLearner(Model):
             wpe_logger.setLevel(wpe_logger_level)
             tango_logger.setLevel(tango_logger_level)
 
+            support_split_size = (
+                support_batch["input_ids"].shape[0] // self.meta_accumulate_grad_batches
+            )
+            query_split_size = (
+                query_batch["input_ids"].shape[0] // self.meta_accumulate_grad_batches
+            )
             for _ in range(self.adaptation_steps):
-                output = learner(support_batch)
-                loss = self.model.compute_loss(
-                    output["logits"], support_batch["target_ids"], support_batch.get("target_mask")
-                )
                 inner_optimizer.zero_grad()
-                loss.backward()
+                for support_batch_split in split_batch(support_batch, support_split_size):
+                    output = learner(support_batch_split)
+                    loss = self.model.compute_loss(
+                        output["logits"],
+                        support_batch_split["target_ids"],
+                        support_batch_split.get("target_mask"),
+                    )
+                    loss.backward()
                 inner_optimizer.step()
             self.inner_optimizer_state = inner_optimizer.state_dict()
             support_loss += loss.detach().cpu()
@@ -100,14 +127,15 @@ class MetaLearner(Model):
                 # In the inner loop we only tune the prompt embeddings, and in the outer loop we
                 # unfreeze the model to tune it in its entirety.
                 learner.unfreeze()
-                query_output = learner(query_batch)
-                loss = self.model.compute_loss(
-                    query_output["logits"],
-                    query_batch["target_ids"],
-                    query_batch.get("target_mask"),
-                )
                 inner_optimizer.zero_grad()
-                loss.backward()
+                for query_batch_split in split_batch(query_batch, query_split_size):
+                    query_output = learner(query_batch_split)
+                    loss = self.model.compute_loss(
+                        query_output["logits"],
+                        query_batch_split["target_ids"],
+                        query_batch_split.get("target_mask"),
+                    )
+                    loss.backward()
                 for p, l in zip(self.model.parameters(), learner.parameters()):
                     p.grad.data.add_(l.grad.data)
                 query_loss += loss.detach().cpu()
@@ -145,6 +173,11 @@ class MetaLearner(Model):
                 "lr", self.trainer.lr_schedulers[0]["scheduler"].get_last_lr()[-1], prog_bar=True
             )
         return {"loss": output["query_loss"]}
+
+    def eval_step(
+        self, batch: dict[str, torch.Tensor], batch_idx: int, dataloader_idx=0, compute_loss=True
+    ) -> dict[str, Any]:
+        return self.model.eval_step(batch, batch_idx, dataloader_idx, compute_loss)
 
     def configure_optimizers(self) -> Union[list[Optimizer], tuple[list[Optimizer], list[dict]]]:
         opt_conf = super().configure_optimizers()
