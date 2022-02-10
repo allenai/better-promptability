@@ -27,12 +27,14 @@ local model = if checkpoint == "null" then {
     "transformer_model": model_name,
     "optimizer": optimizer,
     "optstates_dir": optstates_dir,
+    "load_opt_states": false,
 } else {
     "type": "prefix_transformer_from_checkpoint",
     "transformer_model": model_name,
     "optimizer": optimizer,
     "checkpoint_path": checkpoint,
     "optstates_dir": optstates_dir,
+    "load_opt_states": false,
     "strict": false,
 };
 

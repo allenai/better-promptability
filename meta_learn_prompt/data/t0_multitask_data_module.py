@@ -43,7 +43,7 @@ class T0MultiTaskDataModule(PromptDataModule):
 
     @property
     def dev_splits(self) -> list[str]:
-        return []
+        return ["dev"]
 
     @property
     def test_splits(self) -> list[str]:
@@ -88,6 +88,14 @@ class T0MultiTaskDataModule(PromptDataModule):
             splits={
                 "train": MixerDataset(
                     [dm[dm.train_split] for dm in self.t0_mixture.data_modules.values()],
+                    sampling_cap=self.sampling_cap,
+                ),
+                "dev": MixerDataset(
+                    [
+                        dm[dm.dev_splits[0]]
+                        for dm in self.t0_mixture.data_modules.values()
+                        if len(dm.dev_splits) > 0
+                    ],
                     sampling_cap=self.sampling_cap,
                 ),
             }
