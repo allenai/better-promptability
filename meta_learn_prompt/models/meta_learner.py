@@ -146,6 +146,10 @@ class MetaLearner(Model):
                 assert False
 
         for p in self.model.parameters():
+            # In distributed training, these averages are in most cases exact. The only exception
+            # is at the end of an epoch where different GPUs might have different-sized data.
+            # But since that happens VERY infrequently, we can live with this rather than
+            # implementating custom ddp comm hooks.
             if self.algorithm == "fomaml":
                 p.grad.data.div_(len(meta_batch))
             elif self.algorithm == "reptile":
