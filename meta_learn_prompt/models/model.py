@@ -5,7 +5,6 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from allennlp.training.metrics import Metric
 import torch
 import torch.nn.functional as F
-from transformers import get_linear_schedule_with_warmup
 
 # from transformers import AdamW
 
@@ -118,18 +117,23 @@ class Model(LightningModule):
             # TODO: do something about dataset_size
             total_steps = max(self.dataset_size / effective_batch_size, 1) * self.epochs
 
-        scheduler = get_linear_schedule_with_warmup(
+        from deepspeed.runtime.lr_schedules import WarmupDecayLR
+
+        scheduler = WarmupDecayLR(
             optimizer,
-            num_warmup_steps=self.optimizer_kwargs["warmup_steps"],
-            num_training_steps=total_steps,
+            warmup_num_steps=self.optimizer_kwargs["warmup_steps"],
+            warmup_type="linear",
+            total_num_steps=total_steps,
         )
+        # TODO: Does it want the total number of steps overall, or the steps per GPU?
+
         return {"scheduler": scheduler, "interval": "step", "frequency": 1}
 
     def optimizer_zero_grad(
         self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int
     ):
         """See https://pytorch.org/docs/stable/generated/torch.optim.Optimizer.zero_grad.html"""
-        optimizer.zero_grad(set_to_none=True)
+        optimizer.zero_grad()
 
     def compute_loss(
         self,

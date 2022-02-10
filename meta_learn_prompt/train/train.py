@@ -1,22 +1,41 @@
 import logging
 import os
-from typing import Dict, List, Tuple
+import sys
+from pathlib import Path
+from typing import Dict, List, Tuple, Optional
 
+import deepspeed
+import dill
 import pytorch_lightning as pl
+import transformers
 from pytorch_lightning.utilities import rank_zero_only
 from tango.common.lazy import Lazy
+from tango.common.util import get_extra_imported_modules
 from tango.integrations.pytorch_lightning import (
     LightningCallback,
     LightningModule,
     LightningTrainer,
 )
 from tango.format import JsonFormat
+from tango.integrations.torch import Optimizer
 from tango.step import Step
 
-from ..data.config import Config
-from ..data.prompt_data_module import PromptDataModule
-from ..data.t0_multitask_data_module import T0MultiTaskDataModule
-from ..models.model import Model
+from meta_learn_prompt.data.config import Config
+from meta_learn_prompt.data.prompt_data_module import PromptDataModule
+from meta_learn_prompt.data.t0_multitask_data_module import T0MultiTaskDataModule
+from meta_learn_prompt.models.model import Model
+
+
+def deepspeed_cpu_adam_fixed(params, *args, **kwargs):
+    return deepspeed.ops.adam.DeepSpeedCPUAdam(model_params=params, *args, **kwargs)
+
+
+Optimizer.register("deepspeed::cpu_adam")(deepspeed_cpu_adam_fixed)
+Optimizer.register("deepspeed::fused_adam")(deepspeed.ops.adam.FusedAdam)
+Optimizer.register("deepspeed::fused_lamb")(deepspeed.ops.lamb.FusedLamb)
+Optimizer.register("transformers::adamw")(transformers.optimization.AdamW)
+Optimizer.register("transformers::adafactor")(transformers.optimization.Adafactor)
+
 
 logger = logging.getLogger(__name__)
 
@@ -85,8 +104,83 @@ class T0MultiTaskCallback(LightningCallback):
             dataset.resample()
 
 
+# Since both FairScale and DeepSpeed are insane and will restart your whole process to make workers, we have
+# to be able to do this when train.py is called as a standalone script.
+def _train_step(
+    work_dir: Path,
+    config: Config,
+    trainer: Lazy[LightningTrainer],
+    strategy: Optional[str],
+    model: Lazy[Model],
+    datamodule: Lazy[PromptDataModule],
+    # optimizer: Lazy[Optimizer],
+    # lr_schedule: Lazy[LRScheduler],
+) -> Tuple[str, List[Dict]]:
+    pl.seed_everything(config.seed)
+
+    datamodule = datamodule.construct(config=config)
+
+    datamodule.prepare_data()
+    datamodule.setup()
+
+    logger.info("Constructing trainer ...")
+    trainer: LightningTrainer = trainer.construct(
+        work_dir=work_dir,
+        gpus=config.gpus,
+        precision=16 if config.fp16 else 32,
+        strategy=strategy,
+        auto_select_gpus=config.auto_select_gpus,
+        # Need to reload the dataloaders each epoch when using the T0MultiTaskDataModule.
+        reload_dataloaders_every_n_epochs=1 if isinstance(datamodule, T0MultiTaskDataModule) else 0,
+    )
+    logger.info("Done constructing trainer ...")
+
+    # Make sure we're using the `T0MultiTaskCallback` if using the `T0MultiTaskDataModule`
+    if isinstance(datamodule, T0MultiTaskDataModule):
+        for callback in trainer.callbacks:
+            if isinstance(callback, T0MultiTaskCallback):
+                break
+        else:
+            raise RuntimeError("T0MultiTaskCallback required when using T0MultiTaskDataModule")
+
+    epochs = trainer.max_epochs
+
+    logger.info("Constructing model ...")
+    model = model.construct(
+        config=config,
+        dataset=datamodule,
+        epochs=epochs,
+        accumulate_grad_batches=trainer.accumulate_grad_batches,
+    )
+    logger.info("Done constructing model ...")
+
+    assert model.epochs == epochs
+
+    # Find the checkpoint callback and make sure it uses the right directory.
+    # Also find the logging callback.
+    checkpoint_callback: pl.callbacks.model_checkpoint.ModelCheckpoint
+    logging_callback: LoggingCallback
+    for callback in trainer.callbacks:
+        if isinstance(callback, pl.callbacks.model_checkpoint.ModelCheckpoint):
+            callback.dirpath = work_dir
+            checkpoint_callback = callback
+        if isinstance(callback, LoggingCallback):
+            logging_callback = callback
+
+    resume_from_checkpoint = None
+    if "last.ckpt" in os.listdir(work_dir):
+        resume_from_checkpoint = os.path.join(work_dir, "last.ckpt")
+    trainer.fit(model, datamodule=datamodule, ckpt_path=resume_from_checkpoint)
+
+    if not trainer.state.finished:
+        raise ValueError(f"Trainer did not succeed! Final trainer state was {trainer.state}.")
+
+    return checkpoint_callback.best_model_path, logging_callback.metrics_history
+
+
 @Step.register("train_step")
 class TrainStep(Step):
+    VERSION = "004"
 
     DETERMINISTIC: bool = True
     CACHEABLE = True
@@ -101,62 +195,44 @@ class TrainStep(Step):
         # optimizer: Lazy[Optimizer],
         # lr_schedule: Lazy[LRScheduler],
     ) -> Tuple[str, List[Dict]]:
+        if config.gpus == 1:
+            strategy = None
+        elif config.gpus > 1:
+            # strategy = "deepspeed_stage_3_offload"
+            # strategy = "deepspeed_stage_3"
+            # strategy = "deepspeed_stage_2"
+            # strategy = "ddp_sharded"
+            strategy = "ddp"
+        else:
+            strategy = None
 
-        pl.seed_everything(config.seed)
+        kwargs_file = self.work_dir / "train_kwargs.dill"
+        with kwargs_file.open("wb") as f:
+            dill.dump(
+                {
+                    "work_dir": self.work_dir,
+                    "extra_modules": get_extra_imported_modules(),
+                    "config": config,
+                    "trainer": trainer,
+                    "strategy": strategy,
+                    "model": model,
+                    "datamodule": datamodule,
+                },
+                f,
+            )
+        results_file = self.work_dir / "train_results.dill"
 
-        datamodule = datamodule.construct(config=config)
+        import subprocess
 
-        datamodule.prepare_data()
-        datamodule.setup()
-
-        trainer: LightningTrainer = trainer.construct(
-            work_dir=self.work_dir,
-            gpus=config.gpus,
-            precision=16 if config.fp16 else 32,
-            accelerator="gpu" if config.gpus else "cpu",
-            auto_select_gpus=config.auto_select_gpus,
-            # Need to reload the dataloaders each epoch when using the T0MultiTaskDataModule.
-            reload_dataloaders_every_n_epochs=1
-            if isinstance(datamodule, T0MultiTaskDataModule)
-            else 0,
+        subprocess.check_call(
+            [
+                sys.executable,
+                "-m",
+                "meta_learn_prompt.train.train_main",
+                str(kwargs_file),
+                str(results_file),
+            ]
         )
-
-        # Make sure we're using the `T0MultiTaskCallback` if using the `T0MultiTaskDataModule`
-        if isinstance(datamodule, T0MultiTaskDataModule):
-            for callback in trainer.callbacks:
-                if isinstance(callback, T0MultiTaskCallback):
-                    break
-            else:
-                raise RuntimeError("T0MultiTaskCallback required when using T0MultiTaskDataModule")
-
-        epochs = trainer.max_epochs
-
-        model = model.construct(
-            config=config,
-            dataset=datamodule,
-            epochs=epochs,
-            accumulate_grad_batches=trainer.accumulate_grad_batches,
-        )
-
-        assert model.epochs == epochs
-
-        # Find the checkpoint callback and make sure it uses the right directory.
-        # Also find the logging callback.
-        checkpoint_callback: pl.callbacks.model_checkpoint.ModelCheckpoint
-        logging_callback: LoggingCallback
-        for callback in trainer.callbacks:
-            if isinstance(callback, pl.callbacks.model_checkpoint.ModelCheckpoint):
-                callback.dirpath = self.work_dir
-                checkpoint_callback = callback
-            if isinstance(callback, LoggingCallback):
-                logging_callback = callback
-
-        resume_from_checkpoint = None
-        if "last.ckpt" in os.listdir(self.work_dir):
-            resume_from_checkpoint = os.path.join(self.work_dir, "last.ckpt")
-        trainer.fit(model, datamodule=datamodule, ckpt_path=resume_from_checkpoint)
-
-        if not trainer.state.finished:
-            raise ValueError(f"Trainer did not succeed! Final trainer state was {trainer.state}.")
-
-        return (checkpoint_callback.best_model_path, logging_callback.metrics_history)
+        with open(results_file, "rb") as f:
+            results = dill.load(f)
+        return results
