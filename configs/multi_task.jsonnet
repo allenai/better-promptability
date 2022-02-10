@@ -1,13 +1,13 @@
 local config = {
     "type": "default",
     "seed": 100,
-    "gpus": 4,
+    "gpus": 8,
     "fp16": false,
 };
 local model = "google/t5-xl-lm-adapt";
 local train_full_model = true;
 local effective_batch_size = 4096;
-local batch_size = 2;
+local batch_size = 1;
 local ckpt_interval = 500;
 
 {
@@ -19,10 +19,10 @@ local ckpt_interval = 500;
                 "type": "default",
                 "max_epochs": 100,
                 "gradient_clip_val": 1.0,
-                "accumulate_grad_batches": effective_batch_size / batch_size,
+                "accumulate_grad_batches": effective_batch_size / batch_size / config.gpus,
                 "num_sanity_val_steps": 0,
                 "log_every_n_steps": 50,
-                "val_check_interval": ckpt_interval * effective_batch_size / batch_size,
+                "val_check_interval": ckpt_interval * effective_batch_size / batch_size / config.gpus,
                 "logger": [
                     {"type": "pytorch_lightning::TensorBoardLogger"},
                     {
