@@ -118,21 +118,15 @@ class Model(LightningModule):
             # TODO: do something about dataset_size
             total_steps = max(self.dataset_size / effective_batch_size, 1) * self.epochs
 
-        if num_devices > 1:
-            from deepspeed.runtime.lr_schedules import WarmupDecayLR
+        from deepspeed.runtime.lr_schedules import WarmupDecayLR
 
-            scheduler = WarmupDecayLR(
-                optimizer,
-                warmup_num_steps=self.optimizer_kwargs["warmup_steps"],
-                warmup_type="linear",
-                total_num_steps=total_steps,
-            )
-        else:
-            scheduler = get_linear_schedule_with_warmup(
-                optimizer,
-                num_warmup_steps=self.optimizer_kwargs["warmup_steps"],
-                num_training_steps=total_steps,
-            )
+        scheduler = WarmupDecayLR(
+            optimizer,
+            warmup_num_steps=self.optimizer_kwargs["warmup_steps"],
+            warmup_type="linear",
+            total_num_steps=total_steps,
+        )
+        # TODO: Does it want the total number of steps overall, or the steps per GPU?
 
         return {"scheduler": scheduler, "interval": "step", "frequency": 1}
 
