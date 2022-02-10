@@ -5,7 +5,6 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from allennlp.training.metrics import Metric
 import torch
 import torch.nn.functional as F
-from transformers import get_linear_schedule_with_warmup
 
 # from transformers import AdamW
 
