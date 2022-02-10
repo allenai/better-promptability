@@ -23,11 +23,11 @@ local batch_size = 2;
                 "log_every_n_steps": 50,
                 "logger": [
                     {"type": "pytorch_lightning::TensorBoardLogger"},
-#                    {
-#                        "type": "pytorch_lightning::WandbLogger",
-#                        "project": "multi-task",
-#                        "entity": "meta-learn-prompt",
-#                    },
+                    {
+                        "type": "pytorch_lightning::WandbLogger",
+                        "project": "multi-task",
+                        "entity": "meta-learn-prompt",
+                    },
                 ],
                 "callbacks": [
                     # We need separate ModelCheckpoints for per-step and per-epoch checkpointing.
@@ -67,7 +67,7 @@ local batch_size = 2;
                 "type": "t0_multitask",
                 "mixture_name": "debug_train",
                 "data_dir": "data",
-                "t0_data_cache": "/net/nfs2.allennlp/akshitab/meta-learn-prompt/t0/processed_cache",
+                "t0_data_cache": "/net/nfs.cirrascale/allennlp/zhaofengw/t0/data_cache/",
                 "transformer_model": model,
                 "batch_size": batch_size,
                 "num_prefix": 20,
