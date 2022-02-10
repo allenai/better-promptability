@@ -54,12 +54,14 @@ local batch_size = 2;
                 "type": "prefix_transformer",
                 "transformer_model": model,
                 "optimizer": {
+                    "type": "transformers::adafactor",
+                    "lr": 0.001,
+                    "scale_parameter": false,
+                    "relative_step": false,
                     #"type": "deepspeed::cpu_adam",
                     #"type": "deepspeed::fused_adam",
                     #"type": "deepspeed::fused_lamb",
                     #"type": "transformers::adamw",
-                    "type": "transformers::adafactor",
-                    #"lr": 0.0001,  # adafactor does not need this
                 },
                 "train_full_model": train_full_model,
             },
