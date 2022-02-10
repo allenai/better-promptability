@@ -133,13 +133,12 @@ def _train_step(
     epochs = trainer.max_epochs
 
     logger.info("Constructing model ...")
-    with deepspeed.zero.Init():
-        model = model.construct(
-            config=config,
-            dataset=datamodule,
-            epochs=epochs,
-            accumulate_grad_batches=trainer.accumulate_grad_batches,
-        )
+    model = model.construct(
+        config=config,
+        dataset=datamodule,
+        epochs=epochs,
+        accumulate_grad_batches=trainer.accumulate_grad_batches,
+    )
     logger.info("Done constructing model ...")
 
     assert model.epochs == epochs
@@ -166,8 +165,15 @@ def _train_step(
     return checkpoint_callback.best_model_path, logging_callback.metrics_history
 
 
-Optimizer.register("deepspeed::cpu_adam")(deepspeed.ops.adam.DeepSpeedCPUAdam)  # does not work because DeepSpeedCPUAdam uses `model_params` instead of `params` for the parameter name
+def deepspeed_cpu_adam_fixed(params, *args, **kwargs):
+    return deepspeed.ops.adam.DeepSpeedCPUAdam(model_params=params, *args, **kwargs)
+
+Optimizer.register("deepspeed::cpu_adam")(deepspeed_cpu_adam_fixed)
 Optimizer.register("deepspeed::fused_adam")(deepspeed.ops.adam.FusedAdam)
+Optimizer.register("deepspeed::fused_lamb")(deepspeed.ops.lamb.FusedLamb)
+import transformers
+Optimizer.register("transformers::adamw")(transformers.optimization.AdamW)
+Optimizer.register("transformers::adafactor")(transformers.optimization.Adafactor)
 
 
 @Step.register("train_step")
@@ -190,7 +196,11 @@ class TrainStep(Step):
         if config.gpus == 1:
             strategy = None
         elif config.gpus > 1:
-            strategy = "deepspeed_stage_2"
+            #strategy = "deepspeed_stage_3_offload"
+            #strategy = "deepspeed_stage_3"
+            #strategy = "deepspeed_stage_2"
+            strategy = "ddp_sharded"
+            #strategy = "ddp"
         else:
             strategy = None
 

@@ -1,13 +1,13 @@
 local config = {
     "type": "default",
     "seed": 100,
-    "gpus": 8,
+    "gpus": 4,
     "fp16": false,
 };
 local model = "google/t5-xl-lm-adapt";
 local train_full_model = true;
 local effective_batch_size = 4096;
-local batch_size = 4;
+local batch_size = 2;
 
 {
     "steps": {
@@ -54,8 +54,12 @@ local batch_size = 4;
                 "type": "prefix_transformer",
                 "transformer_model": model,
                 "optimizer": {
-                    "type": "deepspeed::fused_adam",
-                    "lr": 0.0001,
+                    #"type": "deepspeed::cpu_adam",
+                    #"type": "deepspeed::fused_adam",
+                    #"type": "deepspeed::fused_lamb",
+                    #"type": "transformers::adamw",
+                    "type": "transformers::adafactor",
+                    #"lr": 0.0001,  # adafactor does not need this
                 },
                 "train_full_model": train_full_model,
             },
@@ -67,7 +71,7 @@ local batch_size = 4;
                 "transformer_model": model,
                 "batch_size": batch_size,
                 "num_prefix": 20,
-                "num_workers": 8,
+                "num_workers": 4,
             },
         }
     }
