@@ -1,10 +1,10 @@
 local config = {
     "type": "default",
     "seed": 100,
-    "gpus": 1,
+    "gpus": 8,
     "precision": 32,
 };
-local model = "google/t5-small-lm-adapt";
+local model = "google/t5-xl-lm-adapt";
 
 local meta_batch_size = 128;
 local ckpt_interval = 64000 / meta_batch_size;
@@ -58,19 +58,20 @@ local ckpt_interval = 64000 / meta_batch_size;
                 "meta_batch_size": meta_batch_size,
                 "mixture_name": "d4_train",
                 "data_dir": "data",
-                "t0_data_cache": "/net/nfs2.allennlp/akshitab/meta-learn-prompt/t0/processed_cache",
+                // "t0_data_cache": "/net/nfs2.allennlp/akshitab/meta-learn-prompt/t0/processed_cache",
+                "t0_data_cache": "/net/nfs.cirrascale/allennlp/zhaofengw/t0/data_cache/",
                 "transformer_model": model,
                 "batch_size": 32,
                 "support_batch_size": 16,
                 "num_prefix": 20,
-                "num_workers": 2,
+                "num_workers": 4,
             },
             "model": {
                 "type": "meta_learner",
                 "model": {
                     "transformer_model": model,
                     "optimizer": {
-                        "type": "adafactor",
+                        "type": "transformers::adafactor",
                         "lr": 0.001,
                         "scale_parameter": false,
                         "relative_step": false,
@@ -80,7 +81,7 @@ local ckpt_interval = 64000 / meta_batch_size;
                 "adaptation_steps": 7,  # though in few-shot learning we have only one batch/epoch, but we train for many epochs
                 "algorithm": "fomaml",
                 "meta_optimizer": {
-                    "type": "adafactor",
+                    "type": "transformers::adafactor",
                     "lr": 0.001,
                     "scale_parameter": false,
                     "relative_step": false,
