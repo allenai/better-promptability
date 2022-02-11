@@ -33,6 +33,8 @@ class MixerDataLoader(DataLoader):
         if dist.is_initialized():
             self._total_len = num_batches // meta_batch_size
             if num_batches % meta_batch_size > self._rank:
+                # Some GPUs have one more batch, depending on the number of samples in the final
+                # batch.
                 self._total_len += 1
         else:
             self._total_len = int(math.ceil(num_batches / meta_batch_size))
@@ -55,6 +57,10 @@ class MixerDataLoader(DataLoader):
             batches = []
             for _ in range(self._meta_batch_size_per_device):
                 if dist.is_initialized():
+                    # For every GPU, we sample the same WORLD_SIZE samples (achieved by temporarily
+                    # syncing the rng state), and give each GPU the sample whose index is the same
+                    # as its rank. Technically we only need to increment the seed at the end of an
+                    # epoch, but there's no harm in doing it more often.
                     rngstate = random.getstate()
                     self._seed += 1
                     random.seed(self._seed)
