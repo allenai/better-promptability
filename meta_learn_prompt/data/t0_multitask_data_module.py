@@ -19,6 +19,7 @@ class T0MultiTaskDataModule(PromptDataModule):
         num_prefix: int,
         transformer_model: PathOrStr,
         sampling_cap: Optional[int] = 500000,
+        dev_sampling_cap: Optional[int] = 400,
         t0_data_cache: PathOrStr = "/net/nfs2.allennlp/petew/meta-learn-prompt/t0/cache",
         **kwargs,
     ):
@@ -33,12 +34,14 @@ class T0MultiTaskDataModule(PromptDataModule):
             **kwargs,
         )
         self.sampling_cap = sampling_cap
+        self.dev_sampling_cap = dev_sampling_cap
 
     @property
     def hash_fields(self) -> list[Any]:
         return super().hash_fields + [
             self.mixture_name,
             self.sampling_cap,
+            self.dev_sampling_cap,
         ]
 
     @property
@@ -96,7 +99,8 @@ class T0MultiTaskDataModule(PromptDataModule):
                         for dm in self.t0_mixture.data_modules.values()
                         if len(dm.dev_splits) > 0
                     ],
-                    sampling_cap=self.sampling_cap,
+                    sampling_cap=self.dev_sampling_cap,
+                    no_resample=True,
                 ),
             }
         )
