@@ -2,7 +2,7 @@ local config = {
     "type": "default",
     "seed": 100,
     "gpus": 8,
-    "fp16": false,
+    "precision": 32,
 };
 local model = "google/t5-xl-lm-adapt";
 local train_full_model = true;
