@@ -191,9 +191,8 @@ class T0Module(PromptDataModule):
             "input_mask": input_mask,
             "target_ids": target_ids,
             "target_mask": target_mask,
+            "sort_key_len": len(example[self.sort_key]),
         }
-        if split == self.train_split:
-            return_dict["sort_key_len"] = len(example[self.sort_key])
 
         if not single_target:
             assert is_correct is not None and sum(is_correct) == 1
