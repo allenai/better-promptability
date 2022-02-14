@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 from typing import Iterable, Mapping, Union
 
+import math
 import numpy as np
 import torch
 from torch.utils.data._utils.collate import default_collate
@@ -11,7 +12,7 @@ PAD_TYPE = Union[int, float, bool]
 
 
 def _find_max_shapes(
-    batch: list[dict[str, np.ndarray]], allow_keys: Iterable[str]
+    batch: list[dict[str, np.ndarray]], allow_keys: Iterable[str], pad_to_multiples_of_8: bool
 ) -> dict[str, np.ndarray]:
     max_shapes = {}
     for e in batch:
@@ -26,6 +27,11 @@ def _find_max_shapes(
                     max_shapes[k] = np.maximum(max_shapes[k], shape)
                 except ValueError:  # more informed error message
                     raise ValueError(f"Different shapes for {k}: {max_shapes[k]} vs. {shape}")
+
+    if pad_to_multiples_of_8:
+        for k, v in max_shapes.items():
+            max_shapes[k] = np.array([int(math.ceil(i / 8)) * 8 for i in v])
+
     return max_shapes
 
 
@@ -65,6 +71,7 @@ def collate_fn(
     batch: list[dict[str, list]],
     pad_token_map: Mapping[str, PAD_TYPE],
     padding_side: str,
+    pad_to_multiples_of_8: bool = False,
 ) -> dict[str, torch.Tensor]:
     """
     Input:
@@ -78,7 +85,9 @@ def collate_fn(
                 _pad_last_dim(v, pad_token_map[k], padding_side)
 
     batch = [{k: np.array(v) for k, v in e.items() if k in pad_token_map} for e in batch]
-    max_shapes = _find_max_shapes(batch, pad_token_map.keys())
+    max_shapes = _find_max_shapes(
+        batch, pad_token_map.keys(), pad_to_multiples_of_8=pad_to_multiples_of_8
+    )
     for i, e in enumerate(batch):
         batch[i] = {
             k: _pad(e[k], pad_token, max_shapes[k] - np.array(e[k].shape), padding_side)
