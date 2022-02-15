@@ -2,12 +2,12 @@ local config = {
     "type": "default",
     "seed": 100,
     "gpus": 8,
-    "fp16": false,
+    "precision": 32,
 };
 local model = "google/t5-xl-lm-adapt";
 local train_full_model = true;
 local effective_batch_size = 4096;
-local batch_size = 1;
+local batch_size = 2;
 local ckpt_interval = 500;
 
 {
@@ -77,6 +77,7 @@ local ckpt_interval = 500;
                 "t0_data_cache": "/net/nfs.cirrascale/allennlp/zhaofengw/t0/data_cache/",
                 "transformer_model": model,
                 "batch_size": batch_size,
+                "eval_batch_size": 64,
                 "num_prefix": 20,
                 "num_workers": 4,
             },

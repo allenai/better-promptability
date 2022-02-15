@@ -47,7 +47,7 @@ local config = {
     type: "default",
     seed: 100,
     gpus: 1,
-    fp16: false,
+    precision: 32,
 };
 
 local epochs = 100;

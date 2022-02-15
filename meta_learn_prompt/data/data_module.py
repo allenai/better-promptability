@@ -182,20 +182,21 @@ class DataModule(LightningDataModule):
         return self.dataset_dict.items()
 
     def dataloader(self, split: str, batch_size: int, shuffle=False) -> DataLoader:
+        # Sorry, `shuffle` is ignored right now
+
         dataset_split = self.dataset_dict[split]
-        if shuffle:
-            # LengthGroupedSampler sorts from longest to shortest; we want the reverse
-            if isinstance(dataset_split, MixerDataset):
-                # The naive processing is slow and takes too much memory
-                lens = [-l for l in dataset_split.get_all_example_lens()]  # noqa: E741
-            else:
-                lens = [-len(ids) for ids in dataset_split[self.sort_key]]
-            if self.config.gpus is None or self.config.gpus <= 1:
-                sampler = LengthGroupedSampler(batch_size, lengths=lens)
-            else:
-                sampler = DistributedLengthGroupedSampler(batch_size, lengths=lens)
+
+        # LengthGroupedSampler sorts from longest to shortest; we want the reverse
+        if isinstance(dataset_split, MixerDataset):
+            # The naive processing is slow and takes too much memory
+            lens = [-l for l in dataset_split.get_all_example_lens()]  # noqa: E741
         else:
-            sampler = None
+            lens = [-len(ids) for ids in dataset_split[self.sort_key]]
+        if self.config.gpus is None or self.config.gpus <= 1:
+            sampler = LengthGroupedSampler(batch_size, lengths=lens)
+        else:
+            sampler = DistributedLengthGroupedSampler(batch_size, lengths=lens)
+
         pad_token_map = self.pad_token_map(split)
         assert all(pad is not None for pad in pad_token_map.values())
 

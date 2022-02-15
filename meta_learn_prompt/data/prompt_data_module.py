@@ -26,8 +26,8 @@ class PromptDataModule(DataModule):
         super().__init__(config, **kwargs)
 
         # Following T0 paper
-        self.inputs_max_length = 1024
-        self.targets_max_length = 256
+        self.inputs_max_length = 768
+        self.targets_max_length = 192
 
     @property
     def hash_fields(self) -> list[Any]:

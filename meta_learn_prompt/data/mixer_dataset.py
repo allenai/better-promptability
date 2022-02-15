@@ -24,9 +24,11 @@ class MixerDataset(Dataset):
         datasets: list[HFDataset],
         sampling_cap: Optional[int] = None,
         seed: int = 3,  # this is important during distributed training
+        no_resample: bool = False,  # useful for validation
     ):
         self._datasets: list[Union[Dataset, HFDataset]] = []
         self._total_size: int = 0
+        self._no_resample = no_resample
         for dataset in Tqdm.tqdm(datasets, desc="Mixing datasets"):
             if sampling_cap is not None and len(dataset) > sampling_cap:
                 self._total_size += sampling_cap
@@ -57,6 +59,9 @@ class MixerDataset(Dataset):
         return lens
 
     def resample(self):
+        if self._no_resample:
+            return
+
         for dataset in self._datasets:
             if isinstance(dataset, _UndersampledDataset):
                 dataset.resample()
