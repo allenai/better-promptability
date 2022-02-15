@@ -77,6 +77,7 @@ local ckpt_interval = 500;
                 "t0_data_cache": "/net/nfs.cirrascale/allennlp/zhaofengw/t0/data_cache/",
                 "transformer_model": model,
                 "batch_size": batch_size,
+                "eval_batch_size": 64,
                 "num_prefix": 20,
                 "num_workers": 4,
             },
