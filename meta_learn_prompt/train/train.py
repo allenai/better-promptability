@@ -201,8 +201,8 @@ class TrainStep(Step):
             # strategy = "deepspeed_stage_3_offload"
             # strategy = "deepspeed_stage_3"
             # strategy = "deepspeed_stage_2"
-            # strategy = "ddp_sharded"
-            strategy = "ddp"
+            strategy = "ddp_sharded"
+            # strategy = "ddp"
         else:
             strategy = None
 
