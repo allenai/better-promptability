@@ -34,12 +34,13 @@ local ckpt_interval = 500;
                 "callbacks": [
                     # We need separate ModelCheckpoints for per-step and per-epoch checkpointing.
                     # See https://github.com/PyTorchLightning/pytorch-lightning/issues/11645
+                    # and https://github.com/PyTorchLightning/pytorch-lightning/issues/11930
                     {
                         "type": "pytorch_lightning::ModelCheckpoint",
                         "save_last": true,
                         "save_top_k": -1,
                         "filename": "{epoch}-{step}-{categorical_accuracy:.4f}",
-                        "every_n_train_steps": ckpt_interval,
+                        "save_on_train_epoch_end": false,
                     },
                     {
                         "type": "pytorch_lightning::ModelCheckpoint",
