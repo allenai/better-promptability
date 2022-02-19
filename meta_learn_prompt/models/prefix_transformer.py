@@ -73,9 +73,12 @@ class PrefixTransformer(Model):
             )
         )
 
-    def unfreeze(self):
+    def unfreeze(self) -> dict[torch.nn.Parameter, bool]:
+        orig_requires_grad = {}
         for param in self.transformer.parameters():
+            orig_requires_grad[param] = param.requires_grad
             param.requires_grad = True
+        return orig_requires_grad
 
     def forward(self, batch: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
         input_ids = batch["input_ids"]

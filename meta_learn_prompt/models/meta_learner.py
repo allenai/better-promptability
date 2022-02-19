@@ -8,6 +8,7 @@ from allennlp.training.metrics import Metric
 from learn2learn.utils import clone_module
 from tango.common.lazy import Lazy
 import torch
+import torch.distributed as dist
 from tango.common.params import logger as tango_logger
 from tango.integrations.torch.optim import Optimizer
 
@@ -63,6 +64,13 @@ class MetaLearner(Model):
         self.model.metrics = self.model.setup_metrics()
         self.metrics = self.model.metrics
 
+        # ShardedDataParallel uses .requires_grad for sharding, and yet we use this property in
+        # quite complicated ways for meta learning. We need to make sure that this property
+        # correctly reflects the learnablity of each parameter after initialization. We restore
+        # it for our purposes in the first forward pass.
+        self.orig_requires_grad = self.model.unfreeze()
+        self.restored_requires_grad = False
+
     def setup(self, stage: str = None):
         pass
 
@@ -76,6 +84,11 @@ class MetaLearner(Model):
         raise NotImplementedError
 
     def forward(self, meta_batch: list[tuple[dict, dict]]) -> dict[str, torch.Tensor]:
+        if not self.restored_requires_grad:
+            for p in self.model.parameters():
+                p.requires_grad = self.orig_requires_grad[p]
+            self.restored_requires_grad = True
+
         for p in self.model.parameters():
             p.grad = torch.zeros_like(p.data)
 
@@ -118,6 +131,9 @@ class MetaLearner(Model):
                         support_batch_split["target_ids"],
                         support_batch_split.get("target_mask"),
                     )
+                    # Don't worry, this backward doesn't trigger unwanted gradient sync in
+                    # distributed training, because self.model is a torch module, not a
+                    # distributed wrapper.
                     loss.backward()
                 inner_optimizer.step()
             self.inner_optimizer_state = inner_optimizer.state_dict()
@@ -157,6 +173,11 @@ class MetaLearner(Model):
 
         support_loss /= len(meta_batch)
         query_loss /= len(meta_batch)
+
+        # Gradient sync is normally performed in backward(), but we don't call backward for meta learning
+        # since we modify .grad directly. So we need to manually sync gradients.
+        # self.trainer.model is the distributed wrapper.
+        self.trainer.model.reduce()
 
         return {"support_loss": support_loss, "query_loss": query_loss}
 

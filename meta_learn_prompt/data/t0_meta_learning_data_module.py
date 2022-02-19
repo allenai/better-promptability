@@ -5,7 +5,7 @@ from typing import Optional
 from datasets import Dataset as HFDataset
 from tango.common import PathOrStr, Tqdm
 from torch.utils.data.dataloader import DataLoader
-from transformers.trainer_pt_utils import LengthGroupedSampler
+from transformers.trainer_pt_utils import LengthGroupedSampler, DistributedLengthGroupedSampler
 
 from .config import Config
 from .data_utils import collate_fn
@@ -76,8 +76,7 @@ class T0MetaLearningDataModule(T0MultiTaskDataModule):
             if self.config.gpus is None or self.config.gpus <= 1:
                 sampler = LengthGroupedSampler(batch_size, lengths=lens)
             else:
-                # I haven't verified the sampling logic in the distributed mode
-                raise NotImplementedError
+                sampler = DistributedLengthGroupedSampler(batch_size, lengths=lens)
             dataloader = DataLoader(
                 dataset,
                 batch_size=batch_size,

@@ -8,6 +8,7 @@ import deepspeed
 import dill
 import pytorch_lightning as pl
 import transformers
+from pytorch_lightning.plugins import DDPShardedPlugin
 from pytorch_lightning.utilities import rank_zero_only
 from tango.common.lazy import Lazy
 from tango.common.util import get_extra_imported_modules
@@ -201,7 +202,10 @@ class TrainStep(Step):
             # strategy = "deepspeed_stage_3_offload"
             # strategy = "deepspeed_stage_3"
             # strategy = "deepspeed_stage_2"
-            strategy = "ddp_sharded"
+            # strategy = "ddp_sharded"
+            # We never change trainability of parameters, so this is unnecessary. And actually
+            # we rely on this flag being False for the current meta learning implementation.
+            strategy = DDPShardedPlugin(auto_refresh_trainable=False)
             # strategy = "ddp"
         else:
             strategy = None
