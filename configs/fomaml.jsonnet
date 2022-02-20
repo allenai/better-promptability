@@ -61,8 +61,8 @@ local ckpt_interval = 65536 / meta_batch_size;
                 // "t0_data_cache": "/net/nfs2.allennlp/akshitab/meta-learn-prompt/t0/processed_cache",
                 "t0_data_cache": "/net/nfs.cirrascale/allennlp/zhaofengw/t0/data_cache/",
                 "transformer_model": model,
-                "batch_size": 32,
-                "support_batch_size": 16,
+                "batch_size": 32,  # this is the effective batch size; ONLY change meta_accumulate_grad_batches when adjusting for GPU sizes
+                "support_batch_size": 16,  # ditto
                 "eval_batch_size": 64,
                 "num_prefix": 20,
                 "num_workers": 4,
