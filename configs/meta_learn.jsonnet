@@ -63,6 +63,7 @@ local ckpt_interval = 64000 / meta_batch_size;
                 "transformer_model": model,
                 "batch_size": 32,
                 "support_batch_size": 16,
+                "eval_batch_size": 64,
                 "num_prefix": 20,
                 "num_workers": 4,
             },
@@ -87,7 +88,7 @@ local ckpt_interval = 64000 / meta_batch_size;
                     "relative_step": false,
                 },
                 "load_opt_states": false,
-                "meta_accumulate_grad_batches": 1,
+                "meta_accumulate_grad_batches": 16,
             }  // "model" (meta_learner)
         }  // "output_model"
     }

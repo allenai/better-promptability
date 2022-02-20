@@ -174,10 +174,11 @@ class MetaLearner(Model):
         support_loss /= len(meta_batch)
         query_loss /= len(meta_batch)
 
-        # Gradient sync is normally performed in backward(), but we don't call backward for meta learning
-        # since we modify .grad directly. So we need to manually sync gradients.
-        # self.trainer.model is the distributed wrapper.
-        self.trainer.model.reduce()
+        if dist.is_initialized():
+            # Gradient sync is normally performed in backward(), but we don't call backward for meta
+            # learning since we modify .grad directly. So we need to manually sync gradients.
+            # self.trainer.model is the distributed wrapper.
+            self.trainer.model.reduce()
 
         return {"support_loss": support_loss, "query_loss": query_loss}
 
