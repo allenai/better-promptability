@@ -5,10 +5,9 @@ local config = {
     "precision": 32,
 };
 local model = "google/t5-xl-lm-adapt";
-local train_full_model = true;
-local effective_batch_size = 4096;
-local batch_size = 2;
-local ckpt_interval = 512;
+
+local meta_batch_size = 128;
+local ckpt_interval = 65536 / meta_batch_size;
 
 {
     "steps": {
@@ -19,15 +18,15 @@ local ckpt_interval = 512;
                 "type": "default",
                 "max_epochs": 100,
                 "gradient_clip_val": 1.0,
-                "accumulate_grad_batches": effective_batch_size / batch_size / config.gpus,
+                "accumulate_grad_batches": 1.0,
                 "num_sanity_val_steps": 0,
-                "log_every_n_steps": 50,
-                "val_check_interval": ckpt_interval * effective_batch_size / batch_size / config.gpus,
+                "log_every_n_steps": 6,
+                "val_check_interval": ckpt_interval / config.gpus,
                 "logger": [
                     {"type": "pytorch_lightning::TensorBoardLogger"},
                     {
                         "type": "pytorch_lightning::WandbLogger",
-                        "project": "multi-task",
+                        "project": "meta-learning",
                         "entity": "meta-learn-prompt",
                     },
                 ],
@@ -54,34 +53,43 @@ local ckpt_interval = 512;
                 ],
                 "replace_sampler_ddp": false,
             },
-            "model": {
-                "type": "prefix_transformer",
-                "transformer_model": model,
-                "optimizer": {
-                    "type": "transformers::adafactor",
-                    "lr": 0.001,
-                    "scale_parameter": false,
-                    "relative_step": false,
-                    #"type": "deepspeed::cpu_adam",
-                    #"type": "deepspeed::fused_adam",
-                    #"type": "deepspeed::fused_lamb",
-                    #"type": "transformers::adamw",
-                },
-                "train_full_model": train_full_model,
-                "load_opt_states": false,
-            },
             "datamodule": {
-                "type": "t0_multitask",
+                "type": "t0_meta_learning",
+                "meta_batch_size": meta_batch_size,
                 "mixture_name": "d4_train",
                 "data_dir": "data",
-                #"t0_data_cache": "/net/nfs2.allennlp/akshitab/meta-learn-prompt/t0/processed_cache",
+                // "t0_data_cache": "/net/nfs2.allennlp/akshitab/meta-learn-prompt/t0/processed_cache",
                 "t0_data_cache": "/net/nfs.cirrascale/allennlp/zhaofengw/t0/data_cache/",
                 "transformer_model": model,
-                "batch_size": batch_size,
+                "batch_size": 32,
+                "support_batch_size": 32,  # for reptile we use all data for support
                 "eval_batch_size": 64,
                 "num_prefix": 20,
                 "num_workers": 4,
             },
-        }
+            "model": {
+                "type": "meta_learner",
+                "model": {
+                    "transformer_model": model,
+                    "optimizer": {
+                        "type": "transformers::adafactor",
+                        "lr": 0.001,
+                        "scale_parameter": false,
+                        "relative_step": false,
+                    },
+                    "load_opt_states": false,
+                },
+                "adaptation_steps": 7,  # though in few-shot learning we have only one batch/epoch, but we train for many epochs
+                "algorithm": "reptile",
+                "meta_optimizer": {
+                    "type": "transformers::adafactor",
+                    "lr": 0.001,
+                    "scale_parameter": false,
+                    "relative_step": false,
+                },
+                "load_opt_states": false,
+                "meta_accumulate_grad_batches": 16,
+            }  // "model" (meta_learner)
+        }  // "output_model"
     }
 }

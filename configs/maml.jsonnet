@@ -1,13 +1,13 @@
 local config = {
     "type": "default",
     "seed": 100,
-    "gpus": 1,
+    "gpus": 8,
     "precision": 32,
 };
-local model = "google/t5-small-lm-adapt";
+local model = "google/t5-xl-lm-adapt";
 
 local meta_batch_size = 128;
-local ckpt_interval = 64000 / meta_batch_size;
+local ckpt_interval = 65536 / meta_batch_size;
 
 {
     "steps": {
@@ -21,7 +21,7 @@ local ckpt_interval = 64000 / meta_batch_size;
                 "accumulate_grad_batches": 1.0,
                 "num_sanity_val_steps": 0,
                 "log_every_n_steps": 6,
-                "val_check_interval": ckpt_interval,
+                "val_check_interval": ckpt_interval / config.gpus,
                 "logger": [
                     {"type": "pytorch_lightning::TensorBoardLogger"},
                     {
@@ -58,19 +58,21 @@ local ckpt_interval = 64000 / meta_batch_size;
                 "meta_batch_size": meta_batch_size,
                 "mixture_name": "d4_train",
                 "data_dir": "data",
-                "t0_data_cache": "/net/nfs2.allennlp/akshitab/meta-learn-prompt/t0/processed_cache",
+                // "t0_data_cache": "/net/nfs2.allennlp/akshitab/meta-learn-prompt/t0/processed_cache",
+                "t0_data_cache": "/net/nfs.cirrascale/allennlp/zhaofengw/t0/data_cache/",
                 "transformer_model": model,
                 "batch_size": 32,
                 "support_batch_size": 16,
+                "eval_batch_size": 64,
                 "num_prefix": 20,
-                "num_workers": 2,
+                "num_workers": 4,
             },
             "model": {
                 "type": "meta_learner",
                 "model": {
                     "transformer_model": model,
                     "optimizer": {
-                        "type": "adafactor",
+                        "type": "transformers::adafactor",
                         "lr": 0.001,
                         "scale_parameter": false,
                         "relative_step": false,
@@ -80,13 +82,13 @@ local ckpt_interval = 64000 / meta_batch_size;
                 "adaptation_steps": 7,  # though in few-shot learning we have only one batch/epoch, but we train for many epochs
                 "algorithm": "fomaml",
                 "meta_optimizer": {
-                    "type": "adafactor",
+                    "type": "transformers::adafactor",
                     "lr": 0.001,
                     "scale_parameter": false,
                     "relative_step": false,
                 },
                 "load_opt_states": false,
-                "meta_accumulate_grad_batches": 1,
+                "meta_accumulate_grad_batches": 16,
             }  // "model" (meta_learner)
         }  // "output_model"
     }
