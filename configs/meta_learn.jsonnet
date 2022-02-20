@@ -7,7 +7,7 @@ local config = {
 local model = "google/t5-xl-lm-adapt";
 
 local meta_batch_size = 128;
-local ckpt_interval = 64000 / meta_batch_size;
+local ckpt_interval = 65536 / meta_batch_size;
 
 {
     "steps": {
@@ -21,7 +21,7 @@ local ckpt_interval = 64000 / meta_batch_size;
                 "accumulate_grad_batches": 1.0,
                 "num_sanity_val_steps": 0,
                 "log_every_n_steps": 6,
-                "val_check_interval": ckpt_interval,
+                "val_check_interval": ckpt_interval / config.gpus,
                 "logger": [
                     {"type": "pytorch_lightning::TensorBoardLogger"},
                     {

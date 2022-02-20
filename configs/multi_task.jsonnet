@@ -8,7 +8,7 @@ local model = "google/t5-xl-lm-adapt";
 local train_full_model = true;
 local effective_batch_size = 4096;
 local batch_size = 2;
-local ckpt_interval = 500;
+local ckpt_interval = 512;
 
 {
     "steps": {
