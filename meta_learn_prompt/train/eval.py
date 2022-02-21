@@ -8,7 +8,7 @@ from tango.step import Step
 
 from ..data.config import Config
 from ..data.prompt_data_module import PromptDataModule
-from ..models.prefix_transformer import PrefixTransformer
+from ..models.model import Model
 
 
 @Step.register("eval_step")
@@ -22,7 +22,7 @@ class EvalStep(Step):
         self,
         config: Config,
         trainer: Lazy[LightningTrainer],
-        model: Lazy[PrefixTransformer],
+        model: Lazy[Model],
         datamodule: Lazy[PromptDataModule],
     ) -> List[Dict[str, float]]:
         pl.seed_everything(config.seed)
