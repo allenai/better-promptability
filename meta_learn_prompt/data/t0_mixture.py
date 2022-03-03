@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import Mapping, Optional
+import pickle
 
 from tango.common import PathOrStr, Params
 
@@ -26,7 +27,11 @@ class T0Mixture:
         assert mixture_name in {"d4_train", "d4_dev", "green", "debug_train", "debug_dev"}
         self.mixture_name = mixture_name
         self.data_modules: dict[str, T0Module] = {}
+        task_indices = pickle.load(open(subsample_indices_file, "rb"))
         for task_name in Params.from_file("configs/t0_mixtures.jsonnet")[mixture_name]:
+            if task_name not in task_indices:
+                print(f'task {task_name} not in indices and is being left out of mixture.')
+                continue
             self.data_modules[task_name] = T0Module(
                 config=config,
                 num_prefix=num_prefix,

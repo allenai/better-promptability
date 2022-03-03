@@ -173,7 +173,7 @@ class Model(LightningModule):
     ) -> dict[str, Any]:
         logits = self(batch)["logits"]
         preds = self.get_predictions(logits, batch).masked_fill(
-            ~batch["is_correct_mask"], torch.finfo(logits.dtype).min
+          ~batch["is_correct_mask"], torch.finfo(logits.dtype).min
         )
         targets = batch["target_ids"]  # target sequences.
 

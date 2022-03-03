@@ -9,20 +9,21 @@ from tango.step import Step
 from ..data.config import Config
 from ..data.prompt_data_module import PromptDataModule
 from ..models.prefix_transformer import PrefixTransformer
+from meta_learn_prompt.models.model import Model
 
 
 @Step.register("eval_step")
 class EvalStep(Step):
 
     DETERMINISTIC: bool = True
-    CACHEABLE = True
+    CACHEABLE = False
     FORMAT = JsonFormat()
 
     def run(  # type: ignore[override]
         self,
         config: Config,
         trainer: Lazy[LightningTrainer],
-        model: Lazy[PrefixTransformer],
+        model: Lazy[Model],
         datamodule: Lazy[PromptDataModule],
     ) -> List[Dict[str, float]]:
         pl.seed_everything(config.seed)
@@ -37,6 +38,7 @@ class EvalStep(Step):
             gpus=config.gpus,
             accelerator="gpu" if config.gpus else "cpu",
             auto_select_gpus=True,
+            limit_test_batches=500,
         )
 
         model = model.construct(config=config, dataset=datamodule)

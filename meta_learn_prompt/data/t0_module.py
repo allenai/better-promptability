@@ -64,16 +64,16 @@ class T0Module(PromptDataModule):
     def setup(self, stage: Optional[str] = None):
         super().setup(stage)
         if self.subsample_indices is not None:
-            indices, checksum = self.subsample_indices
+            indices = self.subsample_indices
             dataset = self.dataset_dict[self.train_split].select(indices)
-            assert md5("".join(str(ex["inputs"] + ex["targets"]) for ex in dataset)) == checksum
+            #assert md5("".join(str(ex["inputs"] + ex["targets"]) for ex in dataset)) == checksum
             self.dataset_dict[self.train_split] = dataset
 
     @property
     def dev_splits(self) -> list[str]:
         # d4_dev and green datasets should have dev splits, d4_train may not.
         if self.mixture_name in {"d4_dev", "debug_dev", "green"} or "dev" in self.dataset_dict:
-            return ["dev"]
+           return ["dev"]
         return []
 
     @property

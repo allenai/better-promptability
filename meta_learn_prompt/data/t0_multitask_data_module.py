@@ -20,6 +20,7 @@ class T0MultiTaskDataModule(PromptDataModule):
         transformer_model: PathOrStr,
         sampling_cap: Optional[int] = 500000,
         dev_sampling_cap: Optional[int] = 400,
+         subsample_indices_file: Optional[str] = None,
         t0_data_cache: PathOrStr = "/net/nfs2.allennlp/petew/meta-learn-prompt/t0/cache",
         **kwargs,
     ):
@@ -31,6 +32,7 @@ class T0MultiTaskDataModule(PromptDataModule):
             num_prefix,
             transformer_model,
             t0_data_cache=t0_data_cache,
+            subsample_indices_file=subsample_indices_file,
             **kwargs,
         )
         self.sampling_cap = sampling_cap
@@ -43,6 +45,10 @@ class T0MultiTaskDataModule(PromptDataModule):
             self.sampling_cap,
             self.dev_sampling_cap,
         ]
+
+    @property
+    def train_split(self) -> str:
+        return "train"
 
     @property
     def dev_splits(self) -> list[str]:

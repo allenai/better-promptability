@@ -8,6 +8,8 @@ import torch
 from tango.common.lazy import Lazy
 from tango.integrations.torch.optim import Optimizer
 from transformers import T5ForConditionalGeneration
+import hickle as hkl
+
 
 from ..data.config import Config
 from ..data.prompt_data_module import PromptDataModule
@@ -72,6 +74,8 @@ class PrefixTransformer(Model):
                 transformer_model.shared, self.dataset.tokenizer.vocab_size, self.dataset.num_prefix
             )
         )
+        #self.task_name = dataset.mixture_name + '_' + dataset.task_name
+        self.all_hidden_states = None
 
     def unfreeze(self) -> dict[torch.nn.Parameter, bool]:
         orig_requires_grad = {}
@@ -99,12 +103,25 @@ class PrefixTransformer(Model):
             target_ids = target_ids.reshape(-1, orig_decoder_shape[-1])
             target_mask = target_mask.reshape(-1, orig_decoder_shape[-1])
 
-        logits = self.transformer(
+        output = self.transformer(
             input_ids=input_ids,
             attention_mask=input_mask,
             labels=target_ids,
             decoder_attention_mask=target_mask,
-        ).logits
+            output_hidden_states=False, # chnage
+        )
+        logits = output.logits
+        def masked_mean(hidden_state, mask):
+            summed = (hidden_state * mask.unsqueeze(-1)).sum(dim=1)
+            lengths = mask.sum(dim=1).unsqueeze(-1)
+            return summed / lengths
+        # hacking in da saving stuff code
+        # meaned_form = masked_mean(output.encoder_last_hidden_state, input_mask).cpu()
+        # if self.all_hidden_states is None:
+        #     self.all_hidden_states = meaned_form
+        # else:
+        #     self.all_hidden_states = torch.cat([self.all_hidden_states, meaned_form], dim=0)
+
 
         if not self.training:
             logits = logits.reshape(*(orig_decoder_shape + (-1,)))
@@ -141,6 +158,10 @@ class PrefixTransformer(Model):
             return super().eval_step(
                 batch, batch_idx, dataloader_idx=dataloader_idx, compute_loss=False
             )
+
+    # def on_test_end(self):
+    #     hkl.dump(self.all_hidden_states.numpy(), f'/net/nfs.cirrascale/allennlp/hamishi/t0_hidden_states/green_train/{self.task_name}.hkl', mode='w')
+
 
     def on_save_checkpoint(self, checkpoint: dict[str, Any]):
         """

@@ -147,7 +147,7 @@ class DataModule(LightningDataModule):
                 split: dataset.map(
                     lambda examples: self.tokenize(examples, split),
                     batched=False,  # to make tokenization/transformation easier
-                    num_proc=self.num_workers,
+                    num_proc=self.num_workers if self.num_workers > 0 else None,
                 )
                 for split, dataset in dataset_dict.items()
             }
@@ -221,7 +221,7 @@ class DataModule(LightningDataModule):
         raise NotImplementedError("This is an abstract method. Did you forget to implement it?")
 
     def train_dataloader(self) -> DataLoader:
-        return self.dataloader(self.train_split, self.batch_size, shuffle=True)
+        return self.dataloader(self.train_split, self.batch_size, shuffle=False)
 
     def val_dataloader(self, shuffle: bool = False):
         return [
