@@ -41,7 +41,7 @@ local model = if checkpoint == null then {
                 "t0_data_cache": "/net/nfs.cirrascale/allennlp/zhaofengw/t0/data_cache",
                 "transformer_model": model_name,
                 "num_prefix": num_prefix,
-                "num_workers": 4,
+                "num_workers": 0,
             },
             "model": model,
         }

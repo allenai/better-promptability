@@ -147,7 +147,7 @@ class DataModule(LightningDataModule):
                 split: dataset.map(
                     lambda examples: self.tokenize(examples, split),
                     batched=False,  # to make tokenization/transformation easier
-                    num_proc=self.num_workers,
+                    num_proc=4,
                 )
                 for split, dataset in dataset_dict.items()
             }
