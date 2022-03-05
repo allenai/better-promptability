@@ -142,7 +142,7 @@ class T0Module(PromptDataModule):
                 for choice in (example["answer_choices"])
             ]
             targets = [
-                self.tokenizer(choice, add_special_tokens=False)["input_ids"]
+                self.tokenizer(choice)["input_ids"]
                 for choice in example["answer_choices"]
             ]
 

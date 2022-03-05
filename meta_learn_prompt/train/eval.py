@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import pytorch_lightning as pl
 from tango.common.lazy import Lazy
@@ -24,7 +24,7 @@ class EvalStep(Step):
         trainer: Lazy[LightningTrainer],
         model: Lazy[Model],
         datamodule: Lazy[PromptDataModule],
-    ) -> List[Dict[str, float]]:
+    ) -> Tuple[str, List[Dict[str, float]]]:
         pl.seed_everything(config.seed)
 
         datamodule = datamodule.construct(config=config)
@@ -43,4 +43,9 @@ class EvalStep(Step):
 
         output = trainer.test(model, dataloaders=datamodule.val_dataloader())
 
-        return output
+        # Make output the same format as TrainStep for results aggregation.
+        # Maybe it's cleaner to make the aggregation more flexible instead.
+        assert len(output) == 1
+        output = [{"best_" + k: v for k, v in output[0].items()}]
+
+        return None, output

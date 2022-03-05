@@ -15,7 +15,7 @@ local num_prefix = 0;
 // local checkpoint = "/net/nfs.cirrascale/allennlp/zhaofengw/meta-learn-prompt/output/mtl_small_nooptstate/runs/pumped-kodiak/output_model/work/last.ckpt";
 local checkpoint = null;
 
-local model = if checkpoint == null then {
+local model = if checkpoint == "null" then {
     "type": "prefix_transformer",
     "transformer_model": model_name,
 } else {

@@ -23,13 +23,12 @@ local config = {
     "precision": 32,
 };
 local model_name = "google/t5-small-lm-adapt";
-local checkpoint = std.extVar("CKPT");
 
 // Set to null if you don't want to load a checkpoint.
 // local checkpoint = "/net/nfs.cirrascale/allennlp/zhaofengw/meta-learn-prompt/output/mtl_small_nooptstate/runs/pumped-kodiak/output_model/work/last.ckpt";
-local checkpoint = null;
+local checkpoint = std.extVar("CKPT");
 
-local model = if checkpoint == null then {
+local model = if checkpoint == "null" then {
     "type": "prefix_transformer",
     "transformer_model": model_name,
 } else {
