@@ -133,19 +133,14 @@ class T0Module(PromptDataModule):
         # We ignore these datasets.
 
         elif self.mixture_name in {"d4_dev", "debug_dev"} and split != self.train_split:
-
             single_target = False
             # The format in d4_dev is the same as train (there is no is_correct).
             # To get multiple targets, we need to use "answer_choices", and tokenize them.
             is_correct = [
                 choice.strip() == example["targets_pretokenized"].strip()
-                for choice in (example["answer_choices"])
-            ]
-            targets = [
-                self.tokenizer(choice)["input_ids"]
                 for choice in example["answer_choices"]
             ]
-
+            targets = [self.tokenizer(choice)["input_ids"] for choice in example["answer_choices"]]
         elif self.mixture_name == "green" and split == self.train_split:
             single_target = True
 
@@ -153,7 +148,6 @@ class T0Module(PromptDataModule):
 
             correct_idx = np.argmax(example["is_correct"])
             targets = targets[correct_idx]
-
         else:  # green dev
             single_target = False
             is_correct = example["is_correct"]

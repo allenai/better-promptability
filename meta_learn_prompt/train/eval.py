@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import pytorch_lightning as pl
 from tango.common.lazy import Lazy
@@ -24,7 +24,7 @@ class EvalStep(Step):
         trainer: Lazy[LightningTrainer],
         model: Lazy[Model],
         datamodule: Lazy[PromptDataModule],
-    ) -> Tuple[str, List[Dict[str, float]]]:
+    ) -> Tuple[Optional[str], List[Dict[str, float]]]:
         pl.seed_everything(config.seed)
 
         datamodule = datamodule.construct(config=config)

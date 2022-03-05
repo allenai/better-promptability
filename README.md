@@ -36,3 +36,7 @@ If you're not on AI2 NFS, you probably need to pass in the location of the data 
 The set up to run 0-shot evaluation without a soft prompt is very similar, with the config `configs/0shot_eval.jsonnet`.
 
 Change `CKPT` if you want to run these with an existing model checkpoint.
+
+### Evaluating T0 checkpoints
+
+T0 was trained w/o EOS (at least so it seems), to accomodate for this, change `t0_module.py`'s' `assemble_prompt()` to not add EOS.
