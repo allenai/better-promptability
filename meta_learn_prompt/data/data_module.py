@@ -192,10 +192,10 @@ class DataModule(LightningDataModule):
             lens = [-l for l in dataset_split.get_all_example_lens()]  # noqa: E741
         else:
             lens = [-len(ids) for ids in dataset_split[self.sort_key]]
-        if self.config.gpus is None or self.config.gpus <= 1:
-            sampler = LengthGroupedSampler(batch_size, lengths=lens)
-        else:
-            sampler = DistributedLengthGroupedSampler(batch_size, lengths=lens)
+        #if self.config.gpus is None or self.config.gpus <= 1:
+        #    sampler = LengthGroupedSampler(batch_size, lengths=lens)
+        #else:
+        #    sampler = DistributedLengthGroupedSampler(batch_size, lengths=lens)
 
         pad_token_map = self.pad_token_map(split)
         assert all(pad is not None for pad in pad_token_map.values())
@@ -204,7 +204,7 @@ class DataModule(LightningDataModule):
             dataset_split,
             batch_size=batch_size,
             shuffle=False,
-            sampler=sampler,
+            #sampler=sampler,
             num_workers=self.num_workers,
             collate_fn=lambda batch: collate_fn(batch, pad_token_map, self.tokenizer.padding_side),
             pin_memory=True,

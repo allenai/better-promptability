@@ -108,14 +108,13 @@ class PrefixTransformer(Model):
             attention_mask=input_mask,
             labels=target_ids,
             decoder_attention_mask=target_mask,
-            output_hidden_states=False, # chnage
         )
         logits = output.logits
         def masked_mean(hidden_state, mask):
             summed = (hidden_state * mask.unsqueeze(-1)).sum(dim=1)
             lengths = mask.sum(dim=1).unsqueeze(-1)
             return summed / lengths
-        # hacking in da saving stuff code
+        # hacking in the saving stuff code
         # meaned_form = masked_mean(output.encoder_last_hidden_state, input_mask).cpu()
         # if self.all_hidden_states is None:
         #     self.all_hidden_states = meaned_form

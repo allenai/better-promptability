@@ -68,6 +68,10 @@ class T0Module(PromptDataModule):
             dataset = self.dataset_dict[self.train_split].select(indices)
             #assert md5("".join(str(ex["inputs"] + ex["targets"]) for ex in dataset)) == checksum
             self.dataset_dict[self.train_split] = dataset
+            # apply indices to dev
+            if len(self.dev_splits) > 0:
+                dataset = self.dataset_dict[self.dev_splits[0]].select(indices)
+                self.dataset_dict[self.dev_splits[0]] = dataset
 
     @property
     def dev_splits(self) -> list[str]:
