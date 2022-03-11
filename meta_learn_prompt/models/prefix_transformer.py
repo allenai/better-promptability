@@ -74,7 +74,6 @@ class PrefixTransformer(Model):
             )
         transformer_model: T5ForConditionalGeneration = self.transformer.model
         assert isinstance(transformer_model, T5ForConditionalGeneration)
-        self.transformer_config = transformer_model.config
 
         if not self.train_full_model:
             for n, param in self.transformer.named_parameters():
