@@ -56,7 +56,7 @@ class T5AttentionWithPrefix(T5Attention):
         output_attentions=False,
     ):
         """
-        Self-attention (if key_value_states is None) or attention over source sentence (provided by key_value_states).
+        Self-attention (if key_value_states is None) or attention over source sentence (provided by key_value_states).  # noqa: E501
         """
         # Input is (batch_size, seq_length, dim)
         # Mask is (batch_size, key_length) (non-causal) or (batch_size, key_length, key_length)
@@ -68,7 +68,7 @@ class T5AttentionWithPrefix(T5Attention):
         if past_key_value is not None:
             assert (
                 len(past_key_value) == 2
-            ), f"past_key_value should have 2 past states: keys and values. Got { len(past_key_value)} past states"
+            ), f"past_key_value should have 2 past states: keys and values. Got { len(past_key_value)} past states"  # noqa: E501
             real_seq_length += past_key_value[0].shape[2] if query_length is None else query_length
 
         key_length = real_seq_length if key_value_states is None else key_value_states.shape[1]
