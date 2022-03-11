@@ -1,9 +1,9 @@
 """
-Changing T5Attention's forward to support prefix tuning. Changes from the parent class are marked
-with "# <CHANGE>" and "# </CHANGE>". It's possible that the added logic can be separated as some
-code that entirely preceeds the original forward, s.t. we can call super().forward() without
-code duplciation. Even better, we might be able to use a pre-hook so that most of this won't be
-needed. Though it seems that pre-hooks can't take forward's kwargs.
+Changing T5Attention's forward to support prefix tuning, along with subclassing other classes that
+use T5Attention. Changes in T5Attention's forward from are marked with
+"# <CHANGE>" and "# </CHANGE>". It's possible that the added logic can be separated as some code
+that entirely preceeds the original forward, s.t. we can call super().forward() without code
+duplciation. Even better, we might be able to use a pre-hook so that most of this won't be needed.
 """
 
 from sys import prefix
