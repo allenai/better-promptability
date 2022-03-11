@@ -30,14 +30,23 @@ TASKS = {
 
 
 class Transformer(torch.nn.Module):
-    def __init__(self, transformer_model: str, task: str, trainable=True, **config_kwargs):
+    def __init__(
+        self,
+        transformer_model: str,
+        task: str,
+        trainable=True,
+        config_cls=AutoConfig,
+        model_cls=None,
+        **config_kwargs,
+    ):
         super().__init__()
 
         config_args = dict(config_kwargs)
         if task == "base":  # TODO: this might break models that don't support this flag
             config_args["add_pooling_layer"] = False
-        self.config = AutoConfig.from_pretrained(transformer_model, **config_args)
-        self.model = TASKS[task].from_pretrained(transformer_model, config=self.config)
+        self.config = config_cls.from_pretrained(transformer_model, **config_args)
+        model_cls = model_cls if model_cls is not None else TASKS[task]
+        self.model = model_cls.from_pretrained(transformer_model, config=self.config)
 
         if not trainable:  # TODO: support this
             assert task == "base", "No support for freezing the backbone for headed tasks yet"

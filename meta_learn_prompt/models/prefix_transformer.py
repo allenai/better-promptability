@@ -16,6 +16,7 @@ from ..modules.transformer import Transformer
 from ..modules.with_prefix_embedding import WithPrefixEmbedding
 from ..train.optim import load_adafactor_state, resolve_optimizer_conf
 from .model import Model
+from .t5_with_prefix import T5WithPrefixConfig, T5ForConditionalGenerationWithPrefix
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +45,7 @@ class PrefixTransformer(Model):
         self.optstates_dir = optstates_dir
         self.load_opt_states = load_opt_states
         self.train_full_model = train_full_model
+        self.deep = dataset.deep
 
         super().__init__(
             config,
@@ -59,19 +61,35 @@ class PrefixTransformer(Model):
             lr_scheduler_total_steps=lr_scheduler_total_steps,
         )
 
-        self.transformer = Transformer(transformer_model, "seq2seq-lm", **transformer_kwargs)
+        if not self.deep:
+            self.transformer = Transformer(transformer_model, "seq2seq-lm", **transformer_kwargs)
+        else:
+            self.transformer = Transformer(
+                transformer_model,
+                "seq2seq-lm",
+                config_cls=T5WithPrefixConfig,
+                model_cls=T5ForConditionalGenerationWithPrefix,
+                num_prefix=dataset.num_prefix,
+                **transformer_kwargs,
+            )
         transformer_model: T5ForConditionalGeneration = self.transformer.model
         assert isinstance(transformer_model, T5ForConditionalGeneration)
 
         if not self.train_full_model:
-            for param in self.transformer.parameters():
-                param.requires_grad = False
+            for n, param in self.transformer.named_parameters():
+                if n.startswith("model.encoder.prefix_") or n.startswith("model.decoder.prefix_"):
+                    assert self.deep
+                else:
+                    param.requires_grad = False
 
-        transformer_model.set_input_embeddings(
-            WithPrefixEmbedding(
-                transformer_model.shared, self.dataset.tokenizer.vocab_size, self.dataset.num_prefix
+        if not self.deep:
+            transformer_model.set_input_embeddings(
+                WithPrefixEmbedding(
+                    transformer_model.shared,
+                    self.dataset.tokenizer.vocab_size,
+                    self.dataset.num_prefix,
+                )
             )
-        )
 
     def unfreeze(self) -> dict[torch.nn.Parameter, bool]:
         orig_requires_grad = {}
@@ -150,11 +168,20 @@ class PrefixTransformer(Model):
         """
         optimizer_states = self.optimizers(use_pl_optimizer=False).state
         if not self.train_full_model:
-            weight_key = "transformer.model.shared.new_embed.weight"
-            checkpoint["state_dict"] = {weight_key: checkpoint["state_dict"][weight_key]}
+            weight_keys = (
+                ["transformer.model.shared.new_embed.weight"]
+                if not self.deep
+                else [
+                    k
+                    for k in checkpoint["state_dict"].keys()
+                    if k.startswith("transformer.model.encoder.prefix_")
+                    or k.startswith("transformer.model.decoder.prefix_")
+                ]
+            )
+            checkpoint["state_dict"] = {k: checkpoint["state_dict"][k] for k in weight_keys}
 
             name_to_param = {n: p for n, p in self.named_parameters()}
-            states = {weight_key: optimizer_states[name_to_param[weight_key]]}
+            states = {k: optimizer_states[name_to_param[k]] for k in weight_keys}
         else:
             param_to_name = {p: n for n, p in self.named_parameters()}
             states = {param_to_name[p]: states for p, states in optimizer_states.items()}
@@ -202,6 +229,7 @@ class PrefixTransformer(Model):
             optstates_dir=self.optstates_dir,
             load_opt_states=self.load_opt_states,
             train_full_model=self.train_full_model,
+            deep=self.deep,
         )
         new.to(self.device)
         new.load_state_dict(self.state_dict())
