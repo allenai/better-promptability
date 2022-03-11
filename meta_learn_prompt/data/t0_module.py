@@ -164,7 +164,10 @@ class T0Module(PromptDataModule):
             ]
             assert self.tokenizer.eos_token_id not in targets
             input_ids, target_ids, input_mask, target_mask = assemble_prompt(
-                inputs, targets, self.tokenizer.eos_token_id, self.task_token_ids
+                inputs,
+                targets,
+                self.tokenizer.eos_token_id,
+                self.task_token_ids if not self.deep else [],
             )
         else:
             input_ids = []
@@ -179,7 +182,10 @@ class T0Module(PromptDataModule):
                 assert self.tokenizer.eos_token_id not in target
 
                 _input_ids, _target_ids, _input_mask, _target_mask = assemble_prompt(
-                    inputs, target, self.tokenizer.eos_token_id, self.task_token_ids
+                    inputs,
+                    target,
+                    self.tokenizer.eos_token_id,
+                    self.task_token_ids if not self.deep else [],
                 )
                 input_ids.append(_input_ids)
                 input_mask.append(_input_mask)

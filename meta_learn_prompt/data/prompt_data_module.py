@@ -16,12 +16,15 @@ class PromptDataModule(DataModule):
         config: Config,
         num_prefix: int,
         transformer_model: PathOrStr,
+        deep: bool = False,
         **kwargs,
     ):
         self.num_prefix = num_prefix
         self.transformer_model = transformer_model
+        self.deep = deep
 
-        self.task_tokens = ["<TASK{}>".format(str(i).zfill(2)) for i in range(self.num_prefix)]
+        if not self.deep:
+            self.task_tokens = ["<TASK{}>".format(str(i).zfill(2)) for i in range(self.num_prefix)]
 
         super().__init__(config, **kwargs)
 
@@ -33,6 +36,7 @@ class PromptDataModule(DataModule):
     def hash_fields(self) -> list[Any]:
         return super().hash_fields + [
             self.num_prefix,
+            self.deep,
             self.inputs_max_length,
             self.targets_max_length,
         ]
@@ -46,12 +50,15 @@ class PromptDataModule(DataModule):
                 if retry == 0:
                     raise e
             retry -= 1
-        tokenizer.add_tokens(self.task_tokens)
-        task_token_ids = tokenizer(
-            " ".join(self.task_tokens), return_tensors="pt", add_special_tokens=False
-        )["input_ids"]
-        assert task_token_ids.shape[-1] == self.num_prefix
-        self.task_token_ids = task_token_ids.squeeze(0).tolist()
+
+        if not self.deep:
+            tokenizer.add_tokens(self.task_tokens)
+            task_token_ids = tokenizer(
+                " ".join(self.task_tokens), return_tensors="pt", add_special_tokens=False
+            )["input_ids"]
+            assert task_token_ids.shape[-1] == self.num_prefix
+            self.task_token_ids = task_token_ids.squeeze(0).tolist()
+
         return tokenizer
 
     def tokenize(self, example: dict[str, Any], split: str):

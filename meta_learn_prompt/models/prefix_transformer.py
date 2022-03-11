@@ -16,6 +16,7 @@ from ..modules.transformer import Transformer
 from ..modules.with_prefix_embedding import WithPrefixEmbedding
 from ..train.optim import load_adafactor_state, resolve_optimizer_conf
 from .model import Model
+from .t5_with_prefix import T5WithPrefixConfig, T5ForConditionalGenerationWithPrefix
 
 logger = logging.getLogger(__name__)
 
@@ -38,14 +39,13 @@ class PrefixTransformer(Model):
         optstates_dir: Optional[str] = "/net/nfs2.allennlp/zhaofengw/optstates",
         load_opt_states: bool = True,
         train_full_model: bool = False,
-        deep: bool = False,
         **transformer_kwargs,
     ):
         self.transformer_name = transformer_model
         self.optstates_dir = optstates_dir
         self.load_opt_states = load_opt_states
         self.train_full_model = train_full_model
-        self.deep = deep
+        self.deep = dataset.deep
 
         super().__init__(
             config,
@@ -61,14 +61,27 @@ class PrefixTransformer(Model):
             lr_scheduler_total_steps=lr_scheduler_total_steps,
         )
 
-        self.transformer = Transformer(transformer_model, "seq2seq-lm", **transformer_kwargs)
+        if not self.deep:
+            self.transformer = Transformer(transformer_model, "seq2seq-lm", **transformer_kwargs)
+        else:
+            self.transformer = Transformer(
+                transformer_model,
+                "seq2seq-lm",
+                config_cls=T5WithPrefixConfig,
+                model_cls=T5ForConditionalGenerationWithPrefix,
+                num_prefix=dataset.num_prefix,
+                **transformer_kwargs,
+            )
         transformer_model: T5ForConditionalGeneration = self.transformer.model
         assert isinstance(transformer_model, T5ForConditionalGeneration)
         self.transformer_config = transformer_model.config
 
         if not self.train_full_model:
-            for param in self.transformer.parameters():
-                param.requires_grad = False
+            for n, param in self.transformer.named_parameters():
+                if n.startswith("model.encoder.prefix_") or n.startswith("model.decoder.prefix_"):
+                    assert self.deep
+                else:
+                    param.requires_grad = False
 
         if not self.deep:
             transformer_model.set_input_embeddings(
@@ -78,15 +91,6 @@ class PrefixTransformer(Model):
                     self.dataset.num_prefix,
                 )
             )
-        else:
-            self.dataset.task_tokens = []
-            self.dataset.task_token_ids = []
-            self.prefix_tokens = torch.arange(self.dataset.num_prefix)
-            self.deep_prefix_embedding = torch.nn.Embedding(
-                self.dataset.num_prefix,
-                self.transformer_config.num_layers * 2 * self.transformer_config.d_model,
-            )
-            self.deep_prefix_dropout = torch.nn.Dropout(self.transformer_config.dropout_rate)
 
     def unfreeze(self) -> dict[torch.nn.Parameter, bool]:
         orig_requires_grad = {}
@@ -113,30 +117,6 @@ class PrefixTransformer(Model):
             orig_decoder_shape = target_ids.shape
             target_ids = target_ids.reshape(-1, orig_decoder_shape[-1])
             target_mask = target_mask.reshape(-1, orig_decoder_shape[-1])
-
-        encoder_outputs = None
-        if self.deep:
-            # We could use past_key_values, but it's given to the decoder, but not the encoder.
-            # So we need to copmute encoder_output in advance.
-            bsz = input_ids.shape[0]
-            prefix_tokens = self.prefix_tokens.unsqueeze(0).expand(bsz, -1).to(input_ids.device)
-            past_key_values = self.deep_prefix_embedding(prefix_tokens)
-            past_key_values = past_key_values.reshape(
-                bsz,
-                self.dataset.num_prefix,
-                self.transformer_config.num_layers * 2,
-                self.transformer_config.num_heads,
-                self.transformer_config.d_kv,
-            )
-            past_key_values = self.deep_prefix_dropout(past_key_values)
-            past_key_values = past_key_values.permute([2, 0, 3, 1, 4]).split(2)
-            # TODO: attention mask
-            encoder_outputs = self.encoder(
-                input_ids=input_ids,
-                attention_mask=input_mask,
-                past_key_values=past_key_values,
-                return_dict=self.transformer_config.use_return_dict,
-            )
 
         logits = self.transformer(
             input_ids=input_ids,
@@ -189,11 +169,20 @@ class PrefixTransformer(Model):
         """
         optimizer_states = self.optimizers(use_pl_optimizer=False).state
         if not self.train_full_model:
-            weight_key = "transformer.model.shared.new_embed.weight"
-            checkpoint["state_dict"] = {weight_key: checkpoint["state_dict"][weight_key]}
+            weight_keys = (
+                ["transformer.model.shared.new_embed.weight"]
+                if not self.deep
+                else [
+                    k
+                    for k in checkpoint["state_dict"].keys()
+                    if k.startswith("transformer.model.encoder.prefix_")
+                    or k.startswith("transformer.model.decoder.prefix_")
+                ]
+            )
+            checkpoint["state_dict"] = {k: checkpoint["state_dict"][k] for k in weight_keys}
 
             name_to_param = {n: p for n, p in self.named_parameters()}
-            states = {weight_key: optimizer_states[name_to_param[weight_key]]}
+            states = {k: optimizer_states[name_to_param[k]] for k in weight_keys}
         else:
             param_to_name = {p: n for n, p in self.named_parameters()}
             states = {param_to_name[p]: states for p, states in optimizer_states.items()}
@@ -241,6 +230,7 @@ class PrefixTransformer(Model):
             optstates_dir=self.optstates_dir,
             load_opt_states=self.load_opt_states,
             train_full_model=self.train_full_model,
+            deep=self.deep,
         )
         new.to(self.device)
         new.load_state_dict(self.state_dict())
