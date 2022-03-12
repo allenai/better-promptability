@@ -122,7 +122,7 @@ class MetaLearner(Model):
             query_split_size = (
                 query_batch["input_ids"].shape[0] // self.meta_accumulate_grad_batches
             )
-            for _ in range(self.adaptation_steps):
+            for adaptation_step in range(self.adaptation_steps):
                 inner_optimizer.zero_grad()
                 for support_batch_split in split_batch(support_batch, support_split_size):
                     output = learner(support_batch_split)
@@ -135,9 +135,10 @@ class MetaLearner(Model):
                     # distributed training, because self.model is a torch module, not a
                     # distributed wrapper.
                     loss.backward()
+                    if adaptation_step == self.adaptation_steps - 1:
+                        support_loss += loss.detach().cpu()
                 inner_optimizer.step()
             self.inner_optimizer_state = inner_optimizer.state_dict()
-            support_loss += loss.detach().cpu()
 
             if self.algorithm == "fomaml":
                 # In the inner loop we only tune the prompt embeddings, and in the outer loop we
@@ -152,9 +153,9 @@ class MetaLearner(Model):
                         query_batch_split.get("target_mask"),
                     )
                     loss.backward()
+                    query_loss += loss.detach().cpu()
                 for p, l in zip(self.model.parameters(), learner.parameters()):
                     p.grad.data.add_(l.grad.data)
-                query_loss += loss.detach().cpu()
             elif self.algorithm == "reptile":
                 for p, l in zip(self.model.parameters(), learner.parameters()):
                     p.grad.data.add_(-1.0, l.data)
