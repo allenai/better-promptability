@@ -20,11 +20,11 @@ from transformers.models.t5.modeling_t5 import (
 
 
 class T5WithPrefixConfig(T5Config):
-    def __init__(self, num_prefix=None, reparam_dim=512, **kwargs):
+    def __init__(self, num_prefix=None, reparam=False, reparam_dim=512, **kwargs):
         super().__init__(**kwargs)
         self.num_prefix = num_prefix
+        self.reparam = reparam
         self.reparam_dim = reparam_dim
-        # TODO: optional reparam
 
     @classmethod
     def get_config_dict(cls, *args, **kwargs):
@@ -221,19 +221,19 @@ class T5StackWithPrefix(T5Stack):
         self.input_tokens = torch.arange(self.config.num_prefix)
         per_layer_dim = self.config.num_heads * self.config.d_kv
         total_dim = self.config.num_layers * 2 * per_layer_dim
-        self.prefix_embed = nn.Embedding(self.config.num_prefix, per_layer_dim)
-        self.prefix_reparam = nn.Sequential(
+        self.prefix_embed = nn.Sequential(
+            nn.Embedding(self.config.num_prefix, per_layer_dim),
             nn.Linear(per_layer_dim, self.config.reparam_dim),
             nn.Tanh(),
             nn.Linear(self.config.reparam_dim, total_dim),
-        )
+        ) if self.config.reparam else nn.Embedding(self.config.num_prefix, total_dim)
         if self.is_decoder:
-            self.prefix_embed_cross = nn.Embedding(self.config.num_prefix, per_layer_dim)
-            self.prefix_reparam_cross = nn.Sequential(
+            self.prefix_embed_cross = nn.Sequential(
+                nn.Embedding(self.config.num_prefix, per_layer_dim),
                 nn.Linear(per_layer_dim, self.config.reparam_dim),
                 nn.Tanh(),
                 nn.Linear(self.config.reparam_dim, total_dim),
-            )
+            ) if self.config.reparam else nn.Embedding(self.config.num_prefix, total_dim)
 
         self.block = torch.nn.ModuleList(
             [
@@ -245,10 +245,10 @@ class T5StackWithPrefix(T5Stack):
         # T5Stack has a self.init_weights() call here, but it's repetitive since we do it in
         # T5ForConditionalGenerationWithPrefix anyway.
 
-    def generate_prefix_item(self, input_ids, embedding, reparam):
+    def generate_prefix_item(self, input_ids, embedding):
         bsz = input_ids.size(0)
         input_tokens = self.input_tokens.unsqueeze(0).expand(bsz, -1).to(input_ids.device)
-        prefix = reparam(embedding(input_tokens))  # batch, seq, layer * embed * 2
+        prefix = embedding(input_tokens)  # batch, seq, layer * embed * 2
         prefix = prefix.view(
             bsz,
             self.config.num_prefix,
@@ -261,13 +261,11 @@ class T5StackWithPrefix(T5Stack):
         return prefix[0], prefix[1]
 
     def forward(self, input_ids=None, **kwargs):
-        prefix_key, prefix_value = self.generate_prefix_item(
-            input_ids, self.prefix_embed, self.prefix_reparam
-        )
+        prefix_key, prefix_value = self.generate_prefix_item(input_ids, self.prefix_embed)
         prefix_key_cross = prefix_value_cross = [None] * len(prefix_key)
         if self.is_decoder:
             prefix_key_cross, prefix_value_cross = self.generate_prefix_item(
-                input_ids, self.prefix_embed_cross, self.prefix_reparam_cross
+                input_ids, self.prefix_embed_cross
             )
         for block, k, v, k_cross, v_cross in zip(
             self.block, prefix_key, prefix_value, prefix_key_cross, prefix_value_cross
