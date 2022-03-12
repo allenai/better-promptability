@@ -221,19 +221,27 @@ class T5StackWithPrefix(T5Stack):
         self.input_tokens = torch.arange(self.config.num_prefix)
         per_layer_dim = self.config.num_heads * self.config.d_kv
         total_dim = self.config.num_layers * 2 * per_layer_dim
-        self.prefix_embed = nn.Sequential(
-            nn.Embedding(self.config.num_prefix, per_layer_dim),
-            nn.Linear(per_layer_dim, self.config.reparam_dim),
-            nn.Tanh(),
-            nn.Linear(self.config.reparam_dim, total_dim),
-        ) if self.config.reparam else nn.Embedding(self.config.num_prefix, total_dim)
-        if self.is_decoder:
-            self.prefix_embed_cross = nn.Sequential(
+        self.prefix_embed = (
+            nn.Sequential(
                 nn.Embedding(self.config.num_prefix, per_layer_dim),
                 nn.Linear(per_layer_dim, self.config.reparam_dim),
                 nn.Tanh(),
                 nn.Linear(self.config.reparam_dim, total_dim),
-            ) if self.config.reparam else nn.Embedding(self.config.num_prefix, total_dim)
+            )
+            if self.config.reparam
+            else nn.Embedding(self.config.num_prefix, total_dim)
+        )
+        if self.is_decoder:
+            self.prefix_embed_cross = (
+                nn.Sequential(
+                    nn.Embedding(self.config.num_prefix, per_layer_dim),
+                    nn.Linear(per_layer_dim, self.config.reparam_dim),
+                    nn.Tanh(),
+                    nn.Linear(self.config.reparam_dim, total_dim),
+                )
+                if self.config.reparam
+                else nn.Embedding(self.config.num_prefix, total_dim)
+            )
 
         self.block = torch.nn.ModuleList(
             [
