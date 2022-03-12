@@ -53,9 +53,9 @@ local model = if checkpoint == "null" then {
                     {"type": "pytorch_lightning::TensorBoardLogger"},
                 ],
                 "callbacks": [
-                    "pytorch_lightning::ModelCheckpoint",
                     "my_logger",
                 ],
+                "enable_checkpointing": false,
                 "replace_sampler_ddp": false,
             },
             "datamodule": {

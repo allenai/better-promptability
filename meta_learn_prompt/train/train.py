@@ -159,7 +159,7 @@ def _train_step(
 
     # Find the checkpoint callback and make sure it uses the right directory.
     # Also find the logging callback.
-    checkpoint_callback: pl.callbacks.model_checkpoint.ModelCheckpoint
+    checkpoint_callback: pl.callbacks.model_checkpoint.ModelCheckpoint = None
     logging_callback: LoggingCallback
     for callback in trainer.callbacks:
         if isinstance(callback, pl.callbacks.model_checkpoint.ModelCheckpoint):
@@ -176,7 +176,10 @@ def _train_step(
     if not trainer.state.finished:
         raise ValueError(f"Trainer did not succeed! Final trainer state was {trainer.state}.")
 
-    return checkpoint_callback.best_model_path, logging_callback.metrics_history
+    return (
+        checkpoint_callback.best_model_path if checkpoint_callback is not None else None,
+        logging_callback.metrics_history,
+    )
 
 
 @Step.register("train_step")

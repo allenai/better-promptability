@@ -102,9 +102,9 @@ local TrainStep(task_name) = {
             {type: "pytorch_lightning::TensorBoardLogger"},
         ],
         callbacks: [
-            "pytorch_lightning::ModelCheckpoint",
             "my_logger",
         ],
+        enable_checkpointing: false,
         replace_sampler_ddp: false,
         check_val_every_n_epoch: if validate_every_epoch then 1 else epochs,
     },
