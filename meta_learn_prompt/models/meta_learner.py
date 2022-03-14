@@ -64,14 +64,12 @@ class MetaLearner(Model):
         self.model.metrics = self.model.setup_metrics()
         self.metrics = self.model.metrics
 
-        if dist.is_initialized():
-            # ShardedDataParallel uses .requires_grad for sharding, and yet we use this property in
-            # quite complicated ways for meta learning. We need to make sure that this property
-            # correctly reflects the learnablity of each parameter after initialization. We restore
-            # it for our purposes in the first forward pass.
-            self.orig_requires_grad = self.model.unfreeze()
-            self.restored_requires_grad = False
-            self.world_size = dist.get_world_size()
+        # ShardedDataParallel uses .requires_grad for sharding, and yet we use this property in
+        # quite complicated ways for meta learning. We need to make sure that this property
+        # correctly reflects the learnablity of each parameter after initialization. We restore
+        # it for our purposes in the first forward pass.
+        self.orig_requires_grad = self.model.unfreeze()
+        self.restored_requires_grad = False
 
     def setup(self, stage: str = None):
         pass
@@ -86,7 +84,7 @@ class MetaLearner(Model):
         raise NotImplementedError
 
     def forward(self, meta_batch: list[tuple[dict, dict]]) -> dict[str, torch.Tensor]:
-        if dist.is_initialized() and not self.restored_requires_grad:
+        if not self.restored_requires_grad:
             for p in self.model.parameters():
                 p.requires_grad = self.orig_requires_grad[p]
             self.restored_requires_grad = True
@@ -184,7 +182,7 @@ class MetaLearner(Model):
             self.trainer.model.reduce()
             # reduce uses SUM, but we want averages
             for p in self.model.parameters():
-                p.grad.data.div_(self.world_size)
+                p.grad.data.div_(dist.get_world_size())
 
         return {"support_loss": support_loss, "query_loss": query_loss}
 
