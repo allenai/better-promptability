@@ -182,7 +182,8 @@ class MetaLearner(Model):
             self.trainer.model.reduce()
             # reduce uses SUM, but we want averages
             for p in self.model.parameters():
-                p.grad.data.div_(dist.get_world_size())
+                if p.grad is not None:  # in sharded ddp, each worker only gets some gradients
+                    p.grad.data.div_(dist.get_world_size())
 
         return {"support_loss": support_loss, "query_loss": query_loss}
 
