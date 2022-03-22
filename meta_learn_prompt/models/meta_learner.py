@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 def split_batch(batch, split_size):
     bsz = batch["input_ids"].shape[0]
+    assert bsz % split_size == 0
     assert all(v.shape[0] == bsz for v in batch.values())
     splits = None
     for k, v in batch.items():
@@ -41,6 +42,7 @@ class MetaLearner(Model):
         adaptation_steps: int,
         algorithm: str,
         meta_optimizer: Lazy[Optimizer],
+        different_inner_loop_batches: bool = False,
         load_opt_states: bool = True,
         meta_accumulate_grad_batches: int = 1,
     ):
@@ -52,6 +54,7 @@ class MetaLearner(Model):
         self.model = model
         self.algorithm = algorithm
         self.adaptation_steps = adaptation_steps
+        self.different_inner_loop_batches = different_inner_loop_batches
         self.load_opt_states = load_opt_states
         self.meta_accumulate_grad_batches = meta_accumulate_grad_batches
 
@@ -111,20 +114,27 @@ class MetaLearner(Model):
             inner_optimizer = resolve_optimizer_conf(
                 learner.configure_optimizers(load_opt_states=False)
             )
+            # TODO: try without state dict reuse
             inner_optimizer.load_state_dict(self.inner_optimizer_state)
 
             wpe_logger.setLevel(wpe_logger_level)
             tango_logger.setLevel(tango_logger_level)
 
-            support_split_size = (
-                support_batch["input_ids"].shape[0] // self.meta_accumulate_grad_batches
-            )
+            support_batch_size = support_batch["input_ids"].shape[0]
+            if self.different_inner_loop_batches:
+                support_batch_size = support_batch_size // self.adaptation_steps
+                support_batches = split_batch(support_batch, support_batch_size)
+
+            support_split_size = support_batch_size // self.meta_accumulate_grad_batches
             query_split_size = (
                 query_batch["input_ids"].shape[0] // self.meta_accumulate_grad_batches
             )
-            for adaptation_step in range(self.adaptation_steps):
+            for i, adaptation_step in enumerate(range(self.adaptation_steps)):
                 inner_optimizer.zero_grad()
-                for support_batch_split in split_batch(support_batch, support_split_size):
+                curr_support_batch = (
+                    support_batches[i] if self.different_inner_loop_batches else support_batch
+                )
+                for support_batch_split in split_batch(curr_support_batch, support_split_size):
                     output = learner(support_batch_split)
                     loss = self.model.compute_loss(
                         output["logits"],
@@ -138,29 +148,32 @@ class MetaLearner(Model):
                     if adaptation_step == self.adaptation_steps - 1:
                         support_loss += loss.detach().cpu()
                 inner_optimizer.step()
-            self.inner_optimizer_state = inner_optimizer.state_dict()
+
+            # In the inner loop we only tune the prompt embeddings, and in the outer loop we
+            # unfreeze the model to tune it in its entirety.
+            learner.unfreeze()
+            inner_optimizer.zero_grad()
+            for query_batch_split in split_batch(query_batch, query_split_size):
+                query_output = learner(query_batch_split)
+                loss = self.model.compute_loss(
+                    query_output["logits"],
+                    query_batch_split["target_ids"],
+                    query_batch_split.get("target_mask"),
+                )
+                loss.backward()
+                query_loss += loss.detach().cpu()
 
             if self.algorithm == "fomaml":
-                # In the inner loop we only tune the prompt embeddings, and in the outer loop we
-                # unfreeze the model to tune it in its entirety.
-                learner.unfreeze()
-                inner_optimizer.zero_grad()
-                for query_batch_split in split_batch(query_batch, query_split_size):
-                    query_output = learner(query_batch_split)
-                    loss = self.model.compute_loss(
-                        query_output["logits"],
-                        query_batch_split["target_ids"],
-                        query_batch_split.get("target_mask"),
-                    )
-                    loss.backward()
-                    query_loss += loss.detach().cpu()
                 for p, l in zip(self.model.parameters(), learner.parameters()):
                     p.grad.data.add_(l.grad.data)
             elif self.algorithm == "reptile":
+                inner_optimizer.step()
                 for p, l in zip(self.model.parameters(), learner.parameters()):
                     p.grad.data.add_(-1.0, l.data)
             else:
                 assert False
+
+            self.inner_optimizer_state = inner_optimizer.state_dict()
 
         for p in self.model.parameters():
             # In distributed training, these averages are in most cases exact. The only exception
