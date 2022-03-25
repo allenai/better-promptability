@@ -64,13 +64,19 @@ class T0Module(PromptDataModule):
     def setup(self, stage: Optional[str] = None):
         super().setup(stage)
         if self.subsample_indices is not None:
+            # convert to train indices, since in train it's grouped up.
+            num_options = len(self.dataset_dict[self.train_split][0]['targets'])
+            train_indices = [x // num_options for x in self.subsample_indices]
             indices = self.subsample_indices
-            dataset = self.dataset_dict[self.train_split].select(indices)
+            ## HAMISH - just push the train set into the form we want here: flatten, make single target,
+            # then training should work.
+            dataset = self.dataset_dict[self.train_split].select(train_indices)
             #assert md5("".join(str(ex["inputs"] + ex["targets"]) for ex in dataset)) == checksum
             self.dataset_dict[self.train_split] = dataset
+            
             # apply indices to dev
             if len(self.dev_splits) > 0:
-                dataset = self.dataset_dict[self.dev_splits[0]].select(indices)
+                dataset = self.dataset_dict[self.dev_splits[0]].select(train_indices)
                 self.dataset_dict[self.dev_splits[0]] = dataset
 
     @property
@@ -150,7 +156,7 @@ class T0Module(PromptDataModule):
                 for choice in example["answer_choices"]
             ]
 
-        elif self.mixture_name == "green" and split == self.train_split:
+        elif self.mixture_name == "green" and split == 'train': #self.train_split:
             single_target = True
 
             # Actually getting the single target.

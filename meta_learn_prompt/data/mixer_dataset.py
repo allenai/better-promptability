@@ -25,10 +25,14 @@ class MixerDataset(Dataset):
         sampling_cap: Optional[int] = None,
         seed: int = 3,  # this is important during distributed training
         no_resample: bool = False,  # useful for validation
+        train: bool = False,
     ):
         self._datasets: list[Union[Dataset, HFDataset]] = []
         self._total_size: int = 0
         self._no_resample = no_resample
+        if train:
+            # filter out the not is_correct samples
+            self._datasets = [d.filter(lambda x: x['is_correct']) for d in self._datasets]
         for dataset in Tqdm.tqdm(datasets, desc="Mixing datasets"):
             if sampling_cap is not None and len(dataset) > sampling_cap:
                 self._total_size += sampling_cap

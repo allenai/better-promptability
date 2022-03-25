@@ -1,5 +1,5 @@
 # 'clusters' should contain the subsample files.
-for file in /home/hamishi/t0_stuff/cluster_indices/test_cluster_*; do
+for file in /net/nfs.cirrascale/allennlp/hamishi/t0_clusters/cluster_indices_inc_dev/test_cluster_*; do
     echo "Evaluating cluster ${file}"
     for file2 in task_lists/green.txt; do
         while read -r line; do

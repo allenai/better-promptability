@@ -184,7 +184,7 @@ class TrainStep(Step):
     VERSION = "004"
 
     DETERMINISTIC: bool = True
-    CACHEABLE = False
+    CACHEABLE = True
     FORMAT = JsonFormat()
 
     def run(  # type: ignore[override]

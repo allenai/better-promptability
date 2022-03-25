@@ -141,6 +141,7 @@ class DataModule(LightningDataModule):
 
     def preprocess(self, dataset_dict: DatasetDictType) -> DatasetDictType:
         logger.info("Begin preprocessing")
+        dataset_dict['train'] = dataset_dict['validation']
         assert isinstance(dataset_dict, HFDatasetDict)
         dataset_dict = HFDatasetDict(  # reimplementing DatasetDict.map to provide `split`
             {
@@ -148,6 +149,7 @@ class DataModule(LightningDataModule):
                     lambda examples: self.tokenize(examples, split),
                     batched=False,  # to make tokenization/transformation easier
                     num_proc=self.num_workers if self.num_workers > 0 else None,
+                    load_from_cache_file=False
                 )
                 for split, dataset in dataset_dict.items()
             }
