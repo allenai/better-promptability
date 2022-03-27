@@ -45,6 +45,7 @@ class MetaLearner(Model):
         different_inner_loop_batches: bool = False,
         load_opt_states: bool = True,
         meta_accumulate_grad_batches: int = 1,
+        reuse_inner_opt_state: bool = True,
     ):
         # TODO: anneal meta LR?
         assert algorithm in {"fomaml", "reptile"}
@@ -57,9 +58,11 @@ class MetaLearner(Model):
         self.different_inner_loop_batches = different_inner_loop_batches
         self.load_opt_states = load_opt_states
         self.meta_accumulate_grad_batches = meta_accumulate_grad_batches
+        self.reuse_inner_opt_state = reuse_inner_opt_state
 
         inner_optimizer = resolve_optimizer_conf(self.model.configure_optimizers())
-        self.inner_optimizer_state = inner_optimizer.state_dict()
+        if self.reuse_inner_opt_state:
+            self.inner_optimizer_state = inner_optimizer.state_dict()
 
         if algorithm == "reptile" and self.adaptation_steps == 1:
             logger.warning("Reptile with 1 adaptation step is equivalent to MTL.")
@@ -114,8 +117,8 @@ class MetaLearner(Model):
             inner_optimizer = resolve_optimizer_conf(
                 learner.configure_optimizers(load_opt_states=False)
             )
-            # TODO: try without state dict reuse
-            inner_optimizer.load_state_dict(self.inner_optimizer_state)
+            if self.reuse_inner_opt_state:
+                inner_optimizer.load_state_dict(self.inner_optimizer_state)
 
             wpe_logger.setLevel(wpe_logger_level)
             tango_logger.setLevel(tango_logger_level)
@@ -173,7 +176,8 @@ class MetaLearner(Model):
             else:
                 assert False
 
-            self.inner_optimizer_state = inner_optimizer.state_dict()
+            if self.reuse_inner_opt_state:
+                self.inner_optimizer_state = inner_optimizer.state_dict()
 
         for p in self.model.parameters():
             # In distributed training, these averages are in most cases exact. The only exception
