@@ -2,24 +2,27 @@
 # Model settings #
 ##################
 
-local pretrained_model = "t5-base";
+local pretrained_model = "google/t5-large-lm-adapt";
 local load_with_low_cpu_mem_usage = false;
 
 ####################
 # Trainer settings #
 ####################
 
+local instances = 2490;
+
 # Trainer settings, adjust to your use-case.
-local training_steps = 20;  # total number of optimization steps to train for
-local validate_every = 5;  # how often to validate and save checkpoints
+local validate_every = 200;  # how often to validate and save checkpoints
 
 local devices = 1;  # number of devices to train on (will use GPUs if enough are available, otherwise CPU)
-local grad_accum = 1;  # number of gradient accumulation steps (changes the effective batch size)
+local grad_accum = 8;  # number of gradient accumulation steps (changes the effective batch size)
 # This is the batch size per GPU, ignoring gradient accumulation:
-local batch_size = 2;
+local batch_size = 4;
 # So the effective batch size is `batch_size * grad_accum * devices`
 
-local activation_checkpointing = false;  # use activation/gradient checkpointing (probably need this GPT-J 6B, but not gpt2)
+local training_steps = std.floor(5 * instances / (devices * grad_accum * batch_size));  # total number of optimization steps to train for
+
+local activation_checkpointing = true;  # use activation/gradient checkpointing (probably need this GPT-J 6B, but not gpt2)
 local amp = false;  # use PyTorch's native automatic mixed precision
 local fsdp = false;  # Use FairScale's FullyShardedDataParallel (probably need this GPT-J 6B, but not gpt2)
 local cpu_offloading = false;  # Can only be used with 'fsdp' - saves a lot of GPU memory by offloading params+gradients to CPU, but is very slow.
@@ -28,8 +31,8 @@ local cpu_offloading = false;  # Can only be used with 'fsdp' - saves a lot of G
 # Optimizer settings #
 ######################
 
-local warmup_steps = 20;
-local learning_rate = 0.00005;  # you can probably use a higher LR for a small model like "gpt2"
+local warmup_steps = 200;
+local learning_rate = 1e-5;  # you can probably use a higher LR for a small model like "gpt2"
 
 
 assert fsdp == true || cpu_offloading == false : "cpu_offloading only available with fsdp";
