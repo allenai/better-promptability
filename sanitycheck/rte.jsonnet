@@ -2,7 +2,7 @@
 # Model settings #
 ##################
 
-local pretrained_model = "t5-large";
+local pretrained_model = "t5-base";
 local load_with_low_cpu_mem_usage = false;
 
 ####################
@@ -121,14 +121,17 @@ local dataloader = if devices > 1 then distributed_dataloader else single_device
         predictions: {
             type: "catwalk::predict",
             model: {
-                type: "catwalk::t5_model_from_model",
+                type: "catwalk::t5_from_model",
                 model: { type: "ref", ref: "trained_model" },
             },
             task: "glue::rte"
         },
         metrics: {
             type: "catwalk::calculate_metrics",
-            model: { type: "ref", ref: "trained_model" },
+            model: {
+                type: "catwalk::t5_from_model",
+                model: { type: "ref", ref: "trained_model" },
+            },
             task: "glue::rte",
             predictions: { type: "ref", ref: "predictions" }
         }
