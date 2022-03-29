@@ -44,6 +44,7 @@ class T0Module(PromptDataModule):
         t0_data_cache: PathOrStr = "/net/nfs.cirrascale/allennlp/zhaofengw/t0/data_cache",
         sequence_length: Optional[Mapping[str, int]] = None,
         subsample_indices_file: Optional[str] = None,
+        train_module: bool = False,
         **kwargs,
     ):
         super().__init__(config, num_prefix, transformer_model, **kwargs)
@@ -54,6 +55,7 @@ class T0Module(PromptDataModule):
         self.t0_data_cache = Path(t0_data_cache)
         self.sequence_length = sequence_length
         self.subsample_indices = None
+        self.train_module = train_module
         if subsample_indices_file is not None:
             self.subsample_indices = pickle.load(open(subsample_indices_file, "rb"))[task_name]
 
@@ -64,20 +66,22 @@ class T0Module(PromptDataModule):
     def setup(self, stage: Optional[str] = None):
         super().setup(stage)
         if self.subsample_indices is not None:
-            # convert to train indices, since in train it's grouped up.
+            ## Index logic
+            # convert to train indices, since in train it's grouped up\
             num_options = len(self.dataset_dict[self.train_split][0]['targets'])
             train_indices = [x // num_options for x in self.subsample_indices]
-            indices = self.subsample_indices
-            ## HAMISH - just push the train set into the form we want here: flatten, make single target,
-            # then training should work.
             dataset = self.dataset_dict[self.train_split].select(train_indices)
-            #assert md5("".join(str(ex["inputs"] + ex["targets"]) for ex in dataset)) == checksum
             self.dataset_dict[self.train_split] = dataset
-            
-            # apply indices to dev
-            if len(self.dev_splits) > 0:
-                dataset = self.dataset_dict[self.dev_splits[0]].select(train_indices)
+            # apply the same to dev.
+            if len(self.dev_splits) > 0 and not self.train_module:
+                num_options = len(self.dataset_dict[self.dev_splits[0]][0]['targets'])
+                dev_indices = [x // num_options for x in self.subsample_indices]
+                # weird data here.
+                if self.task_name == 'hellaswag_Randomized_prompts_template_score_eval':
+                    dev_indices = [d for d in dev_indices if d < len(self.dataset_dict[self.dev_splits[0]])]
+                dataset = self.dataset_dict[self.dev_splits[0]].select(dev_indices)
                 self.dataset_dict[self.dev_splits[0]] = dataset
+                 
 
     @property
     def dev_splits(self) -> list[str]:

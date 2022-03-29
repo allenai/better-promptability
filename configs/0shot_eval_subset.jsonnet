@@ -13,8 +13,8 @@ local num_prefix = 0;
 local subsample_indices_file = "subsampleindicesfile";
 
 // Set to null if you don't want to load a checkpoint.
-// local checkpoint = "/net/nfs.cirrascale/allennlp/zhaofengw/meta-learn-prompt/output/mtl_small_nooptstate/runs/pumped-kodiak/output_model/work/last.ckpt";
-local checkpoint = null;
+local checkpoint = "/net/nfs.cirrascale/allennlp/hamishi/meta-learn-prompt/output_t0_3b_dev_inc_dev_cluster_0/cache/TrainStep-004-WPJT9FATUtsf8VVPhdH4PEQS7zRQTMdV/work/subsample_indices_file=0-epoch=0-step=22-endofepoch-categorical_accuracy=0.0000.ckpt";
+// local checkpoint = null;
 
 local model = if checkpoint == null then {
     "type": "prefix_transformer",

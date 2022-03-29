@@ -147,7 +147,8 @@ class PrefixTransformer(Model):
         dataloader_idx=0,
         compute_loss=True,
     ) -> dict[str, Any]:
-        if isinstance(self.dataset, T0MultiTaskDataModule):
+        # TODO: flag this on/off.
+        if False and isinstance(self.dataset, T0MultiTaskDataModule):
             preds = self(batch)["logits"]
             split = self.dataset.dev_splits[dataloader_idx]
             for metric in self.metrics[split].values():

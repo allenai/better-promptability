@@ -21,20 +21,41 @@ class T0MultiTaskDataModule(PromptDataModule):
         sampling_cap: Optional[int] = 500000,
         dev_sampling_cap: Optional[int] = 400,
         subsample_indices_files: Optional[List[str]] = None,
+        train_subsample_indices_file: Optional[str] = None,
         t0_data_cache: PathOrStr = "/net/nfs2.allennlp/petew/meta-learn-prompt/t0/cache",
         **kwargs,
     ):
         super().__init__(config, num_prefix, transformer_model, preprocess_and_save=False, **kwargs)
         self.mixture_name = mixture_name
-        self.t0_mixtures = [T0Mixture(
+        self.t0_train_mixture = T0Mixture(
             mixture_name,
             config,
             num_prefix,
             transformer_model,
             t0_data_cache=t0_data_cache,
-            subsample_indices_file=subsample_indices_file,
-            **kwargs,
-        ) for subsample_indices_file in subsample_indices_files]
+            subsample_indices_file=train_subsample_indices_file,
+            train_module=True,
+            **kwargs)
+        if subsample_indices_files:
+            self.t0_mixtures = [T0Mixture(
+                mixture_name,
+                config,
+                num_prefix,
+                transformer_model,
+                t0_data_cache=t0_data_cache,
+                subsample_indices_file=subsample_indices_file,
+                **kwargs,
+            ) for subsample_indices_file in subsample_indices_files]
+        else:
+            self.t0_mixtures = [T0Mixture(
+                mixture_name,
+                config,
+                num_prefix,
+                transformer_model,
+                t0_data_cache=t0_data_cache,
+                subsample_indices_file=None,
+                **kwargs,
+            )]
         self.sampling_cap = sampling_cap
         self.dev_sampling_cap = dev_sampling_cap
 
@@ -91,8 +112,14 @@ class T0MultiTaskDataModule(PromptDataModule):
         return pad_token_map_
 
     def load(self) -> DatasetDict:
+        with Tqdm.tqdm(self.t0_train_mixture.data_modules.items(), "Loading T0 train datasets") as dm_iter:
+            for name, data_module in dm_iter:
+                dm_iter.set_postfix({"module": name if len(name) < 30 else (name[:27] + "...")})
+                data_module.tokenizer = self.tokenizer
+                data_module.task_token_ids = self.task_token_ids
+                data_module.setup() 
         for t0_mixture in self.t0_mixtures:
-            with Tqdm.tqdm(t0_mixture.data_modules.items(), "Loading T0 datasets") as dm_iter:
+            with Tqdm.tqdm(t0_mixture.data_modules.items(), "Loading T0 val datasets") as dm_iter:
                 for name, data_module in dm_iter:
                     dm_iter.set_postfix({"module": name if len(name) < 30 else (name[:27] + "...")})
                     data_module.tokenizer = self.tokenizer
@@ -101,7 +128,7 @@ class T0MultiTaskDataModule(PromptDataModule):
         # train set is always the same, use unique dev
         splits={
             "train": MixerDataset(
-                [dm[dm.train_split] for dm in self.t0_mixtures[0].data_modules.values()],
+                [dm[dm.train_split] for dm in self.t0_train_mixture.data_modules.values()],
                 sampling_cap=self.sampling_cap,
                 train=True
             ),

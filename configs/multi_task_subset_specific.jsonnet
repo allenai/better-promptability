@@ -11,23 +11,25 @@ local batch_size = 2;
 local ckpt_interval = 512;
 local max_epochs = 10;
 local warmup_steps = 500;
-local train_steps = 100;
+local train_steps = 10000000;
 local subsample_indices_files = [
-    "/net/nfs.cirrascale/allennlp/hamishi/t0_clusters/cluster_indices_tfidf/test_cluster_0_indices.pkl",
-    "/net/nfs.cirrascale/allennlp/hamishi/t0_clusters/cluster_indices_tfidf/test_cluster_1_indices.pkl",
-    "/net/nfs.cirrascale/allennlp/hamishi/t0_clusters/cluster_indices_tfidf/test_cluster_2_indices.pkl",
-    "/net/nfs.cirrascale/allennlp/hamishi/t0_clusters/cluster_indices_tfidf/test_cluster_3_indices.pkl",
-    "/net/nfs.cirrascale/allennlp/hamishi/t0_clusters/cluster_indices_tfidf/test_cluster_4_indices.pkl",
-    "/net/nfs.cirrascale/allennlp/hamishi/t0_clusters/cluster_indices_tfidf/test_cluster_5_indices.pkl",
-    "/net/nfs.cirrascale/allennlp/hamishi/t0_clusters/cluster_indices_tfidf/test_cluster_6_indices.pkl",
-    "/net/nfs.cirrascale/allennlp/hamishi/t0_clusters/cluster_indices_tfidf/test_cluster_7_indices.pkl",
-    "/net/nfs.cirrascale/allennlp/hamishi/t0_clusters/cluster_indices_tfidf/test_cluster_8_indices.pkl",
-    "/net/nfs.cirrascale/allennlp/hamishi/t0_clusters/cluster_indices_tfidf/test_cluster_9_indices.pkl",
-    "/net/nfs.cirrascale/allennlp/hamishi/t0_clusters/cluster_indices_tfidf/test_cluster_10_indices.pkl",
-    "/net/nfs.cirrascale/allennlp/hamishi/t0_clusters/cluster_indices_tfidf/test_cluster_11_indices.pkl",
-    "/net/nfs.cirrascale/allennlp/hamishi/t0_clusters/cluster_indices_tfidf/test_cluster_12_indices.pkl",
-    "/net/nfs.cirrascale/allennlp/hamishi/t0_clusters/cluster_indices_tfidf/test_cluster_13_indices.pkl",
-    "/net/nfs.cirrascale/allennlp/hamishi/t0_clusters/cluster_indices_tfidf/test_cluster_14_indices.pkl"];
+    "/net/nfs.cirrascale/allennlp/hamishi/t0_clusters/cluster_indices_inc_dev/test_cluster_0_indices.pkl",
+    "/net/nfs.cirrascale/allennlp/hamishi/t0_clusters/cluster_indices_inc_dev/test_cluster_1_indices.pkl",
+    "/net/nfs.cirrascale/allennlp/hamishi/t0_clusters/cluster_indices_inc_dev/test_cluster_2_indices.pkl",
+    "/net/nfs.cirrascale/allennlp/hamishi/t0_clusters/cluster_indices_inc_dev/test_cluster_3_indices.pkl",
+    "/net/nfs.cirrascale/allennlp/hamishi/t0_clusters/cluster_indices_inc_dev/test_cluster_4_indices.pkl",
+    "/net/nfs.cirrascale/allennlp/hamishi/t0_clusters/cluster_indices_inc_dev/test_cluster_5_indices.pkl",
+    "/net/nfs.cirrascale/allennlp/hamishi/t0_clusters/cluster_indices_inc_dev/test_cluster_6_indices.pkl",
+    "/net/nfs.cirrascale/allennlp/hamishi/t0_clusters/cluster_indices_inc_dev/test_cluster_7_indices.pkl",
+    "/net/nfs.cirrascale/allennlp/hamishi/t0_clusters/cluster_indices_inc_dev/test_cluster_8_indices.pkl",
+    "/net/nfs.cirrascale/allennlp/hamishi/t0_clusters/cluster_indices_inc_dev/test_cluster_9_indices.pkl",
+    "/net/nfs.cirrascale/allennlp/hamishi/t0_clusters/cluster_indices_inc_dev/test_cluster_10_indices.pkl",
+    "/net/nfs.cirrascale/allennlp/hamishi/t0_clusters/cluster_indices_inc_dev/test_cluster_11_indices.pkl",
+    "/net/nfs.cirrascale/allennlp/hamishi/t0_clusters/cluster_indices_inc_dev/test_cluster_12_indices.pkl",
+    "/net/nfs.cirrascale/allennlp/hamishi/t0_clusters/cluster_indices_inc_dev/test_cluster_13_indices.pkl",
+    "/net/nfs.cirrascale/allennlp/hamishi/t0_clusters/cluster_indices_inc_dev/test_cluster_14_indices.pkl"];
+local train_subsample_indices_file = "/net/nfs.cirrascale/allennlp/hamishi/t0_clusters/cluster_indices_inc_dev/train_cluster_0_indices.pkl";
+
 
 {
     "steps": {
@@ -94,6 +96,7 @@ local subsample_indices_files = [
                 "eval_batch_size": 32,
                 "num_prefix": 0,
                 "subsample_indices_files": subsample_indices_files,
+                "train_subsample_indices_file": train_subsample_indices_file,
                 "num_workers": 4,
             },
         },

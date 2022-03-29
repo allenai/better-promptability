@@ -141,7 +141,9 @@ class DataModule(LightningDataModule):
 
     def preprocess(self, dataset_dict: DatasetDictType) -> DatasetDictType:
         logger.info("Begin preprocessing")
-        dataset_dict['train'] = dataset_dict['validation']
+        ## CHANGE - to hack in training on train.
+        # dataset_dict['train'] = dataset_dict['validation']
+        ## 
         assert isinstance(dataset_dict, HFDatasetDict)
         dataset_dict = HFDatasetDict(  # reimplementing DatasetDict.map to provide `split`
             {
