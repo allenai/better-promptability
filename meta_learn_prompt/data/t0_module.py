@@ -68,10 +68,11 @@ class T0Module(PromptDataModule):
         if self.subsample_indices is not None:
             ## Index logic
             # convert to train indices, since in train it's grouped up\
-            num_options = len(self.dataset_dict[self.train_split][0]['targets'])
-            train_indices = [x // num_options for x in self.subsample_indices]
-            dataset = self.dataset_dict[self.train_split].select(train_indices)
-            self.dataset_dict[self.train_split] = dataset
+            if self.train_module:
+                num_options = len(self.dataset_dict[self.train_split][0]['targets'])
+                train_indices = [x // num_options for x in self.subsample_indices]
+                dataset = self.dataset_dict[self.train_split].select(train_indices)
+                self.dataset_dict[self.train_split] = dataset
             # apply the same to dev.
             if len(self.dev_splits) > 0 and not self.train_module:
                 num_options = len(self.dataset_dict[self.dev_splits[0]][0]['targets'])

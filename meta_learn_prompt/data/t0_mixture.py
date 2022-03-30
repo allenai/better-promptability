@@ -32,7 +32,7 @@ class T0Mixture:
         if subsample_indices_file:
             task_indices = pickle.load(open(subsample_indices_file, "rb"))
         for task_name in Params.from_file("configs/t0_mixtures.jsonnet")[mixture_name]:
-            if task_indices is not None and task_name not in task_indices:
+            if task_indices is not None and (task_name not in task_indices or len(task_indices[task_name]) == 0):
                 print(f'task {task_name} not in indices and is being left out of mixture.')
                 continue
             self.data_modules[task_name] = T0Module(
