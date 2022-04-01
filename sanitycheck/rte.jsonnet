@@ -2,7 +2,7 @@
 # Model settings #
 ##################
 
-local pretrained_model = "google/t5-large-lm-adapt";
+local pretrained_model = "google/t5-xl-lm-adapt";
 local load_with_low_cpu_mem_usage = false;
 
 ####################
@@ -15,12 +15,12 @@ local instances = 2490;
 local validate_every = 200;  # how often to validate and save checkpoints
 
 local devices = 1;  # number of devices to train on (will use GPUs if enough are available, otherwise CPU)
-local grad_accum = 8;  # number of gradient accumulation steps (changes the effective batch size)
+local grad_accum = 4;  # number of gradient accumulation steps (changes the effective batch size)
 # This is the batch size per GPU, ignoring gradient accumulation:
-local batch_size = 4;
+local batch_size = 8;
 # So the effective batch size is `batch_size * grad_accum * devices`
 
-local training_steps = std.floor(5 * instances / (devices * grad_accum * batch_size));  # total number of optimization steps to train for
+local training_steps = std.floor(30 * instances / (devices * grad_accum * batch_size));  # total number of optimization steps to train for
 
 local activation_checkpointing = true;  # use activation/gradient checkpointing (probably need this GPT-J 6B, but not gpt2)
 local amp = false;  # use PyTorch's native automatic mixed precision
@@ -120,6 +120,13 @@ local dataloader = if devices > 1 then distributed_dataloader else single_device
             log_every: 1,
             device_count: devices,
             training_engine: training_engine,
+            callbacks: [
+                {
+                    type: "wandb::log",
+                    project: "sanitycheck",
+                    entity: "meta-learn-prompt"
+                }
+            ]
         },
         predictions: {
             type: "catwalk::predict",
