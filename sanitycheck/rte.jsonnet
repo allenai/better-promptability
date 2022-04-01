@@ -20,7 +20,9 @@ local grad_accum = 4;  # number of gradient accumulation steps (changes the effe
 local batch_size = 8;
 # So the effective batch size is `batch_size * grad_accum * devices`
 
-local training_steps = std.floor(30 * instances / (devices * grad_accum * batch_size));  # total number of optimization steps to train for
+# total number of optimization steps to train for
+#local training_steps = std.floor(30 * instances / (devices * grad_accum * batch_size));
+local training_steps = 1000;
 
 local activation_checkpointing = true;  # use activation/gradient checkpointing (probably need this GPT-J 6B, but not gpt2)
 local amp = false;  # use PyTorch's native automatic mixed precision
