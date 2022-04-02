@@ -56,7 +56,7 @@ local epochs = 3;
 local model_name = "google/t5-xl-lm-adapt";
 
 #local checkpoint = "/net/nfs.cirrascale/allennlp/zhaofengw/meta-learn-prompt/output/mtl_xl/runs/fleet-tarpon/output_model/work/epoch=0-step=7704-endofepoch-categorical_accuracy=0.6343.ckpt";
-local checkpoint = null;
+local checkpoint = "null";
 
 local optimizer = {
     type: "adafactor",
@@ -74,7 +74,7 @@ local validate_every_epoch = false;
 // ------------------------------------------------------------ //
 
 // Cirrascale machines:
-local t0_data_cache = "/net/nfs2.allennlp/akshitab/meta-learn-prompt/t0/processed_cache";
+local t0_data_cache = "/net/nfs.cirrascale/allennlp/zhaofengw/t0/data_cache";
 local optstates_dir = "/net/nfs2.allennlp/zhaofengw/optstates";
 
 // ----------------------------------------------------------- //
