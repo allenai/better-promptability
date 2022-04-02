@@ -119,8 +119,8 @@ local TrainStep(task_name) = {
         t0_data_cache: t0_data_cache,
         transformer_model: model_name,
         #num_prefix: 20,
-        num_prefix: 3,
-        num_workers: 4,
+        #num_prefix: 3,
+        num_workers: 1,
     },
     model: model,
 };
