@@ -91,6 +91,8 @@ local model = {
     train_full_model: true
 };
 
+local grad_acc = 4;
+
 // Function that returns the train + eval step for a given task.
 local TrainStep(task_name) = {
     type: "train_step",
@@ -99,7 +101,7 @@ local TrainStep(task_name) = {
         type: "default",
         max_epochs: epochs,
         gradient_clip_val: 1.0,
-        accumulate_grad_batches: 1.0,
+        accumulate_grad_batches: grad_acc,
         log_every_n_steps: 50,
         logger: [
             {type: "pytorch_lightning::TensorBoardLogger"},
@@ -118,6 +120,7 @@ local TrainStep(task_name) = {
         data_dir: "data",
         t0_data_cache: t0_data_cache,
         transformer_model: model_name,
+        batch_size: std.floor(32 / grad_acc),
         #num_prefix: 20,
         #num_prefix: 3,
         num_workers: 1,
