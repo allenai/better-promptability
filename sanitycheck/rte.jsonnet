@@ -97,7 +97,9 @@ local dataloader = if devices > 1 then distributed_dataloader else single_device
         tokenized_data: {
             type: "tokenize_text2text",
             data: { type: "ref", ref: "data" },
-            tokenizer: { pretrained_model_name_or_path: pretrained_model }
+            tokenizer: { pretrained_model_name_or_path: pretrained_model },
+            max_source_length: 768,
+            max_target_length: 192,
         },
         trained_model: {
             type: "torch::train",
