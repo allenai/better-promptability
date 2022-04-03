@@ -38,7 +38,7 @@ class DataModule(LightningDataModule, DetHashWithVersion):
     and a tokenizer.
     """
 
-    VERSION = "002"
+    VERSION = "003"
 
     def __init__(
         self,
@@ -188,15 +188,18 @@ class DataModule(LightningDataModule, DetHashWithVersion):
         dataset_split = self.dataset_dict[split]
 
         # LengthGroupedSampler sorts from longest to shortest; we want the reverse
-        if isinstance(dataset_split, MixerDataset):
-            # The naive processing is slow and takes too much memory
-            lens = [-l for l in dataset_split.get_all_example_lens()]  # noqa: E741
+        if shuffle:
+            sampler = None
         else:
-            lens = [-len(ids) for ids in dataset_split[self.sort_key]]
-        if self.config.gpus is None or self.config.gpus <= 1:
-            sampler = LengthGroupedSampler(batch_size, lengths=lens)
-        else:
-            sampler = DistributedLengthGroupedSampler(batch_size, lengths=lens)
+            if isinstance(dataset_split, MixerDataset):
+                # The naive processing is slow and takes too much memory
+                lens = [-l for l in dataset_split.get_all_example_lens()]  # noqa: E741
+            else:
+                lens = [-len(ids) for ids in dataset_split[self.sort_key]]
+            if self.config.gpus is None or self.config.gpus <= 1:
+                sampler = LengthGroupedSampler(batch_size, lengths=lens)
+            else:
+                sampler = DistributedLengthGroupedSampler(batch_size, lengths=lens)
 
         pad_token_map = self.pad_token_map(split)
         assert all(pad is not None for pad in pad_token_map.values())
