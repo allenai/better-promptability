@@ -123,7 +123,7 @@ local TrainStep(task_name) = {
         transformer_model: model_name,
         batch_size: std.floor(32 / grad_acc),
         num_prefix: 0,
-        num_workers: 1,
+        num_workers: 0,
     },
     model: model,
 };
