@@ -29,15 +29,15 @@ local mixture_name = "green";
 // For debugging:
 local tasks = [
         "super_glue_rte_GPT_3_style_score_eval",
-        "super_glue_rte_MNLI_crowdsource_score_eval",
-        "super_glue_rte_based_on_the_previous_passage_score_eval",
-        "super_glue_rte_can_we_infer_score_eval",
-        "super_glue_rte_does_it_follow_that_score_eval",
-        "super_glue_rte_does_this_imply_score_eval",
-        "super_glue_rte_guaranteed_true_score_eval",
-        "super_glue_rte_justified_in_saying_score_eval",
-        "super_glue_rte_must_be_true_score_eval",
-        "super_glue_rte_should_assume_score_eval",
+        #"super_glue_rte_MNLI_crowdsource_score_eval",
+        #"super_glue_rte_based_on_the_previous_passage_score_eval",
+        #"super_glue_rte_can_we_infer_score_eval",
+        #"super_glue_rte_does_it_follow_that_score_eval",
+        #"super_glue_rte_does_this_imply_score_eval",
+        #"super_glue_rte_guaranteed_true_score_eval",
+        #"super_glue_rte_justified_in_saying_score_eval",
+        #"super_glue_rte_must_be_true_score_eval",
+        #"super_glue_rte_should_assume_score_eval",
 ];
 
 // ----------------------- //
