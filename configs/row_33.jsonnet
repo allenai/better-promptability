@@ -112,6 +112,7 @@ local TrainStep(task_name) = {
         enable_checkpointing: false,
         replace_sampler_ddp: false,
         check_val_every_n_epoch: if validate_every_epoch then 1 else epochs,
+        num_sanity_val_steps: 0
     },
     datamodule: {
         type: "t0",
