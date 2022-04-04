@@ -124,13 +124,13 @@ local dataloader = if devices > 1 then distributed_dataloader else single_device
             log_every: 1,
             device_count: devices,
             training_engine: training_engine,
-            callbacks: [
-                {
-                    type: "wandb::log",
-                    project: "sanitycheck",
-                    entity: "meta-learn-prompt"
-                }
-            ]
+            #callbacks: [
+            #    {
+            #        type: "wandb::log",
+            #        project: "sanitycheck",
+            #        entity: "meta-learn-prompt"
+            #    }
+            #]
         },
         predictions: {
             type: "catwalk::predict",
