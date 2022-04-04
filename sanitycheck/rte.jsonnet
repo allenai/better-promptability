@@ -2,7 +2,7 @@
 # Model settings #
 ##################
 
-local pretrained_model = "google/t5-xl-lm-adapt";
+local pretrained_model = "google/t5-large-lm-adapt";
 local load_with_low_cpu_mem_usage = false;
 
 ####################
@@ -17,7 +17,7 @@ local validate_every = 200;  # how often to validate and save checkpoints
 local devices = 1;  # number of devices to train on (will use GPUs if enough are available, otherwise CPU)
 local grad_accum = 1;  # number of gradient accumulation steps (changes the effective batch size)
 # This is the batch size per GPU, ignoring gradient accumulation:
-local batch_size = 8;
+local batch_size = 32;
 # So the effective batch size is `batch_size * grad_accum * devices`
 
 # total number of optimization steps to train for

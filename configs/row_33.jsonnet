@@ -53,7 +53,7 @@ local config = {
 
 local epochs = 3;
 
-local model_name = "google/t5-xl-lm-adapt";
+local model_name = "google/t5-large-lm-adapt";
 
 #local checkpoint = "/net/nfs.cirrascale/allennlp/zhaofengw/meta-learn-prompt/output/mtl_xl/runs/fleet-tarpon/output_model/work/epoch=0-step=7704-endofepoch-categorical_accuracy=0.6343.ckpt";
 local checkpoint = "null";
@@ -121,7 +121,7 @@ local TrainStep(task_name) = {
         data_dir: "data",
         t0_data_cache: t0_data_cache,
         transformer_model: model_name,
-        batch_size: std.floor(8 / grad_acc),
+        batch_size: std.floor(32 / grad_acc),
         num_prefix: 0,
         num_workers: 0,
     },
