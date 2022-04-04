@@ -15,7 +15,7 @@ local instances = 2490;
 local validate_every = 200;  # how often to validate and save checkpoints
 
 local devices = 1;  # number of devices to train on (will use GPUs if enough are available, otherwise CPU)
-local grad_accum = 4;  # number of gradient accumulation steps (changes the effective batch size)
+local grad_accum = 1;  # number of gradient accumulation steps (changes the effective batch size)
 # This is the batch size per GPU, ignoring gradient accumulation:
 local batch_size = 8;
 # So the effective batch size is `batch_size * grad_accum * devices`

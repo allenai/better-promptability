@@ -91,7 +91,7 @@ local model = {
     train_full_model: true
 };
 
-local grad_acc = 4;
+local grad_acc = 1;
 
 // Function that returns the train + eval step for a given task.
 local TrainStep(task_name) = {
@@ -121,7 +121,7 @@ local TrainStep(task_name) = {
         data_dir: "data",
         t0_data_cache: t0_data_cache,
         transformer_model: model_name,
-        batch_size: std.floor(32 / grad_acc),
+        batch_size: std.floor(8 / grad_acc),
         num_prefix: 0,
         num_workers: 0,
     },
