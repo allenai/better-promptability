@@ -1,2 +1,2 @@
 git+https://github.com/allenai/tango.git@funetuning-rte
-git+https://github.com/allenai/ai2-lm-eval.git@Untyped-T5-OnlyCatwalk
+git+https://github.com/allenai/catwalk.git@main
