@@ -51,16 +51,16 @@ local config = {
     precision: 32,
 };
 
-local epochs = 3;
+local epochs = 12;
 
-local model_name = "google/t5-large-lm-adapt";
+local model_name = "google/t5-xl-lm-adapt";
 
 #local checkpoint = "/net/nfs.cirrascale/allennlp/zhaofengw/meta-learn-prompt/output/mtl_xl/runs/fleet-tarpon/output_model/work/epoch=0-step=7704-endofepoch-categorical_accuracy=0.6343.ckpt";
 local checkpoint = "null";
 
 local optimizer = {
     type: "adafactor",
-    lr: 0.001,
+    lr: 1e-5,
     scale_parameter: false,
     relative_step: false,
 };
@@ -91,7 +91,7 @@ local model = {
     train_full_model: true
 };
 
-local grad_acc = 1;
+local grad_acc = 4;
 
 // Function that returns the train + eval step for a given task.
 local TrainStep(task_name) = {
