@@ -10,7 +10,6 @@ import datasets
 from datasets import Dataset as HFDataset, DatasetDict as HFDatasetDict
 from tango.common import DatasetDict as TangoDatasetDict
 from tango.common.aliases import PathOrStr
-from tango.common.det_hash import DetHashWithVersion
 from tango.integrations.pytorch_lightning.data import LightningDataModule
 from torch.utils.data import DataLoader
 from transformers import PreTrainedTokenizerBase
@@ -32,13 +31,11 @@ logger = logging.getLogger(__name__)
 DatasetDictType = Union[TangoDatasetDict, HFDatasetDict]
 
 
-class DataModule(LightningDataModule, DetHashWithVersion):
+class DataModule(LightningDataModule):
     """
     Abstract class representing a lightning data module using HF datasets, relevant properties,
     and a tokenizer.
     """
-
-    VERSION = "002"
 
     def __init__(
         self,
@@ -185,6 +182,8 @@ class DataModule(LightningDataModule, DetHashWithVersion):
         return self.dataset_dict.items()
 
     def dataloader(self, split: str, batch_size: int, shuffle=False) -> DataLoader:
+        # Sorry, `shuffle` is ignored right now
+
         dataset_split = self.dataset_dict[split]
 
         # LengthGroupedSampler sorts from longest to shortest; we want the reverse
@@ -204,7 +203,7 @@ class DataModule(LightningDataModule, DetHashWithVersion):
         dataloader = DataLoader(
             dataset_split,
             batch_size=batch_size,
-            shuffle=shuffle,
+            shuffle=False,
             sampler=sampler,
             num_workers=self.num_workers,
             collate_fn=lambda batch: collate_fn(batch, pad_token_map, self.tokenizer.padding_side),
