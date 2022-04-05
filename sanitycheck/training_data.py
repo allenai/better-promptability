@@ -35,28 +35,23 @@ class Seq2SeqTrainingDataStep(Step):
         if splits is None:
             splits = {"train", "test", "validation"}
 
-        datasets_features = datasets.Features({
-            "source": datasets.Value("string"),
-            "target": datasets.Value("string")
-        })
+        datasets_features = datasets.Features(
+            {"source": datasets.Value("string"), "target": datasets.Value("string")}
+        )
 
         result = {}
         for split in splits:
             instances = task.get_split(split)
-            instances = MappedSequence(task.instance_conversions[catwalk.task.InstanceFormat.T5_PROMPT], instances)
+            instances = MappedSequence(
+                task.instance_conversions[catwalk.task.InstanceFormat.T5_PROMPT], instances
+            )
             new_instances = datasets.Dataset.from_dict(
-                {
-                    "source": [],
-                    "target": []
-                },
-                features=datasets_features,
-                split=split
+                {"source": [], "target": []}, features=datasets_features, split=split
             )
             for instance in Tqdm.tqdm(instances, f"Processing split {split}"):
-                new_instances = new_instances.add_item({
-                    "source": instance[0],
-                    "target": instance[1]
-                })
+                new_instances = new_instances.add_item(
+                    {"source": instance[0], "target": instance[1]}
+                )
             result[split] = new_instances
 
         return DatasetDict(result)
