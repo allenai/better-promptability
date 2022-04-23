@@ -20,11 +20,14 @@ from transformers.models.t5.modeling_t5 import (
 
 
 class T5WithPrefixConfig(T5Config):
-    def __init__(self, num_prefix=None, reparam=False, reparam_dim=512, **kwargs):
+    def __init__(
+        self, num_prefix=None, reparam=False, reparam_dim=512, no_decoder_self_attn=False, **kwargs
+    ):
         super().__init__(**kwargs)
         self.num_prefix = num_prefix
         self.reparam = reparam
         self.reparam_dim = reparam_dim
+        self.no_decoder_self_attn = no_decoder_self_attn
 
     @classmethod
     def get_config_dict(cls, *args, **kwargs):
@@ -193,9 +196,10 @@ class T5AttentionWithPrefix(T5Attention):
 class T5LayerSelfAttentionWithPrefix(T5LayerSelfAttention):
     def __init__(self, config, has_relative_attention_bias=False):
         super().__init__(config, has_relative_attention_bias=has_relative_attention_bias)
-        self.SelfAttention = T5AttentionWithPrefix(
-            config, has_relative_attention_bias=has_relative_attention_bias
-        )
+        if not config.no_decoder_self_attn:
+            self.SelfAttention = T5AttentionWithPrefix(
+                config, has_relative_attention_bias=has_relative_attention_bias
+            )
 
 
 class T5LayerCrossAttentionWithPrefix(T5LayerCrossAttention):
