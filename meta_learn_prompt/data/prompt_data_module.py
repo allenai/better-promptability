@@ -17,11 +17,13 @@ class PromptDataModule(DataModule):
         num_prefix: int,
         transformer_model: PathOrStr,
         deep: bool = False,
+        deep_init_file: str = None,
         **kwargs,
     ):
         self.num_prefix = num_prefix
         self.transformer_model = transformer_model
         self.deep = deep
+        self.deep_init_file = deep_init_file
 
         if not self.deep:
             self.task_tokens = ["<TASK{}>".format(str(i).zfill(2)) for i in range(self.num_prefix)]
