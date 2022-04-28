@@ -4,7 +4,7 @@ adding:
 ```
 if key_value_states is None:  # self attention only
     import transformers
-    getattr(transformers, "__my_secret_kv_property")["encoder_self" if not self.is_decoder else "decoder_self"].append((key_states, value_states))
+    getattr(transformers, "__my_secret_kv_property")["encoder_self" if not self.is_decoder else "decoder_self"].append((key_states, value_states))  # noqa: E501
 ```
 """
 
@@ -18,8 +18,8 @@ from transformers import AutoTokenizer
 
 sys.path.append(str(Path(__file__).parent.parent.absolute()))
 
-from meta_learn_prompt.modules.transformer import Transformer
-from meta_learn_prompt.modules.with_prefix_embedding import WithPrefixEmbedding
+from meta_learn_prompt.modules.transformer import Transformer  # noqa: E402
+from meta_learn_prompt.modules.with_prefix_embedding import WithPrefixEmbedding  # noqa: E402
 
 
 seed_everything(100)
