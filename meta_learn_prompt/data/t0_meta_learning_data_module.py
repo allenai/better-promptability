@@ -5,7 +5,7 @@ from typing import Optional
 from datasets import Dataset as HFDataset
 from tango.common import PathOrStr, Tqdm
 from torch.utils.data.dataloader import DataLoader
-from transformers.trainer_pt_utils import LengthGroupedSampler, DistributedLengthGroupedSampler
+from transformers.trainer_pt_utils import LengthGroupedSampler
 
 from .config import Config
 from .data_utils import collate_fn
