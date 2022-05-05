@@ -64,9 +64,6 @@ class MetaLearner(Model):
         if self.reuse_inner_opt_state:
             self.inner_optimizer_state = inner_optimizer.state_dict()
 
-        if algorithm == "reptile" and self.adaptation_steps == 1:
-            logger.warning("Reptile with 1 adaptation step is equivalent to MTL.")
-
         self.model.metrics = self.model.setup_metrics()
         self.metrics = self.model.metrics
 
