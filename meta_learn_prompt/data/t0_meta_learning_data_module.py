@@ -73,10 +73,9 @@ class T0MetaLearningDataModule(T0MultiTaskDataModule):
                 assert False
             # LengthGroupedSampler sorts from longest to shortest; we want the reverse
             lens = [-l for l in lens]  # noqa: E741
-            if self.config.gpus is None or self.config.gpus <= 1:
-                sampler = LengthGroupedSampler(batch_size, lengths=lens)
-            else:
-                sampler = DistributedLengthGroupedSampler(batch_size, lengths=lens)
+            # It's important we don't used the distributed sampler here since distributed logic
+            # is handled in MixerDataloader
+            sampler = LengthGroupedSampler(batch_size, lengths=lens)
             dataloader = DataLoader(
                 dataset,
                 batch_size=batch_size,
