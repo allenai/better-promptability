@@ -16,7 +16,7 @@ from transformers import PreTrainedTokenizerBase
 from transformers.trainer_pt_utils import LengthGroupedSampler, DistributedLengthGroupedSampler
 
 from .config import Config
-from .data_utils import PAD_TYPE, collate_fn, md5
+from .data_utils import PAD_TYPE, collate_fn as default_collate_fn, md5
 from .mixer_dataset import MixerDataset
 
 
@@ -181,7 +181,9 @@ class DataModule(LightningDataModule):
     def items(self) -> ItemsView:
         return self.dataset_dict.items()
 
-    def dataloader(self, split: str, batch_size: int, shuffle=False) -> DataLoader:
+    def dataloader(
+        self, split: str, batch_size: int, shuffle=False, collate_fn=default_collate_fn
+    ) -> DataLoader:
         # Sorry, `shuffle` is ignored right now
 
         dataset_split = self.dataset_dict[split]

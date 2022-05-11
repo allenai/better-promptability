@@ -1,14 +1,16 @@
 from __future__ import annotations
 import random
-from typing import Optional
+from typing import Optional, Mapping
 
 from datasets import Dataset as HFDataset
 from tango.common import PathOrStr, Tqdm
+import torch
+import torch.distributed as dist
 from torch.utils.data.dataloader import DataLoader
 from transformers.trainer_pt_utils import LengthGroupedSampler
 
 from .config import Config
-from .data_utils import collate_fn
+from .data_utils import collate_fn, PAD_TYPE
 from .mixer_dataloader import MixerDataLoader
 from .mixer_dataset import _UndersampledDataset
 from .prompt_data_module import PromptDataModule
@@ -43,17 +45,41 @@ class T0MetaLearningDataModule(T0MultiTaskDataModule):
         num_prefix: int,
         transformer_model: PathOrStr,
         sampling_cap: Optional[int] = 500000,
+        instance_level_mixing: bool = False,
         **kwargs
     ):
         self.meta_batch_size = meta_batch_size
+        self._meta_batch_size_per_device = self.meta_batch_size // (
+            dist.get_world_size() if dist.is_initialized() else 1
+        )
         self.support_batch_size = support_batch_size
+        self.instance_level_mixing = instance_level_mixing
+        if self.instance_level_mixing:
+            self.real_batch_size = kwargs["batch_size"]
+            kwargs["batch_size"] *= self._meta_batch_size_per_device
+            kwargs["num_workers"] = 0  # avoid too many open files error
         super().__init__(
             mixture_name, config, num_prefix, transformer_model, sampling_cap=sampling_cap, **kwargs
         )
 
+    def collate_fn(
+        self, batch: list[dict[str, list]], pad_token_map: Mapping[str, PAD_TYPE], padding_side: str
+    ) -> list[tuple[dict[str, torch.Tensor], dict[str, torch.Tensor]]]:
+        batch = [
+            collate_fn(batch[i : i + self.real_batch_size], pad_token_map, padding_side)
+            for i in range(0, len(batch), self.real_batch_size)
+        ]
+        if len(batch[-1]["input_ids"]) < self.real_batch_size:
+            batch = batch[:-1]
+        return split_batch(batch, self.support_batch_size)
+
     def dataloader(self, split: str, batch_size: int, shuffle=False) -> DataLoader:
         if split != "train":
             return super().dataloader(split, batch_size, shuffle=shuffle)
+        if self.instance_level_mixing:
+            return super().dataloader(
+                split, batch_size, shuffle=shuffle, collate_fn=self.collate_fn
+            )
 
         dataset_split = self.dataset_dict[split]
         pad_token_map = self.pad_token_map(split)
@@ -81,7 +107,7 @@ class T0MetaLearningDataModule(T0MultiTaskDataModule):
                 batch_size=batch_size,
                 shuffle=False,
                 sampler=sampler,
-                num_workers=0,  # otherwise too many open files are opened
+                num_workers=0,  # avoid too many open files error
                 collate_fn=lambda batch: collate_fn(
                     batch, pad_token_map, self.tokenizer.padding_side
                 ),
