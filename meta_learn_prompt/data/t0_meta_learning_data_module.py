@@ -73,10 +73,11 @@ class T0MetaLearningDataModule(T0MultiTaskDataModule):
             batch = batch[:-1]
         return split_batch(batch, self.support_batch_size)
 
-    def dataloader(self, split: str, batch_size: int, shuffle=False) -> DataLoader:
+    def dataloader(self, split: str, batch_size: int, shuffle=False, collate_fn=None) -> DataLoader:
         if split != "train":
             return super().dataloader(split, batch_size, shuffle=shuffle)
         if self.instance_level_mixing:
+            assert collate_fn is None
             return super().dataloader(
                 split, batch_size, shuffle=shuffle, collate_fn=self.collate_fn
             )
