@@ -10,7 +10,7 @@ from torch.utils.data.dataloader import DataLoader
 from transformers.trainer_pt_utils import LengthGroupedSampler
 
 from .config import Config
-from .data_utils import collate_fn, PAD_TYPE
+from .data_utils import collate_fn as default_collate_fn, PAD_TYPE
 from .mixer_dataloader import MixerDataLoader
 from .mixer_dataset import _UndersampledDataset
 from .prompt_data_module import PromptDataModule
@@ -73,7 +73,9 @@ class T0MetaLearningDataModule(T0MultiTaskDataModule):
             batch = batch[:-1]
         return split_batch(batch, self.support_batch_size)
 
-    def dataloader(self, split: str, batch_size: int, shuffle=False, collate_fn=None) -> DataLoader:
+    def dataloader(
+        self, split: str, batch_size: int, shuffle=False, collate_fn=default_collate_fn
+    ) -> DataLoader:
         if split != "train":
             return super().dataloader(split, batch_size, shuffle=shuffle)
         if self.instance_level_mixing:
