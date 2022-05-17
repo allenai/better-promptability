@@ -66,7 +66,7 @@ class T0MetaLearningDataModule(T0MultiTaskDataModule):
         self, batch: list[dict[str, list]], pad_token_map: Mapping[str, PAD_TYPE], padding_side: str
     ) -> list[tuple[dict[str, torch.Tensor], dict[str, torch.Tensor]]]:
         batch = [
-            collate_fn(batch[i : i + self.real_batch_size], pad_token_map, padding_side)
+            default_collate_fn(batch[i : i + self.real_batch_size], pad_token_map, padding_side)
             for i in range(0, len(batch), self.real_batch_size)
         ]
         if len(batch[-1]["input_ids"]) < self.real_batch_size:
@@ -79,7 +79,6 @@ class T0MetaLearningDataModule(T0MultiTaskDataModule):
         if split != "train":
             return super().dataloader(split, batch_size, shuffle=shuffle)
         if self.instance_level_mixing:
-            assert collate_fn is None
             return super().dataloader(
                 split, batch_size, shuffle=shuffle, collate_fn=self.collate_fn
             )
