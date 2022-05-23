@@ -559,4 +559,17 @@
         "super_glue_boolq_GPT_3_Style",
         "super_glue_multirc_I_was_going_to_say_",
     ],
+    raft: [
+        "ade_corpus_v2",
+        "banking_77",
+        "neurips_impact_statement_risks",
+        "one_stop_english",
+        "overruling",
+        "semiconductor_org_types",
+        "systematic_review_inclusion",
+        "tai_safety_research",
+        "terms_of_service",
+        "tweet_eval_hate",
+        "twitter_complaints",
+    ],
 }

@@ -1370,5 +1370,16 @@
         yelp_review_full_so_i_would_score_eval: {dataset_name: "yelp_review_full", subset_name: null, template_name: "so_i_would_score_eval"},
         yelp_review_full_this_place: {dataset_name: "yelp_review_full", subset_name: null, template_name: "this_place"},
         yelp_review_full_this_place_score_eval: {dataset_name: "yelp_review_full", subset_name: null, template_name: "this_place_score_eval"},
+        ade_corpus_v2: {dataset_name: "ade_corpus_v2", subset_name: null, template_name: ""},
+        banking_77: {dataset_name: "banking_77", subset_name: null, template_name: ""},
+        neurips_impact_statement_risks: {dataset_name: "neurips_impact_statement_risks", subset_name: null, template_name: ""},
+        one_stop_english: {dataset_name: "one_stop_english", subset_name: null, template_name: ""},
+        overruling: {dataset_name: "overruling", subset_name: null, template_name: ""},
+        semiconductor_org_types: {dataset_name: "semiconductor_org_types", subset_name: null, template_name: ""},
+        systematic_review_inclusion: {dataset_name: "systematic_review_inclusion", subset_name: null, template_name: ""},
+        tai_safety_research: {dataset_name: "tai_safety_research", subset_name: null, template_name: ""},
+        terms_of_service: {dataset_name: "terms_of_service", subset_name: null, template_name: ""},
+        tweet_eval_hate: {dataset_name: "tweet_eval_hate", subset_name: null, template_name: ""},
+        twitter_complaints: {dataset_name: "twitter_complaints", subset_name: null, template_name: ""},
     }
 }

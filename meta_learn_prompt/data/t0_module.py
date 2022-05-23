@@ -72,7 +72,10 @@ class T0Module(PromptDataModule):
     @property
     def dev_splits(self) -> list[str]:
         # d4_dev and green datasets should have dev splits, d4_train may not.
-        if self.mixture_name in {"d4_dev", "debug_dev", "green"} or "dev" in self.dataset_dict:
+        if (
+            self.mixture_name in {"d4_dev", "debug_dev", "green", "raft"}
+            or "dev" in self.dataset_dict
+        ):
             return ["dev"]
         return []
 
@@ -141,14 +144,14 @@ class T0Module(PromptDataModule):
                 for choice in example["answer_choices"]
             ]
             targets = [self.tokenizer(choice)["input_ids"] for choice in example["answer_choices"]]
-        elif self.mixture_name == "green" and split == self.train_split:
+        elif self.mixture_name in {"green", "raft"} and split == self.train_split:
             single_target = True
 
             # Actually getting the single target.
 
             correct_idx = np.argmax(example["is_correct"])
             targets = targets[correct_idx]
-        else:  # green dev
+        else:  # green/raft dev
             single_target = False
             is_correct = example["is_correct"]
 
@@ -212,7 +215,10 @@ class T0Module(PromptDataModule):
             "target_mask": False,
         }
 
-        if self.mixture_name in {"d4_dev", "debug_dev", "green"} and split != self.train_split:
+        if (
+            self.mixture_name in {"d4_dev", "debug_dev", "green", "raft"}
+            and split != self.train_split
+        ):
             pad_token_map_["is_correct"] = False
             pad_token_map_["is_correct_mask"] = False
         return pad_token_map_
