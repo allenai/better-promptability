@@ -1,2 +1,0 @@
-ai2-tango[all] @ git+https://github.com/allenai/tango.git@funetuning-rte
-git+https://github.com/allenai/catwalk.git@main
