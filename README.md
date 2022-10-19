@@ -1,6 +1,19 @@
-# Meta-learning for prompting
+# Continued Pretraining for Better Zero- and Few-Shot Promptability
 
-## Setup
+The official implementation for our paper:
+
+```bibtex
+@inproceedings{wu-etal-2022-continued,
+    title = "Continued Pretraining for Better Zero- and Few-Shot Promptability",
+    author = "Zhaofeng Wu and Robert L. Logan IV and Pete Walsh and Akshita Bhagia and Dirk Groeneveld and Sameer Singh and Iz Beltagy",
+    booktitle = "Proceedings of the 2022 Conference on Empirical Methods in Natural Language Processing",
+    month = dec,
+    year = "2022",
+    publisher = "Association for Computational Linguistics",
+}
+```
+
+## Environment Setup
 
 1. Create a new Python virtual environment with Python 3.7.
 2. Install PyTorch 1.10.1 according to the [official instructions](https://pytorch.org/get-started/locally/).
@@ -37,6 +50,6 @@ The set up to run 0-shot evaluation without a soft prompt is very similar, with 
 
 Change `CKPT` if you want to run these with an existing model checkpoint.
 
-### Evaluating T0 checkpoints
+### Evaluating Official T0 checkpoints
 
-T0 was trained w/o EOS (at least so it seems), to accomodate for this, change `t0_module.py`'s' `assemble_prompt()` to not add EOS.
+T0 was trained w/o EOS (at least so it seems). To accomodate for this, change `t0_module.py`'s' `assemble_prompt()` to not add EOS.
