@@ -77,7 +77,6 @@ local ckpt_interval = 65536 / meta_batch_size;
                         "scale_parameter": false,
                         "relative_step": false,
                     },
-                    "load_opt_states": false,
                 },
                 "adaptation_steps": 7,  # though in few-shot learning we have only one batch/epoch, but we train for many epochs
                 "algorithm": "fomaml",
@@ -87,7 +86,6 @@ local ckpt_interval = 65536 / meta_batch_size;
                     "scale_parameter": false,
                     "relative_step": false,
                 },
-                "load_opt_states": false,
                 "meta_accumulate_grad_batches": 16,
             }  // "model" (meta_learner)
         }  // "output_model"

@@ -68,7 +68,6 @@ local ckpt_interval = 512;
                     #"type": "transformers::adamw",
                 },
                 "train_full_model": train_full_model,
-                "load_opt_states": false,
             },
             "datamodule": {
                 "type": "t0_multitask",

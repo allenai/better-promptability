@@ -14,7 +14,6 @@ from ..data.prompt_data_module import PromptDataModule
 from ..data.t0_multitask_data_module import T0MultiTaskDataModule
 from ..modules.transformer import Transformer
 from ..modules.with_prefix_embedding import WithPrefixEmbedding
-from ..train.optim import load_adafactor_state, resolve_optimizer_conf
 from .model import Model
 from .t5_with_prefix import T5WithPrefixConfig, T5ForConditionalGenerationWithPrefix
 
@@ -36,14 +35,10 @@ class PrefixTransformer(Model):
         accumulate_grad_batches: int = 1,
         warmup_steps: int = 0,
         lr_scheduler_total_steps: Optional[int] = None,
-        optstates_dir: Optional[str] = "/net/nfs2.allennlp/zhaofengw/optstates",
-        load_opt_states: bool = True,
         train_full_model: bool = False,
         **transformer_kwargs,
     ):
         self.transformer_name = transformer_model
-        self.optstates_dir = optstates_dir
-        self.load_opt_states = load_opt_states
         self.train_full_model = train_full_model
         self.deep = dataset.deep
         self.deep_init_file = dataset.deep_init_file
@@ -201,22 +196,6 @@ class PrefixTransformer(Model):
         # TODO: optimizer states
         return super().on_load_checkpoint(checkpoint)
 
-    def configure_optimizers(
-        self, load_opt_states: Optional[bool] = None
-    ) -> Union[list[Optimizer], tuple[list[Optimizer], list[dict]]]:
-        opt_conf = super().configure_optimizers()
-
-        if load_opt_states is None:
-            load_opt_states = self.load_opt_states
-        if self._optimizer._params["type"] == "adafactor" and load_opt_states:  # type: ignore
-            assert self.optstates_dir is not None
-            optstates_path = os.path.join(self.optstates_dir, self.transformer_name.split("/")[-1])
-            optstates = pickle.load(open(optstates_path, "rb"))
-            optimizer = resolve_optimizer_conf(opt_conf)
-            load_adafactor_state(self.transformer.model, optimizer, optstates)
-
-        return opt_conf
-
     def meta_learning_copy(self):
         new = PrefixTransformer(
             self.config,
@@ -229,8 +208,6 @@ class PrefixTransformer(Model):
             accumulate_grad_batches=self.optimizer_kwargs["accumulate_grad_batches"],
             warmup_steps=self.optimizer_kwargs["warmup_steps"],
             lr_scheduler_total_steps=self.optimizer_kwargs["lr_scheduler_total_steps"],
-            optstates_dir=self.optstates_dir,
-            load_opt_states=self.load_opt_states,
             train_full_model=self.train_full_model,
             deep=self.deep,
         )

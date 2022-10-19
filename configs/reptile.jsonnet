@@ -78,7 +78,6 @@ local ckpt_interval = 65536 / meta_batch_size;
                         "scale_parameter": false,
                         "relative_step": false,
                     },
-                    "load_opt_states": false,
                 },
                 "adaptation_steps": adaptation_steps,
                 "algorithm": "reptile",
@@ -89,7 +88,6 @@ local ckpt_interval = 65536 / meta_batch_size;
                     "scale_parameter": false,
                     "relative_step": false,
                 },
-                "load_opt_states": false,
                 "meta_accumulate_grad_batches": 16,
             }  // "model" (meta_learner)
         }  // "output_model"

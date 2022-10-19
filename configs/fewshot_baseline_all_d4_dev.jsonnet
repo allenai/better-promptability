@@ -73,7 +73,6 @@ local validate_every_epoch = false;
 
 // Cirrascale machines:
 local t0_data_cache = "/net/nfs2.allennlp/akshitab/meta-learn-prompt/t0/processed_cache";
-local optstates_dir = "/net/nfs2.allennlp/zhaofengw/optstates";
 
 // ----------------------------------------------------------- //
 // --- ! You probably don't need to edit below this line ! --- //
@@ -84,8 +83,6 @@ local model = {
     [if checkpoint == "null" then null else "checkpoint_path"]: checkpoint,
     transformer_model: model_name,
     optimizer: optimizer,
-    optstates_dir: optstates_dir,
-    load_opt_states: false,
 };
 
 // Function that returns the train + eval step for a given task.

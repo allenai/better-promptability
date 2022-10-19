@@ -15,7 +15,7 @@ from tango.integrations.torch.optim import Optimizer
 from .model import Model
 from .prefix_transformer import PrefixTransformer
 from ..modules.with_prefix_embedding import logger as wpe_logger
-from ..train.optim import load_adafactor_state, resolve_optimizer_conf
+from ..train.optim import resolve_optimizer_conf
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +43,6 @@ class MetaLearner(Model):
         algorithm: str,
         meta_optimizer: Lazy[Optimizer],
         different_inner_loop_batches: bool = False,
-        load_opt_states: bool = True,
         meta_accumulate_grad_batches: int = 1,
         reuse_inner_opt_state: bool = True,
     ):
@@ -56,7 +55,6 @@ class MetaLearner(Model):
         self.algorithm = algorithm
         self.adaptation_steps = adaptation_steps
         self.different_inner_loop_batches = different_inner_loop_batches
-        self.load_opt_states = load_opt_states
         self.meta_accumulate_grad_batches = meta_accumulate_grad_batches
         self.reuse_inner_opt_state = reuse_inner_opt_state
 
@@ -112,7 +110,7 @@ class MetaLearner(Model):
             detach_module(learner, keep_requires_grad=True)
             learner.train()  # for meta-evaluation, though we don't have it right now
             inner_optimizer = resolve_optimizer_conf(
-                learner.configure_optimizers(load_opt_states=False)
+                learner.configure_optimizers()
             )
             if self.reuse_inner_opt_state:
                 inner_optimizer.load_state_dict(self.inner_optimizer_state)
@@ -223,20 +221,6 @@ class MetaLearner(Model):
         self, batch: dict[str, torch.Tensor], batch_idx: int, dataloader_idx=0, compute_loss=True
     ) -> dict[str, Any]:
         return self.model.eval_step(batch, batch_idx, dataloader_idx, compute_loss)
-
-    def configure_optimizers(self) -> Union[list[Optimizer], tuple[list[Optimizer], list[dict]]]:
-        opt_conf = super().configure_optimizers()
-
-        if self._optimizer._params["type"] == "adafactor" and self.load_opt_states:  # type: ignore
-            assert self.model.optstates_dir is not None
-            optstates_path = os.path.join(
-                self.model.optstates_dir, self.model.transformer_name.split("/")[-1]
-            )
-            optstates = pickle.load(open(optstates_path, "rb"))
-            optimizer = resolve_optimizer_conf(opt_conf)
-            load_adafactor_state(self.model.transformer.model, optimizer, optstates)
-
-        return opt_conf
 
     def on_save_checkpoint(self, checkpoint: dict[str, Any]):
         """

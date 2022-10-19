@@ -31,7 +31,7 @@ tango run configs/check_install.yml
 
 For few-shot learning without intermediate training, run `CKPT=null tango run -d output configs/fewshot_baseline.jsonnet`. To run and aggregate over all datasets/templates, use `CKPT=null tango run -d output configs/fewshot_baseline_{green,d4_dev}.jsonnet`.
 
-If you're not on AI2 NFS, you probably need to pass in the location of the data cache and the pretrained optimizer states with `--overrides "{\"steps.output_model.datamodule.t0_data_cache\": \"${DATA_CACHE_PATH}\", \"steps.output_model.model.optstates_dir\": \"${OPT_STATES_PATH}\"}"`
+If you're not on AI2 NFS, you probably need to pass in the location of the data cache and the pretrained optimizer states with `--overrides "{\"steps.output_model.datamodule.t0_data_cache\": \"${DATA_CACHE_PATH}\"}"`
 
 The set up to run 0-shot evaluation without a soft prompt is very similar, with the config `configs/0shot_eval.jsonnet`.
 
