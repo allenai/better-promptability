@@ -1,8 +1,6 @@
 from __future__ import annotations
 import logging
-import os
-import pickle
-from typing import Any, Dict, Union
+from typing import Any, Dict
 
 from allennlp.training.metrics import Metric
 from learn2learn.utils import clone_module

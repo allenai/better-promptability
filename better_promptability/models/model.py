@@ -6,8 +6,6 @@ from allennlp.training.metrics import Metric
 import torch
 import torch.nn.functional as F
 
-# from transformers import AdamW
-
 from tango.common.lazy import Lazy
 from tango.integrations.pytorch_lightning.model import LightningModule
 from tango.integrations.torch.optim import Optimizer
@@ -82,11 +80,6 @@ class Model(LightningModule):
                 "weight_decay": 0.0,
             },
         ]
-        # optimizer = AdamW(
-        #     optimizer_grouped_parameters,
-        #     lr=self.optimizer_kwargs["lr"],
-        #     eps=self.optimizer_kwargs["adam_epsilon"],
-        # )
 
         optimizer = self._optimizer.construct(params=optimizer_grouped_parameters)  # type: ignore
 
