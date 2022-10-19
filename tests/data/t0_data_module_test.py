@@ -1,9 +1,9 @@
 from better_promptability.data.config import Config
 from better_promptability.data import T0Module
-from better_promptability.common.testing import MetaLearnPromptTestCase
+from better_promptability.common.testing import BetterPromptabilityTestCase
 
 
-class T0ModuleTest(MetaLearnPromptTestCase):
+class T0ModuleTest(BetterPromptabilityTestCase):
     def test_t0_module_green(self):
         t0 = T0Module(
             config=Config(),

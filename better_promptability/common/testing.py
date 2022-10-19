@@ -11,7 +11,7 @@ from tango.common.registrable import Registrable
 from tango.common.util import PathOrStr
 
 
-class MetaLearnPromptTestCase:
+class BetterPromptabilityTestCase:
     """
     A custom testing class that
 
@@ -107,7 +107,7 @@ def run_experiment(
     the experiment and returns the path to the cache directory, a temporary directory that will be
     cleaned up on ``__exit__``.
     """
-    test_case = MetaLearnPromptTestCase()
+    test_case = BetterPromptabilityTestCase()
     try:
         test_case.setup_method()
         yield test_case.run(config, overrides=overrides)

@@ -1,8 +1,8 @@
 from better_promptability.steps.process_story_cloze import ProcessStoryCloze
-from better_promptability.common.testing import MetaLearnPromptTestCase
+from better_promptability.common.testing import BetterPromptabilityTestCase
 
 
-class ProcessStoryClozeTest(MetaLearnPromptTestCase):
+class ProcessStoryClozeTest(BetterPromptabilityTestCase):
     def test_process_story_cloze(self):
         step = ProcessStoryCloze()
         result = step.run(
