@@ -73,7 +73,7 @@ local ckpt_interval = 512;
                 "type": "t0_multitask",
                 "mixture_name": "d4_train",
                 "data_dir": "data",
-                #"t0_data_cache": "/net/nfs2.allennlp/akshitab/meta-learn-prompt/t0/processed_cache",
+                #"t0_data_cache": "/net/nfs2.allennlp/akshitab/better-promptability/t0/processed_cache",
                 "t0_data_cache": "/net/nfs.cirrascale/allennlp/zhaofengw/t0/data_cache/",
                 "transformer_model": model,
                 "batch_size": batch_size,

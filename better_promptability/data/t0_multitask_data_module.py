@@ -20,7 +20,7 @@ class T0MultiTaskDataModule(PromptDataModule):
         transformer_model: PathOrStr,
         sampling_cap: Optional[int] = 500000,
         dev_sampling_cap: Optional[int] = 400,
-        t0_data_cache: PathOrStr = "/net/nfs2.allennlp/petew/meta-learn-prompt/t0/cache",
+        t0_data_cache: PathOrStr = "/net/nfs2.allennlp/petew/better-promptability/t0/cache",
         **kwargs,
     ):
         super().__init__(config, num_prefix, transformer_model, preprocess_and_save=False, **kwargs)

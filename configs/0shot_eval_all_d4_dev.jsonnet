@@ -25,7 +25,7 @@ local config = {
 local model_name = "google/t5-small-lm-adapt";
 
 // Set to null if you don't want to load a checkpoint.
-// local checkpoint = "/net/nfs.cirrascale/allennlp/zhaofengw/meta-learn-prompt/output/mtl_small_nooptstate/runs/pumped-kodiak/output_model/work/last.ckpt";
+// local checkpoint = "/net/nfs.cirrascale/allennlp/zhaofengw/better-promptability/output/mtl_small_nooptstate/runs/pumped-kodiak/output_model/work/last.ckpt";
 local checkpoint = std.extVar("CKPT");
 
 local model = if checkpoint == "null" then {

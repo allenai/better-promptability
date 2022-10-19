@@ -49,7 +49,7 @@ class DataModule(LightningDataModule):
     ):
         super().__init__()
         self.config = config
-        self.data_dir = data_dir or "/tmp/meta-learn-prompt/data-dir"
+        self.data_dir = data_dir or "/tmp/better-promptability/data-dir"
         self.max_length = max_length
         self.preprocess_and_save = preprocess_and_save
         self.batch_size = batch_size

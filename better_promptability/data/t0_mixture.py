@@ -18,7 +18,7 @@ class T0Mixture:
         config: Config,
         num_prefix: int,
         transformer_model: PathOrStr,
-        t0_data_cache: PathOrStr = "/net/nfs2.allennlp/akshitab/meta-learn-prompt/t0/processed_cache/",
+        t0_data_cache: PathOrStr = "/net/nfs2.allennlp/akshitab/better-promptability/t0/processed_cache/",
         sequence_length: Optional[Mapping[str, int]] = None,
         subsample_indices_file: Optional[str] = None,
         **data_module_kwargs,

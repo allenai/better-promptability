@@ -58,7 +58,7 @@ local model = if checkpoint == "null" then {
                 "mixture_name": mixture_name,
                 "task_name": task_name,
                 "data_dir": "data",
-                "t0_data_cache": "/net/nfs2.allennlp/akshitab/meta-learn-prompt/t0/processed_cache",
+                "t0_data_cache": "/net/nfs2.allennlp/akshitab/better-promptability/t0/processed_cache",
                 "transformer_model": model_name,
                 "num_prefix": 20,
                 "subsample_indices_file": subsample_indices_file,

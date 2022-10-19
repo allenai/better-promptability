@@ -72,7 +72,7 @@ local validate_every_epoch = false;
 // ------------------------------------------------------------ //
 
 // Cirrascale machines:
-local t0_data_cache = "/net/nfs2.allennlp/akshitab/meta-learn-prompt/t0/processed_cache";
+local t0_data_cache = "/net/nfs2.allennlp/akshitab/better-promptability/t0/processed_cache";
 
 // ----------------------------------------------------------- //
 // --- ! You probably don't need to edit below this line ! --- //

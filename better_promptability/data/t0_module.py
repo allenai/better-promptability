@@ -40,7 +40,7 @@ class T0Module(PromptDataModule):
         transformer_model: PathOrStr,
         mixture_name: str,
         task_name: str,
-        # t0_data_cache: PathOrStr = "/net/nfs2.allennlp/petew/meta-learn-prompt/t0/cache",
+        # t0_data_cache: PathOrStr = "/net/nfs2.allennlp/petew/better-promptability/t0/cache",
         t0_data_cache: PathOrStr = "/net/nfs.cirrascale/allennlp/zhaofengw/t0/data_cache",
         sequence_length: Optional[Mapping[str, int]] = None,
         subsample_indices_file: Optional[str] = None,
