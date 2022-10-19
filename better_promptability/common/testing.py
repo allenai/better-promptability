@@ -26,7 +26,7 @@ class MetaLearnPromptTestCase:
     Root of the git repository.
     """
 
-    MODULE_ROOT = PROJECT_ROOT / "meta_learn_prompt"
+    MODULE_ROOT = PROJECT_ROOT / "better_promptability"
     """
     Root of the tango module.
     """
@@ -51,7 +51,7 @@ class MetaLearnPromptTestCase:
         logging.getLogger("urllib3.connectionpool").disabled = True
 
         # Create a temporary scratch directory.
-        self.TEST_DIR = Path(tempfile.mkdtemp(prefix="meta_learn_prompt_tests"))
+        self.TEST_DIR = Path(tempfile.mkdtemp(prefix="better_promptability_tests"))
         os.makedirs(self.TEST_DIR, exist_ok=True)
 
     @classmethod

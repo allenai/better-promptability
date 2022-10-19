@@ -21,10 +21,10 @@ from tango.format import JsonFormat
 from tango.integrations.torch import Optimizer
 from tango.step import Step
 
-from meta_learn_prompt.data.config import Config
-from meta_learn_prompt.data.prompt_data_module import PromptDataModule
-from meta_learn_prompt.data.t0_multitask_data_module import T0MultiTaskDataModule
-from meta_learn_prompt.models.model import Model
+from better_promptability.data.config import Config
+from better_promptability.data.prompt_data_module import PromptDataModule
+from better_promptability.data.t0_multitask_data_module import T0MultiTaskDataModule
+from better_promptability.models.model import Model
 
 
 def deepspeed_cpu_adam_fixed(params, *args, **kwargs):
@@ -235,7 +235,7 @@ class TrainStep(Step):
             [
                 sys.executable,
                 "-m",
-                "meta_learn_prompt.train.train_main",
+                "better_promptability.train.train_main",
                 str(kwargs_file),
                 str(results_file),
             ]

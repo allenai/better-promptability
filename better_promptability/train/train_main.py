@@ -4,7 +4,7 @@ import dill
 from tango.common.logging import initialize_logging
 from tango.common.util import import_extra_module
 
-from meta_learn_prompt.train.train import _train_step
+from better_promptability.train.train import _train_step
 
 
 def main():

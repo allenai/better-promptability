@@ -15,9 +15,9 @@ from tqdm import tqdm
 
 sys.path.append(str(Path(__file__).parent.parent.absolute()))
 
-from meta_learn_prompt.data.config import Config  # noqa: E402
-from meta_learn_prompt.data.data_utils import md5  # noqa: E402
-from meta_learn_prompt.data.t0_mixture import T0Mixture  # noqa: E402
+from better_promptability.data.config import Config  # noqa: E402
+from better_promptability.data.data_utils import md5  # noqa: E402
+from better_promptability.data.t0_mixture import T0Mixture  # noqa: E402
 
 
 def main(mixture_name, n_shot, seed, output_file):

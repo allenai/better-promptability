@@ -1,6 +1,6 @@
 import pytest
 from transformers.models import t5 as hf_t5
-from meta_learn_prompt.modules.transformer import Transformer
+from better_promptability.modules.transformer import Transformer
 
 
 @pytest.fixture(scope="module")

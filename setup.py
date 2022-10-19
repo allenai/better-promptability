@@ -27,11 +27,11 @@ def read_requirements(filename: str):
 # version.py defines the VERSION and VERSION_SHORT variables.
 # We use exec here so we don't import cached_path whilst setting up.
 VERSION = {}  # type: ignore
-with open("meta_learn_prompt/version.py", "r") as version_file:
+with open("better_promptability/version.py", "r") as version_file:
     exec(version_file.read(), VERSION)
 
 setup(
-    name="meta_learn_prompt",
+    name="better_promptability",
     version=VERSION["VERSION"],
     description="",
     long_description=open("README.md").read(),

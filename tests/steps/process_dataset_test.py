@@ -1,5 +1,5 @@
-from meta_learn_prompt.steps.process_dataset import ProcessDataset
-from meta_learn_prompt.common.testing import MetaLearnPromptTestCase
+from better_promptability.steps.process_dataset import ProcessDataset
+from better_promptability.common.testing import MetaLearnPromptTestCase
 
 
 class ProcessDatasetTest(MetaLearnPromptTestCase):

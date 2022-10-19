@@ -106,4 +106,4 @@ jobs:
         if: always()
         run: |
           . .venv/bin/activate
-          pip uninstall -y meta_learn_prompt
+          pip uninstall -y better_promptability

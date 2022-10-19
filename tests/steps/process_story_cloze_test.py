@@ -1,5 +1,5 @@
-from meta_learn_prompt.steps.process_story_cloze import ProcessStoryCloze
-from meta_learn_prompt.common.testing import MetaLearnPromptTestCase
+from better_promptability.steps.process_story_cloze import ProcessStoryCloze
+from better_promptability.common.testing import MetaLearnPromptTestCase
 
 
 class ProcessStoryClozeTest(MetaLearnPromptTestCase):

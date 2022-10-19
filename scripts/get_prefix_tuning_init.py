@@ -18,8 +18,8 @@ from transformers import AutoTokenizer
 
 sys.path.append(str(Path(__file__).parent.parent.absolute()))
 
-from meta_learn_prompt.modules.transformer import Transformer  # noqa: E402
-from meta_learn_prompt.modules.with_prefix_embedding import WithPrefixEmbedding  # noqa: E402
+from better_promptability.modules.transformer import Transformer  # noqa: E402
+from better_promptability.modules.with_prefix_embedding import WithPrefixEmbedding  # noqa: E402
 
 
 seed_everything(100)

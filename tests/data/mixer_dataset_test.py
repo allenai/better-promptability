@@ -1,6 +1,6 @@
 import pytest
 
-from meta_learn_prompt.data.mixer_dataset import MixerDataset
+from better_promptability.data.mixer_dataset import MixerDataset
 
 
 @pytest.fixture

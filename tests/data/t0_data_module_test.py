@@ -1,6 +1,6 @@
-from meta_learn_prompt.data.config import Config
-from meta_learn_prompt.data import T0Module
-from meta_learn_prompt.common.testing import MetaLearnPromptTestCase
+from better_promptability.data.config import Config
+from better_promptability.data import T0Module
+from better_promptability.common.testing import MetaLearnPromptTestCase
 
 
 class T0ModuleTest(MetaLearnPromptTestCase):

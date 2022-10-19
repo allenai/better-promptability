@@ -1,6 +1,6 @@
 import os
-from meta_learn_prompt.steps.process_dataset import ProcessDataset
-from meta_learn_prompt.steps.process_story_cloze import ProcessStoryCloze
+from better_promptability.steps.process_dataset import ProcessDataset
+from better_promptability.steps.process_story_cloze import ProcessStoryCloze
 
 import logging
 
