@@ -75,7 +75,7 @@ class T0MultiTaskDataModule(PromptDataModule):
         }
 
         if (
-            self.mixture_name in {"d4_dev", "debug_dev", "green", "raft"}
+            self.mixture_name in {"d4_dev", "green"}
             and split != self.train_split
         ):
             pad_token_map_["is_correct"] = False
