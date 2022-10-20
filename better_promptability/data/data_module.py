@@ -113,10 +113,6 @@ class DataModule(LightningDataModule):
     def instantiate_metric(self, metric_name: str, split: str) -> Metric:
         return Metric.by_name(metric_name)()
 
-    def postprocess_metric(self, metric_name: str, metric: Any) -> Union[int, float]:
-        """Postprocesses whatever Metric.get_metric() returns into a number that can be compared."""
-        return metric
-
     @property
     def metric_to_watch(self) -> str:
         if len(self.metric_names) == 1:
@@ -182,10 +178,8 @@ class DataModule(LightningDataModule):
         return self.dataset_dict.items()
 
     def dataloader(
-        self, split: str, batch_size: int, shuffle=False, collate_fn=default_collate_fn
+        self, split: str, batch_size: int, collate_fn=default_collate_fn
     ) -> DataLoader:
-        # Sorry, `shuffle` is ignored right now
-
         dataset_split = self.dataset_dict[split]
 
         # LengthGroupedSampler sorts from longest to shortest; we want the reverse
@@ -223,16 +217,10 @@ class DataModule(LightningDataModule):
         raise NotImplementedError("This is an abstract method. Did you forget to implement it?")
 
     def train_dataloader(self) -> DataLoader:
-        return self.dataloader(self.train_split, self.batch_size, shuffle=True)
+        return self.dataloader(self.train_split, self.batch_size)
 
     def val_dataloader(self, shuffle: bool = False):
-        return [
-            self.dataloader(split, self.eval_batch_size, shuffle=shuffle)
-            for split in self.dev_splits
-        ]
+        return [self.dataloader(split, self.eval_batch_size) for split in self.dev_splits]
 
     def test_dataloader(self, shuffle: bool = False):
-        return [
-            self.dataloader(split, self.eval_batch_size, shuffle=shuffle)
-            for split in self.test_splits
-        ]
+        return [self.dataloader(split, self.eval_batch_size) for split in self.test_splits]

@@ -39,7 +39,6 @@ class PrefixTransformer(Model):
         self.transformer_name = transformer_model
         self.train_full_model = train_full_model
         self.deep = dataset.deep
-        self.deep_init_file = dataset.deep_init_file
 
         super().__init__(
             config,
@@ -66,8 +65,6 @@ class PrefixTransformer(Model):
                 num_prefix=dataset.num_prefix,
                 **transformer_kwargs,
             )
-            if self.deep_init_file is not None:
-                self.transformer.model.reinit(self.deep_init_file)
         transformer_model: T5ForConditionalGeneration = self.transformer.model
         assert isinstance(transformer_model, T5ForConditionalGeneration)
 

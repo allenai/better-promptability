@@ -25,11 +25,6 @@ local ckpt_interval = 512;
                 "val_check_interval": ckpt_interval * effective_batch_size / batch_size / config.gpus,
                 "logger": [
                     {"type": "pytorch_lightning::TensorBoardLogger"},
-                    {
-                        "type": "pytorch_lightning::WandbLogger",
-                        "project": "multi-task",
-                        "entity": "meta-learn-prompt",
-                    },
                 ],
                 "callbacks": [
                     # We need separate ModelCheckpoints for per-step and per-epoch checkpointing.

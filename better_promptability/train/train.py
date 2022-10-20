@@ -4,7 +4,6 @@ import sys
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 
-import deepspeed
 import dill
 import pytorch_lightning as pl
 import transformers
@@ -27,14 +26,6 @@ from better_promptability.data.t0_multitask_data_module import T0MultiTaskDataMo
 from better_promptability.models.model import Model
 
 
-def deepspeed_cpu_adam_fixed(params, *args, **kwargs):
-    return deepspeed.ops.adam.DeepSpeedCPUAdam(model_params=params, *args, **kwargs)
-
-
-Optimizer.register("deepspeed::cpu_adam")(deepspeed_cpu_adam_fixed)
-Optimizer.register("deepspeed::fused_adam")(deepspeed.ops.adam.FusedAdam)
-Optimizer.register("deepspeed::fused_lamb")(deepspeed.ops.lamb.FusedLamb)
-Optimizer.register("transformers::adamw")(transformers.optimization.AdamW)
 Optimizer.register("transformers::adafactor")(transformers.optimization.Adafactor)
 
 
@@ -65,7 +56,7 @@ class LoggingCallback(LightningCallback):
                 self.metrics_history[-1][key] = metrics[key]
 
             if key == pl_module.dataset.metric_to_watch and not trainer.sanity_checking:
-                curr_metric = pl_module.dataset.postprocess_metric(key, metrics[key])
+                curr_metric = metrics[key]
                 if (
                     self.best_dev_metric is None
                     or (
@@ -196,8 +187,6 @@ class TrainStep(Step):
         trainer: Lazy[LightningTrainer],
         model: Lazy[Model],
         datamodule: Lazy[PromptDataModule],
-        # optimizer: Lazy[Optimizer],
-        # lr_schedule: Lazy[LRScheduler],
     ) -> Tuple[str, List[Dict]]:
         if config.gpus == 1:
             strategy = None
