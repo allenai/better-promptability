@@ -209,10 +209,6 @@ class MetaLearner(Model):
         output = self(batch)
         for k, v in output.items():
             self.log(k, v)
-        if len(self.trainer.lr_schedulers) > 0:
-            self.log(
-                "lr", self.trainer.lr_schedulers[0]["scheduler"].get_last_lr()[-1], prog_bar=True
-            )
         return {"loss": output["query_loss"]}
 
     def eval_step(

@@ -105,8 +105,6 @@ def _train_step(
     strategy: Optional[str],
     model: Lazy[Model],
     datamodule: Lazy[PromptDataModule],
-    # optimizer: Lazy[Optimizer],
-    # lr_schedule: Lazy[LRScheduler],
 ) -> Tuple[str, List[Dict]]:
     pl.seed_everything(config.seed)
 

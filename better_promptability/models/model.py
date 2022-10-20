@@ -20,12 +20,10 @@ class Model(LightningModule):
         config: Config,
         dataset: DataModule,
         optimizer: Optional[Lazy[Optimizer]] = None,
-        scheduler: Optional[str] = None,
         epochs: int = 3,
         weight_decay: float = 0.0,
         accumulate_grad_batches: int = 1,
         warmup_steps: int = 0,
-        lr_scheduler_total_steps: Optional[int] = None,
     ):
         super().__init__()
 
@@ -34,14 +32,12 @@ class Model(LightningModule):
         self._optimizer = optimizer
         if self._optimizer is not None:
             assert isinstance(self._optimizer, Lazy)
-        self._scheduler = scheduler
 
         self.epochs = epochs
         self.optimizer_kwargs = {
             "weight_decay": weight_decay,
             "accumulate_grad_batches": accumulate_grad_batches,
             "warmup_steps": warmup_steps,
-            "lr_scheduler_total_steps": lr_scheduler_total_steps,
         }
 
         self.metrics = self.setup_metrics()
@@ -83,44 +79,7 @@ class Model(LightningModule):
 
         optimizer = self._optimizer.construct(params=optimizer_grouped_parameters)  # type: ignore
 
-        if self._scheduler is None:
-            return [optimizer]
-        else:
-            scheduler = self.get_lr_scheduler(optimizer)
-            return [optimizer], [scheduler]
-
-    def get_lr_scheduler(self, optimizer: Optimizer) -> dict:
-        assert self._scheduler == "linear", "We only support linear scheduler for now."
-
-        # num_devices = max(1, self.config.gpus)  # TODO: consider num_tpu_cores
-        if self.config.gpus is not None:
-            num_devices = max(1, self.config.gpus)
-        else:
-            num_devices = 1
-        # TODO: use world_size.
-        if self.optimizer_kwargs["lr_scheduler_total_steps"] is not None:
-            total_steps = self.optimizer_kwargs["lr_scheduler_total_steps"]
-        else:
-            effective_batch_size = (
-                self.dataset.batch_size  # type: ignore
-                * self.optimizer_kwargs["accumulate_grad_batches"]
-                * num_devices
-            )
-            # Sometimes dataset_size could be smaller than the effective_batch_size
-            # TODO: do something about dataset_size
-            total_steps = max(self.dataset_size / effective_batch_size, 1) * self.epochs
-
-        from deepspeed.runtime.lr_schedules import WarmupDecayLR
-
-        scheduler = WarmupDecayLR(
-            optimizer,
-            warmup_num_steps=self.optimizer_kwargs["warmup_steps"],
-            warmup_type="linear",
-            total_num_steps=total_steps,
-        )
-        # TODO: Does it want the total number of steps overall, or the steps per GPU?
-
-        return {"scheduler": scheduler, "interval": "step", "frequency": 1}
+        return [optimizer]
 
     def optimizer_zero_grad(
         self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int
@@ -148,10 +107,6 @@ class Model(LightningModule):
             self(batch)["logits"], batch["target_ids"], batch.get("target_mask")
         )
         self.log("train_loss", loss)
-        if len(self.trainer.lr_schedulers) > 0:
-            self.log(
-                "lr", self.trainer.lr_schedulers[0]["scheduler"].get_last_lr()[-1], prog_bar=True
-            )
         return {"loss": loss}
 
     def get_predictions(self, logits: torch.Tensor, batch: dict[str, torch.Tensor]) -> torch.Tensor:

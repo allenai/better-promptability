@@ -27,12 +27,10 @@ class PrefixTransformer(Model):
         dataset: PromptDataModule,
         transformer_model: str,
         optimizer: Optional[Lazy[Optimizer]] = None,
-        scheduler: Optional[str] = None,
         epochs: int = 3,
         weight_decay: float = 0.0,
         accumulate_grad_batches: int = 1,
         warmup_steps: int = 0,
-        lr_scheduler_total_steps: Optional[int] = None,
         train_full_model: bool = False,
         **transformer_kwargs,
     ):
@@ -44,14 +42,10 @@ class PrefixTransformer(Model):
             config,
             dataset,
             optimizer=optimizer,
-            scheduler=scheduler,
             epochs=epochs,
-            # lr,
             weight_decay=weight_decay,
             accumulate_grad_batches=accumulate_grad_batches,
-            # adam_epsilon,
             warmup_steps=warmup_steps,
-            lr_scheduler_total_steps=lr_scheduler_total_steps,
         )
 
         if not self.deep:
@@ -100,7 +94,6 @@ class PrefixTransformer(Model):
         return_dict = {}
 
         assert input_ids.shape == input_mask.shape and input_ids.dim() in (2, 3)
-        # assert self.training == (input_ids.dim() == 2)
         if not self.training:  # for inference we have an additional dimension for classes
             orig_shape = input_ids.shape  # bs x num_classes x seq_len
             input_ids = input_ids.reshape(-1, orig_shape[-1])
@@ -197,12 +190,10 @@ class PrefixTransformer(Model):
             self.dataset,
             self.transformer_name,
             optimizer=self._optimizer,
-            scheduler=self._scheduler,
             epochs=self.epochs,
             weight_decay=self.optimizer_kwargs["weight_decay"],
             accumulate_grad_batches=self.optimizer_kwargs["accumulate_grad_batches"],
             warmup_steps=self.optimizer_kwargs["warmup_steps"],
-            lr_scheduler_total_steps=self.optimizer_kwargs["lr_scheduler_total_steps"],
             train_full_model=self.train_full_model,
             deep=self.deep,
         )

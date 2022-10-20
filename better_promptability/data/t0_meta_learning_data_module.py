@@ -45,7 +45,6 @@ class T0MetaLearningDataModule(T0MultiTaskDataModule):
         num_prefix: int,
         transformer_model: PathOrStr,
         sampling_cap: Optional[int] = 500000,
-        instance_level_mixing: bool = False,
         **kwargs
     ):
         self.meta_batch_size = meta_batch_size
@@ -53,11 +52,6 @@ class T0MetaLearningDataModule(T0MultiTaskDataModule):
             dist.get_world_size() if dist.is_initialized() else 1
         )
         self.support_batch_size = support_batch_size
-        self.instance_level_mixing = instance_level_mixing
-        if self.instance_level_mixing:
-            self.real_batch_size = kwargs["batch_size"]
-            kwargs["batch_size"] *= self._meta_batch_size_per_device
-            kwargs["num_workers"] = 0  # avoid too many open files error
         super().__init__(
             mixture_name, config, num_prefix, transformer_model, sampling_cap=sampling_cap, **kwargs
         )
@@ -78,8 +72,6 @@ class T0MetaLearningDataModule(T0MultiTaskDataModule):
     ) -> DataLoader:
         if split != "train":
             return super().dataloader(split, batch_size)
-        if self.instance_level_mixing:
-            return super().dataloader(split, batch_size, collate_fn=self.collate_fn)
 
         dataset_split = self.dataset_dict[split]
         pad_token_map = self.pad_token_map(split)
@@ -90,7 +82,6 @@ class T0MetaLearningDataModule(T0MultiTaskDataModule):
             # zhaofeng: I don't particularly like this design because of the redundancy with
             # DataModule. But this is necessary at least to accomodate _UndersampledDataset at the
             # moment, unless we can somehow turn it into a DataModule too.
-            assert shuffle
             if isinstance(dataset, HFDataset):
                 lens = dataset["sort_key_len"]
             elif isinstance(dataset, _UndersampledDataset):

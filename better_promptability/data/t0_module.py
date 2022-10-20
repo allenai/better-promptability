@@ -40,9 +40,7 @@ class T0Module(PromptDataModule):
         transformer_model: PathOrStr,
         mixture_name: str,
         task_name: str,
-        # t0_data_cache: PathOrStr = "/net/nfs2.allennlp/petew/better-promptability/t0/cache",
-        t0_data_cache: PathOrStr = "/net/nfs.cirrascale/allennlp/zhaofengw/t0/data_cache",
-        sequence_length: Optional[Mapping[str, int]] = None,
+        t0_data_cache: PathOrStr,
         subsample_indices_file: Optional[str] = None,
         **kwargs,
     ):
@@ -52,7 +50,6 @@ class T0Module(PromptDataModule):
         self.task_name = task_name
         self.dataset_name, self.subset_name, self.template_name = read_task_info()[self.task_name]
         self.t0_data_cache = Path(t0_data_cache)
-        self.sequence_length = sequence_length
         self.subsample_indices = None
         if subsample_indices_file is not None:
             self.subsample_indices = pickle.load(open(subsample_indices_file, "rb"))[task_name]
@@ -89,10 +86,6 @@ class T0Module(PromptDataModule):
     def metric_names(self) -> list[str]:
         # For all the green (i.e., d4_score_eval) datasets, all tasks have accuracy as the metric.
         return ["categorical_accuracy"]
-
-    def instantiate_metric(self, metric_name: str, split: str) -> Metric:
-        # return t5.evaluation.metrics.rank_classification
-        return Metric.by_name(metric_name)()
 
     @property
     def metric_watch_mode(self) -> str:
