@@ -9,7 +9,7 @@ from .t0_module import T0Module
 
 class T0Mixture:
     """
-    This class is used to initialize a collection of T0DataModule.
+    This class is used to initialize a collection of T0Module.
     """
 
     def __init__(

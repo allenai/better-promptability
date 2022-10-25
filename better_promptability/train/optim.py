@@ -7,7 +7,11 @@ from tango.integrations.torch.optim import Optimizer
 
 @Optimizer.register("adafactor")
 class Adafactor(HFAdafactor):
-    """See https://github.com/huggingface/transformers/issues/14830"""
+    """See https://github.com/huggingface/transformers/issues/14830
+
+    Nevertheless, this is only here for backward compatibility, and I suspect technically
+    you can just use transformers::adafactor in your config.
+    """
 
     @staticmethod
     def _get_options(param_group, param_shape, min_dim_size_to_factor=128):

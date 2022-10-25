@@ -98,7 +98,7 @@ class DataModule(LightningDataModule):
 
     @property
     def test_splits(self) -> list[str]:
-        return ["test"]
+        return ["test"]  # we don't actually use this
 
     @property
     @abstractproperty
