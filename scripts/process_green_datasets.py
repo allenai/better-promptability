@@ -1,18 +1,20 @@
+import logging
 import os
+import sys
+
+from tango.common import Params
+from tqdm import tqdm
+
 from better_promptability.steps.process_dataset import ProcessDataset
 from better_promptability.steps.process_story_cloze import ProcessStoryCloze
 
-import logging
 
 logging.basicConfig(level=logging.INFO)
 
 
 def process_green_datasets(old_base_path, new_base_path):
-
-    with open("data/green_tasks.txt") as f:
-        datasets = f.readlines()
-
-    for dataset in datasets:
+    datasets = Params.from_file("configs/t0_mixtures.jsonnet")["green"]
+    for dataset in tqdm(datasets):
         dataset = dataset.strip()
         if "story_cloze" not in dataset:
             step = ProcessDataset()
@@ -28,7 +30,4 @@ def process_green_datasets(old_base_path, new_base_path):
 
 
 if __name__ == "__main__":
-    old_base_path = "/net/nfs2.allennlp/petew/better-promptability/t0/cache/"
-    new_base_path = "/net/nfs2.allennlp/akshitab/better-promptability/t0/processed_cache/"
-
-    process_green_datasets(old_base_path, new_base_path)
+    process_green_datasets(sys.argv[1], sys.argv[2])
