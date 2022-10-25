@@ -14,7 +14,7 @@
 //
 // Then run:
 //
-// $ tango run configs/fewshot_baseline_all_dev.jsonnet -d /tmp/test-run
+// $ tango run configs/fewshot_eval_all_dev.jsonnet -d /tmp/test-run
 
 local t0_mixtures = import 't0_mixtures.jsonnet';
 local t0_task_info = import 't0_task_info.jsonnet';

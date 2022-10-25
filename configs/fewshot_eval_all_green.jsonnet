@@ -14,7 +14,7 @@
 //
 // Then run:
 //
-// $ tango run configs/fewshot_baseline_all_green.jsonnet -d /tmp/test-run
+// $ tango run configs/fewshot_eval_all_green.jsonnet -d /tmp/test-run
 
 local t0_mixtures = import 't0_mixtures.jsonnet';
 local t0_task_info = import 't0_task_info.jsonnet';
@@ -72,7 +72,7 @@ local validate_every_epoch = false;
 // ------------------------------------------------------------ //
 
 // Cirrascale machines:
-local t0_data_cache = "/net/nfs2.allennlp/akshitab/better-promptability/t0/processed_cache";
+local t0_data_cache = "/data/cl/user/zfw/better-promptability/t0_cache/";
 
 // ----------------------------------------------------------- //
 // --- ! You probably don't need to edit below this line ! --- //
@@ -115,6 +115,7 @@ local TrainStep(task_name) = {
         num_prefix: 20,
         subsample_indices_file: "data/" + mixture_name + "_training_indices_16shot_100seed.pkl",
         num_workers: 4,
+        deep: true,
     },
     model: model,
 };

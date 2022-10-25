@@ -25,7 +25,6 @@ local config = {
 local model_name = "google/t5-small-lm-adapt";
 
 // Set to null if you don't want to load a checkpoint.
-// local checkpoint = "/net/nfs.cirrascale/allennlp/zhaofengw/better-promptability/output/mtl_small_nooptstate/runs/pumped-kodiak/output_model/work/last.ckpt";
 local checkpoint = std.extVar("CKPT");
 
 local model = if checkpoint == "null" then {
@@ -50,10 +49,11 @@ local EvalStep(task_name) = {
         "mixture_name": mixture_name,
         "task_name": task_name,
         "data_dir": "data",
-        "t0_data_cache": "/net/nfs.cirrascale/allennlp/zhaofengw/t0/data_cache",
+        "t0_data_cache": "/data/cl/user/zfw/better-promptability/t0_cache/",
         "transformer_model": model_name,
-        "num_prefix": 0,
+        "num_prefix": 20,
         "num_workers": 0,
+        "deep": true,
     },
     "model": model,
 };

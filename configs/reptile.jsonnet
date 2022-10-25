@@ -1,10 +1,10 @@
 local config = {
     "type": "default",
     "seed": 100,
-    "gpus": 8,
+    "gpus": 2,
     "precision": 32,
 };
-local model = "google/t5-xl-lm-adapt";
+local model = "google/t5-small-lm-adapt";
 
 local meta_batch_size = 128;
 local adaptation_steps = 7;
@@ -54,14 +54,14 @@ local ckpt_interval = 65536 / meta_batch_size;
                 "meta_batch_size": meta_batch_size,
                 "mixture_name": "d4_train",
                 "data_dir": "data",
-                // "t0_data_cache": "/net/nfs2.allennlp/akshitab/better-promptability/t0/processed_cache",
-                "t0_data_cache": "/net/nfs.cirrascale/allennlp/zhaofengw/t0/data_cache/",
+                "t0_data_cache": "/data/cl/user/zfw/better-promptability/t0_cache/",
                 "transformer_model": model,
                 "batch_size": 16 * (adaptation_steps + 1),  # this is the effective batch size; ONLY change meta_accumulate_grad_batches when adjusting for GPU sizes
                 "support_batch_size": 16 * adaptation_steps,  # ditto
                 "eval_batch_size": 64,
                 "num_prefix": 20,
                 "num_workers": 4,
+                "deep": true,
             },
             "model": {
                 "type": "meta_learner",
