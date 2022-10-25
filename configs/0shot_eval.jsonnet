@@ -37,7 +37,7 @@ local model = if checkpoint == "null" then {
                 "mixture_name": mixture_name,
                 "task_name": task_name,
                 "data_dir": "data",
-                "t0_data_cache": "/net/nfs.cirrascale/allennlp/zhaofengw/t0/data_cache",
+                "t0_data_cache": "/data/cl/user/zfw/better-promptability/t0_cache",
                 "transformer_model": model_name,
                 "num_prefix": num_prefix,
                 "num_workers": 0,

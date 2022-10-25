@@ -28,7 +28,7 @@ def main(mixture_name, n_shot, seed, output_file):
     # All arguments apart from the first two are dummy
     mixture = T0Mixture(
         mixture_name=mixture_name,
-        t0_data_cache="/net/nfs2.allennlp/akshitab/better-promptability/t0/processed_cache",
+        t0_data_cache="/data/cl/user/zfw/better-promptability/t0_cache/",
         config=Config(),
         data_dir="tmp",
         num_prefix=20,

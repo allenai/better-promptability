@@ -71,7 +71,6 @@ local validate_every_epoch = false;
 // --- Data cache - edit according to the machine you're on --- //
 // ------------------------------------------------------------ //
 
-// Cirrascale machines:
 local t0_data_cache = "/data/cl/user/zfw/better-promptability/t0_cache/";
 
 // ----------------------------------------------------------- //
