@@ -3,7 +3,7 @@
 ################################
 torch==1.10.1
 ai2-tango[all]==0.5.0
-allennlp
+allennlp==2.9.0
 git+https://github.com/bigscience-workshop/promptsource.git@v0.1.0#egg=promptsource
 seqio==0.0.7
 py7zr==0.16.2
@@ -13,4 +13,4 @@ torchmetrics==0.6.2
 transformers==4.12.5
 tqdm==4.62.2
 learn2learn==0.1.6
-deepspeed
+deepspeed==0.5.10
