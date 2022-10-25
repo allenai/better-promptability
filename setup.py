@@ -52,6 +52,5 @@ setup(
         exclude=["*.tests", "*.tests.*", "tests.*", "tests"],
     ),
     install_requires=read_requirements("requirements.txt"),
-    extras_require={"dev": read_requirements("dev-requirements.txt")},
     python_requires=">=3.7, <3.8",  # restriction by promptsource
 )
