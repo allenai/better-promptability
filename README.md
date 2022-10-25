@@ -15,6 +15,8 @@ The official implementation for our paper:
 
 We provide a somewhat cleaned version of the codebase in the `main` branch. If you run into any issue, you can check out the `archive` branch for the original version that we used. For historical reasons, this repository is slightly over-engineered. For example, because eventually we just performed continued pretraining for one epoch, a lot of checkpointing related logic is unused.
 
+Feel free to open an issue if you have any questions.
+
 ## Pretrained Models
 
 We release our pretrained models at https://huggingface.co/ZhaofengWu/better-promptability.
