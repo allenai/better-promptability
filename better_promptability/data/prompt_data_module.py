@@ -28,7 +28,6 @@ class PromptDataModule(DataModule):
 
         super().__init__(config, **kwargs)
 
-        # Following T0 paper
         self.inputs_max_length = 768
         self.targets_max_length = 192
 
