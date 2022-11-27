@@ -1,6 +1,6 @@
 # Continued Pretraining for Better Zero- and Few-Shot Promptability
 
-The official implementation for our paper:
+The official implementation for our paper (http://arxiv.org/abs/2210.10258):
 
 ```bibtex
 @inproceedings{wu-etal-2022-continued,
